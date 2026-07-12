@@ -53,3 +53,6 @@ resources/cache/
 
 # apksigner v4 side output.
 *.idsig
+
+# Debug-signed builds stay local; only the release APK ships.
+/dist/*-debug.apk
