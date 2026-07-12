@@ -6,11 +6,22 @@ This project follows Keep a Changelog.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-12
+
 ### Added
+
+- Settings screen, opened by long pressing the clock: show seconds on/off, date format
+  (`Jul 12` or `07-12`), and start-when-charging on/off.
+- The supported Android range is stated in the README and shown on the settings screen.
 
 ### Changed
 
-### Fixed
+- The hour and the minute are bold and as large as the screen allows: the layout reserves space for
+  the smaller lines first and gives everything that is left to the big time. Lines that would be too
+  wide are scaled down instead of clipped.
+- Months are three-letter abbreviations (`Jul`) in both orientations.
+- All text is white; the secondary lines are no longer dimmed.
+- Turning the seconds off frees their line, and the hour and minute grow into it.
 
 ## [0.1.0] - 2026-07-12
 

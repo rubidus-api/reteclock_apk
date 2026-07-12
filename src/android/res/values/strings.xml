@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">reteclock</string>
-    <string name="charging_start_on">Clock will start when charging</string>
-    <string name="charging_start_off">Clock will not start when charging</string>
+    <string name="app_version">0.2.0</string>
+    <string name="settings_title">reteclock settings</string>
+    <string name="settings_show_seconds">Show seconds</string>
+    <string name="settings_date_format">Date format</string>
+    <string name="settings_date_name">Jul 12</string>
+    <string name="settings_date_numeric">07-12</string>
+    <string name="settings_dock">Dock</string>
+    <string name="settings_start_when_charging">Start when the charger is connected</string>
+    <string name="settings_about">reteclock %1$s\nRuns on Android 2.3 (API 9) and newer. Built for Android 4.4.\nThis device: Android %2$s</string>
 </resources>

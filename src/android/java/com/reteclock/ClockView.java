@@ -11,6 +11,7 @@ import android.view.View;
 
 import com.reteclock.core.BurnInShift;
 import com.reteclock.core.ClockLayout;
+import com.reteclock.core.ClockOptions;
 import com.reteclock.core.ClockText;
 
 /**
@@ -26,6 +27,10 @@ public class ClockView extends View {
     // Reused every frame: Dalvik collects garbage on the UI thread, so the draw path allocates nothing.
     private final Paint.FontMetrics fontMetrics = new Paint.FontMetrics();
 
+    private final Typeface regular = Typeface.create("sans-serif-light", Typeface.NORMAL);
+    private final Typeface bold = Typeface.create("sans-serif", Typeface.BOLD);
+
+    private ClockOptions options;
     private ClockLayout layout;
     private boolean running;
 
@@ -42,10 +47,17 @@ public class ClockView extends View {
 
     public ClockView(Context context) {
         super(context);
+        options = Settings.options(context);
         setBackgroundColor(Color.BLACK);
         paint.setColor(Color.WHITE);
         paint.setTextAlign(Paint.Align.CENTER);
-        paint.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
+    }
+
+    /** Re-reads the options, e.g. after the user comes back from the settings screen. */
+    public void reloadOptions() {
+        options = Settings.options(getContext());
+        layout = null;
+        invalidate();
     }
 
     /** Starts the once-per-second redraw. */
@@ -66,7 +78,7 @@ public class ClockView extends View {
     @Override
     protected void onSizeChanged(int w, int h, int oldW, int oldH) {
         super.onSizeChanged(w, h, oldW, oldH);
-        layout = ClockLayout.of(w, h);
+        layout = ClockLayout.of(w, h, options);
     }
 
     @Override
@@ -79,10 +91,10 @@ public class ClockView extends View {
             return;
         }
         if (layout == null) {
-            layout = ClockLayout.of(w, h);
+            layout = ClockLayout.of(w, h, options);
         }
 
-        ClockText time = ClockText.of(System.currentTimeMillis());
+        ClockText time = ClockText.of(System.currentTimeMillis(), options);
 
         int maxShift = BurnInShift.maxShiftPx(w, h);
         long elapsed = SystemClock.elapsedRealtime();
@@ -94,13 +106,13 @@ public class ClockView extends View {
             if (text == null) {
                 continue;
             }
+            paint.setTypeface(slot.bold ? bold : regular);
             paint.setTextSize(slot.textSize);
             float measured = paint.measureText(text);
             float fitted = ClockLayout.shrinkToFit(slot.textSize, measured, slot.maxWidth);
             if (fitted != slot.textSize) {
                 paint.setTextSize(fitted);
             }
-            paint.setAlpha(slot.alpha);
 
             // Center the glyphs vertically on slot.centerY.
             paint.getFontMetrics(fontMetrics);

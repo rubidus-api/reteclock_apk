@@ -18,43 +18,76 @@ class ClockTextTest {
         return c.getTimeInMillis();
     }
 
+    private static ClockText at(int year, int month, int day, int h, int m, int s, ClockOptions o) {
+        return ClockText.of(utc(year, month, day, h, m, s), UTC, o);
+    }
+
     @Test
     void formatsEveryFieldOfTheSampleInstant() {
-        ClockText t = ClockText.of(utc(2026, 7, 10, 13, 45, 25), UTC);
+        ClockText t = at(2026, 7, 10, 13, 45, 25, ClockOptions.defaults());
         assertEquals("13", t.hour);
         assertEquals("45", t.minute);
         assertEquals("25", t.second);
         assertEquals("25s", t.secondLabel);
         assertEquals("Fri", t.weekday);
-        assertEquals("July 10", t.monthDay);
+        assertEquals("Jul 10", t.monthDay);
         assertEquals("2026", t.year);
-        assertEquals("Fri, July 10", t.weekdayDate);
+        assertEquals("Fri, Jul 10", t.weekdayDate);
         assertEquals("13:45", t.hourMinute);
-        assertTrue(t.smallLine.startsWith("2026"));
-        assertTrue(t.smallLine.endsWith("25s"));
+        assertEquals("2026   25s", t.smallLine);
+    }
+
+    @Test
+    void everyMonthIsAThreeLetterAbbreviation() {
+        String[] expected = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                             "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+        for (int month = 1; month <= 12; month++) {
+            ClockText t = at(2026, month, 5, 0, 0, 0, ClockOptions.defaults());
+            assertEquals(expected[month - 1] + " 5", t.monthDay);
+            assertEquals(3, expected[month - 1].length());
+        }
+    }
+
+    @Test
+    void numericDateStyleWritesMonthFirstAndZeroPadded() {
+        ClockOptions numeric = new ClockOptions(true, ClockOptions.DATE_STYLE_NUMERIC);
+        ClockText t = at(2026, 7, 12, 9, 5, 0, numeric);
+        assertEquals("07-12", t.monthDay);
+        assertEquals("Sun, 07-12", t.weekdayDate);
+
+        ClockText december = at(2026, 12, 31, 9, 5, 0, numeric);
+        assertEquals("12-31", december.monthDay);
+    }
+
+    @Test
+    void hidingTheSecondsRemovesThemFromTheSmallLine() {
+        ClockOptions noSeconds = new ClockOptions(false, ClockOptions.DATE_STYLE_NAME);
+        ClockText t = at(2026, 7, 12, 13, 45, 25, noSeconds);
+        assertEquals("2026", t.smallLine);
+        assertEquals("25s", t.secondLabel, "the string still exists; the layout decides to skip it");
     }
 
     @Test
     void usesTwentyFourHourClockWithZeroPadding() {
-        ClockText midnight = ClockText.of(utc(2026, 1, 1, 0, 5, 9), UTC);
+        ClockText midnight = at(2026, 1, 1, 0, 5, 9, ClockOptions.defaults());
         assertEquals("00", midnight.hour);
         assertEquals("05", midnight.minute);
         assertEquals("09", midnight.second);
 
-        ClockText evening = ClockText.of(utc(2026, 12, 31, 23, 59, 59), UTC);
+        ClockText evening = at(2026, 12, 31, 23, 59, 59, ClockOptions.defaults());
         assertEquals("23", evening.hour);
         assertEquals("59", evening.minute);
-        assertEquals("December 31", evening.monthDay);
+        assertEquals("Dec 31", evening.monthDay);
     }
 
     @Test
-    void weekdayNamesStayEnglishRegardlessOfDefaultLocale() {
+    void weekdayAndMonthNamesStayEnglishRegardlessOfDefaultLocale() {
         java.util.Locale previous = java.util.Locale.getDefault();
         try {
             java.util.Locale.setDefault(java.util.Locale.KOREA);
-            ClockText t = ClockText.of(utc(2026, 7, 12, 8, 0, 0), UTC);
+            ClockText t = at(2026, 7, 12, 8, 0, 0, ClockOptions.defaults());
             assertEquals("Sun", t.weekday);
-            assertEquals("July 12", t.monthDay);
+            assertEquals("Jul 12", t.monthDay);
         } finally {
             java.util.Locale.setDefault(previous);
         }
@@ -64,6 +97,6 @@ class ClockTextTest {
     void redrawTicksAlignToTheSecondBoundary() {
         assertEquals(1000L, ClockText.millisToNextSecond(utc(2026, 7, 10, 13, 45, 25)));
         assertEquals(750L, ClockText.millisToNextSecond(utc(2026, 7, 10, 13, 45, 25) + 250L));
-        assertEquals(1L, ClockText.millisToNextSecond(utc(2026, 7, 10, 13, 45, 25) + 999L));
+        assertTrue(ClockText.millisToNextSecond(utc(2026, 7, 10, 13, 45, 25) + 999L) == 1L);
     }
 }

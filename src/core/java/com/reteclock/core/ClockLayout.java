@@ -4,28 +4,32 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Geometry of the clock face for a given screen size.
+ * Geometry of the clock face for a given screen size and set of options.
  *
- * The layout only decides which text goes where, how large it is, and how bright it is.
- * The view measures the actual glyphs with a Paint and calls {@link #shrinkToFit} when a
- * string turns out wider than its box, so this class stays free of android.* imports and
- * can be unit tested on a plain JVM.
+ * The hour and the minute get every pixel the secondary lines do not need: the layout first
+ * reserves space for the smaller lines and the gaps, then hands the rest to the big time. The view
+ * measures the actual glyphs with a Paint and calls {@link #shrinkToFit} when a string is wider than
+ * its box, so a long string is scaled down instead of being clipped. This class stays free of
+ * android.* imports and is unit tested on a plain JVM.
  *
  * Wide screens (width > height):
  *
  *   +---------------------------+--------------+
  *   |                           |  25s         |
  *   |        13:45              |  Sun         |
- *   |                           |  July 10     |
+ *   |         (bold)            |  Jul 12      |
  *   |                           |  2026        |
  *   +---------------------------+--------------+
  *
  * Tall screens (height >= width):
  *
- *   13            (hour)
- *   45            (minute)
- *   Sun, July 10  (weekday and date)
- *   2026   25s    (year and seconds)
+ *   13            (hour, bold)
+ *   45            (minute, bold)
+ *   Sun, Jul 12
+ *   2026   25s
+ *
+ * The seconds line disappears when the user turns the seconds off; the freed space goes to the
+ * hour and the minute.
  */
 public final class ClockLayout {
 
@@ -40,7 +44,7 @@ public final class ClockLayout {
     public static final String ROLE_WEEKDAY_DATE = "weekday_date";
     public static final String ROLE_SMALL_LINE = "small_line";
 
-    /** One line of text: what it is, where its center sits, how big it is, how bright it is. */
+    /** One line of text: what it is, where its center sits, how big it is, whether it is bold. */
     public static final class Slot {
         public final String role;
         /** Center x of the text box, in pixels. */
@@ -51,22 +55,18 @@ public final class ClockLayout {
         public final float textSize;
         /** Width the text must fit into, in pixels. */
         public final float maxWidth;
-        /** Alpha 0..255. Secondary lines are dimmer than the main time. */
-        public final int alpha;
+        /** True for the hour and the minute, which are drawn bold. */
+        public final boolean bold;
 
-        Slot(String role, float centerX, float centerY, float textSize, float maxWidth, int alpha) {
+        Slot(String role, float centerX, float centerY, float textSize, float maxWidth, boolean bold) {
             this.role = role;
             this.centerX = centerX;
             this.centerY = centerY;
             this.textSize = textSize;
             this.maxWidth = maxWidth;
-            this.alpha = alpha;
+            this.bold = bold;
         }
     }
-
-    private static final int ALPHA_PRIMARY = 255;
-    private static final int ALPHA_SECONDARY = 190;
-    private static final int ALPHA_TERTIARY = 140;
 
     /** Fraction of a wide screen given to the big time block. */
     private static final float WIDE_MAIN_FRACTION = 0.62f;
@@ -93,11 +93,13 @@ public final class ClockLayout {
     }
 
     /** Builds the layout for a screen of the given pixel size. */
-    public static ClockLayout of(int widthPx, int heightPx) {
-        return widthPx > heightPx ? wide(widthPx, heightPx) : tall(widthPx, heightPx);
+    public static ClockLayout of(int widthPx, int heightPx, ClockOptions options) {
+        return widthPx > heightPx
+                ? wide(widthPx, heightPx, options)
+                : tall(widthPx, heightPx, options);
     }
 
-    private static ClockLayout wide(int w, int h) {
+    private static ClockLayout wide(int w, int h, ClockOptions options) {
         float pad = Math.min(w, h) * PADDING_FRACTION;
         float mainWidth = w * WIDE_MAIN_FRACTION;
         float sideWidth = w - mainWidth;
@@ -105,38 +107,61 @@ public final class ClockLayout {
         float sideBoxWidth = sideWidth - 2f * pad;
 
         List<Slot> out = new ArrayList<Slot>(5);
+
+        // The big time takes the full height between the paddings; the view scales it down only if
+        // it would be wider than its half of the screen.
         out.add(new Slot(ROLE_HOUR_MINUTE, mainWidth / 2f, h / 2f,
-                h * 0.60f, mainWidth - 2f * pad, ALPHA_PRIMARY));
+                h - 2f * pad, mainWidth - 2f * pad, true));
 
-        // Four stacked lines on the right, as a block centered vertically.
-        float[] sizes = {h * 0.13f, h * 0.15f, h * 0.13f, h * 0.11f};
-        String[] roles = {ROLE_SECOND, ROLE_WEEKDAY, ROLE_MONTH_DAY, ROLE_YEAR};
-        int[] alphas = {ALPHA_TERTIARY, ALPHA_SECONDARY, ALPHA_SECONDARY, ALPHA_TERTIARY};
-        float lineGap = h * 0.045f;
+        List<String> roles = new ArrayList<String>(4);
+        List<Float> sizes = new ArrayList<Float>(4);
+        if (options.showSeconds) {
+            roles.add(ROLE_SECOND);
+            sizes.add(h * 0.13f);
+        }
+        roles.add(ROLE_WEEKDAY);
+        sizes.add(h * 0.15f);
+        roles.add(ROLE_MONTH_DAY);
+        sizes.add(h * 0.13f);
+        roles.add(ROLE_YEAR);
+        sizes.add(h * 0.11f);
 
-        float blockHeight = lineGap * (sizes.length - 1);
-        for (int i = 0; i < sizes.length; i++) {
-            blockHeight += sizes[i];
+        float lineGap = h * 0.05f;
+        float blockHeight = lineGap * (sizes.size() - 1);
+        for (float size : sizes) {
+            blockHeight += size;
         }
         float cursor = h / 2f - blockHeight / 2f;
-        for (int i = 0; i < sizes.length; i++) {
-            float centerY = cursor + sizes[i] / 2f;
-            out.add(new Slot(roles[i], sideCenterX, centerY, sizes[i], sideBoxWidth, alphas[i]));
-            cursor += sizes[i] + lineGap;
+        for (int i = 0; i < sizes.size(); i++) {
+            float size = sizes.get(i);
+            out.add(new Slot(roles.get(i), sideCenterX, cursor + size / 2f, size, sideBoxWidth, false));
+            cursor += size + lineGap;
         }
         return new ClockLayout(true, out);
     }
 
-    private static ClockLayout tall(int w, int h) {
+    private static ClockLayout tall(int w, int h, ClockOptions options) {
         float pad = Math.min(w, h) * PADDING_FRACTION;
         float boxWidth = w - 2f * pad;
         float centerX = w / 2f;
 
+        float dateSize = h * 0.075f;
+        float smallSize = h * 0.050f;
+        float gap = h * 0.020f;
+
+        // Whatever the small lines and the gaps do not need is split between the hour and the minute.
+        float reserved = 2f * pad + dateSize + smallSize + 3f * gap;
+        float mainSize = (h - reserved) / 2f;
+
         List<Slot> out = new ArrayList<Slot>(4);
-        out.add(new Slot(ROLE_HOUR, centerX, h * 0.20f, h * 0.26f, boxWidth, ALPHA_PRIMARY));
-        out.add(new Slot(ROLE_MINUTE, centerX, h * 0.48f, h * 0.26f, boxWidth, ALPHA_PRIMARY));
-        out.add(new Slot(ROLE_WEEKDAY_DATE, centerX, h * 0.71f, h * 0.075f, boxWidth, ALPHA_SECONDARY));
-        out.add(new Slot(ROLE_SMALL_LINE, centerX, h * 0.85f, h * 0.045f, boxWidth, ALPHA_TERTIARY));
+        float cursor = pad;
+        out.add(new Slot(ROLE_HOUR, centerX, cursor + mainSize / 2f, mainSize, boxWidth, true));
+        cursor += mainSize + gap;
+        out.add(new Slot(ROLE_MINUTE, centerX, cursor + mainSize / 2f, mainSize, boxWidth, true));
+        cursor += mainSize + gap;
+        out.add(new Slot(ROLE_WEEKDAY_DATE, centerX, cursor + dateSize / 2f, dateSize, boxWidth, false));
+        cursor += dateSize + gap;
+        out.add(new Slot(ROLE_SMALL_LINE, centerX, cursor + smallSize / 2f, smallSize, boxWidth, false));
         return new ClockLayout(false, out);
     }
 

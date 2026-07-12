@@ -1,12 +1,11 @@
 package com.reteclock;
 
 import android.app.Activity;
-import android.content.SharedPreferences;
+import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.Toast;
 
 /**
  * Full-screen clock activity.
@@ -14,7 +13,7 @@ import android.widget.Toast;
  * Launched from the home screen, from a desk dock, or by {@link PowerConnectionReceiver} when the
  * device starts charging. It keeps the screen on for as long as it is visible.
  *
- * A long press toggles the "start when charging" setting, which is the only setting the app has.
+ * A long press opens the settings screen.
  */
 public class ClockActivity extends Activity {
 
@@ -41,7 +40,7 @@ public class ClockActivity extends Activity {
         view.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
-                toggleStartWhenCharging();
+                startActivity(new Intent(ClockActivity.this, SettingsActivity.class));
                 return true;
             }
         });
@@ -60,6 +59,8 @@ public class ClockActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        // The user may have just changed the options in the settings screen.
+        view.reloadOptions();
         view.start();
     }
 
@@ -69,14 +70,6 @@ public class ClockActivity extends Activity {
         super.onPause();
     }
 
-    private void toggleStartWhenCharging() {
-        SharedPreferences prefs = Settings.prefs(this);
-        boolean enabled = !Settings.startWhenCharging(this);
-        prefs.edit().putBoolean(Settings.KEY_START_WHEN_CHARGING, enabled).commit();
-        Toast.makeText(this,
-                enabled ? R.string.charging_start_on : R.string.charging_start_off,
-                Toast.LENGTH_SHORT).show();
-    }
 
     /**
      * Hides the status and navigation bars where the platform supports it.

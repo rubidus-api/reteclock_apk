@@ -8,7 +8,18 @@ it draws so an OLED panel does not burn in.
 
 ## Status
 
-Working APK, version 0.1.0. Reference platform: Android 4.4 KitKat (API 19).
+Working APK, version 0.2.0. Reference platform: Android 4.4 KitKat (API 19).
+
+## Supported Android versions
+
+| | |
+|---|---|
+| Minimum | **Android 2.3 Gingerbread (API 9)** |
+| Built and tested on | **Android 4.4 KitKat (API 19)** — the reference platform |
+| Maximum | **no upper limit**: `targetSdkVersion 28` keeps current Android versions (14, 15, 16 …) willing to install the APK |
+
+The settings screen shows the same range on the device, together with the Android version it is
+running on.
 
 ## What it looks like
 
@@ -18,7 +29,7 @@ Wide screen (landscape):
 +------------------------------+-------------+
 |                              |   25s       |
 |          13:45               |   Sun       |
-|                              |   July 10   |
+|          (bold)              |   Jul 12    |
 |                              |   2026      |
 +------------------------------+-------------+
 ```
@@ -26,11 +37,14 @@ Wide screen (landscape):
 Tall screen (portrait):
 
 ```text
-        13
-        45
-   Sun, July 10
-    2026   25s
+        13        (bold)
+        45        (bold)
+    Sun, Jul 12
+     2026   25s
 ```
+
+The hour and the minute are bold and take every pixel the other lines do not need. The remaining
+lines are scaled to the space that is left, so nothing is ever clipped. All text is white.
 
 ## Compatibility
 
@@ -42,10 +56,18 @@ Tall screen (portrait):
   versions accept it.
 - Only a normal permission (`WAKE_LOCK`); nothing is requested at runtime.
 
+## Settings
+
+Long press the clock to open the settings screen:
+
+- **Show seconds** — on or off. With the seconds off, the hour and the minute grow into the freed space.
+- **Date format** — `Jul 12` (abbreviated month name) or `07-12` (numeric).
+- **Start when the charger is connected** — on or off.
+
 ## How it starts
 
 - From the launcher, like any app.
-- Automatically when the charger is connected (long press the clock to turn that on or off).
+- Automatically when the charger is connected (turn this on or off in the settings).
   Android 10 and newer block starting an activity from the background, so on those devices use
   the launcher or the screensaver instead.
 - As a system screensaver (Daydream) on Android 4.2 and newer:
