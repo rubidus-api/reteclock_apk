@@ -1,0 +1,167 @@
+{
+  "schema": 1,
+  "package": "rootsator-bootstrap",
+  "version": "0.5.0",
+  "root_launcher": "AGENTS.md",
+  "boot_dir": "boot",
+  "required_boot_files": [
+    "boot/INIT.md",
+    "boot/BOOT.md",
+    "boot/AGENTS_template.md",
+    "boot/MIGRATION_PROMPT.md",
+    "boot/gitignore_template",
+    "boot/RELEASE_NOTES.md",
+    "boot/scripts/lint-init.sh",
+    "boot/scripts/migrate-existing-project.sh",
+    "boot/scripts/verify-bootstrap.sh",
+    "boot/script_templates/README.md",
+    "boot/script_templates/check-tools.sh",
+    "boot/script_templates/project-check.sh",
+    "boot/script_templates/new-plan.sh",
+    "boot/script_templates/archive-plan.sh",
+    "boot/script_templates/changelog-entry.sh",
+    "boot/agent_docs/README.md",
+    "boot/agent_docs/workflow.md",
+    "boot/agent_docs/tdd.md",
+    "boot/agent_docs/privacy.md",
+    "boot/agent_docs/build.md",
+    "boot/agent_docs/resources.md",
+    "boot/agent_docs/state.md"
+  ],
+  "copy_to_target": [
+    {
+      "source": "boot/AGENTS_template.md",
+      "target": "AGENTS.md",
+      "mode": "replace-after-bootstrap"
+    },
+    {
+      "source": "boot/gitignore_template",
+      "target": ".gitignore",
+      "mode": "append-missing-lines"
+    },
+    {
+      "source": "boot/script_templates/README.md",
+      "target": "scripts/README.md",
+      "mode": "copy-if-missing"
+    },
+    {
+      "source": "boot/script_templates/check-tools.sh",
+      "target": "scripts/check-tools.sh",
+      "mode": "copy-if-missing"
+    },
+    {
+      "source": "boot/script_templates/project-check.sh",
+      "target": "scripts/project-check.sh",
+      "mode": "copy-if-missing"
+    },
+    {
+      "source": "boot/script_templates/new-plan.sh",
+      "target": "scripts/new-plan.sh",
+      "mode": "copy-if-missing"
+    },
+    {
+      "source": "boot/script_templates/archive-plan.sh",
+      "target": "scripts/archive-plan.sh",
+      "mode": "copy-if-missing"
+    },
+    {
+      "source": "boot/script_templates/changelog-entry.sh",
+      "target": "scripts/changelog-entry.sh",
+      "mode": "copy-if-missing"
+    },
+    {
+      "source": "boot/agent_docs/README.md",
+      "target": "docs/agents/README.md",
+      "mode": "copy-if-missing"
+    },
+    {
+      "source": "boot/agent_docs/workflow.md",
+      "target": "docs/agents/workflow.md",
+      "mode": "copy-if-missing"
+    },
+    {
+      "source": "boot/agent_docs/tdd.md",
+      "target": "docs/agents/tdd.md",
+      "mode": "copy-if-missing"
+    },
+    {
+      "source": "boot/agent_docs/privacy.md",
+      "target": "docs/agents/privacy.md",
+      "mode": "copy-if-missing"
+    },
+    {
+      "source": "boot/agent_docs/build.md",
+      "target": "docs/agents/build.md",
+      "mode": "copy-if-missing"
+    },
+    {
+      "source": "boot/agent_docs/resources.md",
+      "target": "docs/agents/resources.md",
+      "mode": "copy-if-missing"
+    },
+    {
+      "source": "boot/agent_docs/state.md",
+      "target": "docs/agents/state.md",
+      "mode": "copy-if-missing"
+    }
+  ],
+  "create_directories": [
+    "docs/manual",
+    "docs/agents",
+    "docs/rfc",
+    "docs/research",
+    "docs/benchmark/results",
+    "docs/backlogs/items",
+    "docs/handoffs/archive",
+    "docs/plans/active",
+    "docs/plans/archive",
+    "docs/requirements",
+    "docs/resources",
+    "docs/tests/cases",
+    "scripts",
+    "resources/distribution",
+    "resources/prep",
+    "resources/cache",
+    "build/tests",
+    "build/dist",
+    "tests",
+    "dist"
+  ],
+  "create_files": [
+    "README.md",
+    "CHANGELOG.md",
+    ".gitignore",
+    "CONTEXT.md",
+    "MEMORY.md",
+    "SPEC.md",
+    "REQUIREMENTS.md",
+    "DECISIONS.md",
+    "LESSONS.md",
+    "TESTS.md",
+    "BACKLOGS.md",
+    "HANDOFF.md",
+    "CHECKLIST.md",
+    "WORKLOG.md",
+    "docs/manual/README.md",
+    "docs/rfc/rfc-0000-index.md",
+    "docs/research/README.md",
+    "docs/benchmark/README.md",
+    "docs/backlogs/README.md",
+    "docs/backlogs/backlog-index.md",
+    "docs/handoffs/README.md",
+    "docs/handoffs/archive/README.md",
+    "docs/plans/README.md",
+    "docs/requirements/requirements-log.md",
+    "docs/requirements/conflicts.md",
+    "docs/resources/README.md",
+    "docs/resources/resource-index.md",
+    "docs/resources/sources-and-licenses.md",
+    "docs/tests/README.md",
+    "docs/tests/test-index.md",
+    "docs/tests/cases/T000-bootstrap.md"
+  ],
+  "validation": {
+    "init_lint": "boot/scripts/lint-init.sh",
+    "dry_run": "boot/scripts/verify-bootstrap.sh"
+  }
+}

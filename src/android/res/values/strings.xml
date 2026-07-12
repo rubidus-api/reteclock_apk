@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">reteclock</string>
+    <string name="charging_start_on">Clock will start when charging</string>
+    <string name="charging_start_off">Clock will not start when charging</string>
+</resources>
