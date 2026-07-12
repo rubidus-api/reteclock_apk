@@ -50,3 +50,6 @@ resources/cache/
 
 # Local toolchain paths.
 /scripts/env.local.sh
+
+# apksigner v4 side output.
+*.idsig
