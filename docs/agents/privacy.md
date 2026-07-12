@@ -35,3 +35,23 @@ Use project `DECISIONS.md` only for non-secret accepted decisions. Put private d
 Before git operations or public output, run `git status`, review `git diff`, and scan for private data.
 
 Apply the same privacy rules to `BACKLOGS.md`, `HANDOFF.md`, detailed backlog items, handoff archives, and migration notes. These files often capture recent work and must not contain secrets, local absolute paths, private host details, token filenames, or private account data.
+
+## Commit Identity
+
+Every commit — in every repository, public, private, or local-only — must be authored **and**
+committed as the owner's single configured git identity.
+
+- Use the identity from the global git config. Never override `user.name` / `user.email` per commit
+  or per repository, and never invent a per-project author name.
+- Never add `Co-Authored-By:` trailers (AI assistants included). No second name may appear in the
+  history or in the hosting service's contributor list.
+- Before the first push of a new repository, check
+  `git log --pretty='%an <%ae> | %cn <%ce>'`. If a wrong identity slipped in, rewrite the history
+  before pushing.
+- If a wrong identity was already pushed, ask the owner before force-pushing, then rewrite with
+  `git filter-branch --env-filter` (or `git-filter-repo`) and force-push.
+
+An identity is also personal data: keep the concrete name and address in the owner's local
+configuration, not in project documentation.
+
+Apply the same privacy rules to `BACKLOGS.md`, `HANDOFF.md`, detailed backlog items, handoff archives, and migration notes. These files often capture recent work and must not contain secrets, local absolute paths, private host details, token filenames, or private account data.
