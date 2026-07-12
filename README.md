@@ -28,6 +28,32 @@ Working APK, version 0.2.0. Reference platform: Android 4.4 KitKat (API 19).
 The settings screen shows the same range on the device, together with the Android version it is
 running on.
 
+## What it is for
+
+An old Android phone in a drawer is still a perfectly good screen with a perfectly good clock in it.
+This app is for exactly that: put the phone on a stand, plug in the charger, and let it be a bedside
+or desk clock.
+
+Old phones are hard to use for much else. Google has been retiring the old Android versions step by
+step — signing in to a Google account stopped working on Android 2.3.7 and older in September 2021,
+Google Play services stopped shipping updates for Android 4.4 KitKat in 2023, and most apps in the
+Play Store now require a much newer Android. A phone that can no longer install anything can still
+show the time.
+
+So reteclock asks for nothing: no Play Store, no Google account, no network, no permissions beyond
+keeping the screen awake. Copy the APK to the phone, open it, and the phone has a job again.
+
+## The name
+
+**rete** is Latin for *net*, and *-clock* is just a clock.
+
+The intended pronunciation is the Latin one: **RAY-teh** (two syllables, `rē-te`; the first vowel is
+the long *e* of *they*, and the final *e* is pronounced, never silent).
+
+If you would rather say it the way English usually treats this word, that is fine too. English
+borrowed *rete* as an anatomical term and pronounces it **REE-tee**, so "REE-tee-clock" is a
+perfectly good reading. Say it however you like; the clock does not mind.
+
 ## What it looks like
 
 Screenshots taken on Android 4.4.2.
