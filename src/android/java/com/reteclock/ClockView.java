@@ -23,6 +23,8 @@ public class ClockView extends View {
 
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Handler handler = new Handler();
+    // Reused every frame: Dalvik collects garbage on the UI thread, so the draw path allocates nothing.
+    private final Paint.FontMetrics fontMetrics = new Paint.FontMetrics();
 
     private ClockLayout layout;
     private boolean running;
@@ -101,8 +103,8 @@ public class ClockView extends View {
             paint.setAlpha(slot.alpha);
 
             // Center the glyphs vertically on slot.centerY.
-            Paint.FontMetrics fm = paint.getFontMetrics();
-            float baseline = slot.centerY - (fm.ascent + fm.descent) / 2f;
+            paint.getFontMetrics(fontMetrics);
+            float baseline = slot.centerY - (fontMetrics.ascent + fontMetrics.descent) / 2f;
             canvas.drawText(text, slot.centerX, baseline, paint);
         }
         canvas.restore();

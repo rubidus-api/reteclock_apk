@@ -6,13 +6,16 @@
 # Boots a headless API 19 emulator, installs the APK, starts the clock in portrait and in
 # landscape, and pulls a screenshot of each. Screenshots land in build/verify/.
 #
-# The x86 system images need KVM; this script therefore uses the armeabi-v7a image, which runs
-# under plain emulation. It is slow (several minutes to boot) but needs no special host support.
+# Use the x86 system image. Current emulator releases no longer run 32-bit ARM guests
+# ("CPU Architecture 'arm' is not supported by the QEMU2 emulator"), and the x86 image also boots
+# without KVM, just slowly, under plain emulation.
 #
-# Requirements: the emulator package, system-images;android-19;default;armeabi-v7a, and an AVD.
+# Requirements: the emulator package, system-images;android-19;default;x86, and an AVD. Note that
+# avdmanager needs ANDROID_AVD_HOME to exist, and exits 0 without creating anything if it does not:
 #
-#   sdkmanager "emulator" "system-images;android-19;default;armeabi-v7a"
-#   avdmanager create avd -n kitkat -k "system-images;android-19;default;armeabi-v7a" -d "Nexus 4"
+#   sdkmanager "emulator" "platform-tools" "system-images;android-19;default;x86"
+#   export ANDROID_AVD_HOME="$HOME/.android/avd" && mkdir -p "$ANDROID_AVD_HOME"
+#   avdmanager create avd -n kitkat_x86 -k "system-images;android-19;default;x86"
 
 set -e
 
@@ -22,7 +25,7 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 require_jdk
 require_sdk
 
-AVD="${RETECLOCK_AVD:-kitkat}"
+AVD="${RETECLOCK_AVD:-kitkat_x86}"
 APK="${1:-}"
 if [ -z "$APK" ]; then
     APK=$(ls -t "$ROOT"/dist/*.apk 2>/dev/null | head -1)
@@ -42,21 +45,38 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo "==> booting $AVD (armeabi-v7a, no KVM: this takes a few minutes)"
-"$EMULATOR" -avd "$AVD" -no-window -no-audio -no-snapshot -no-boot-anim -gpu off \
+# Without KVM the emulator refuses to start unless acceleration is explicitly turned off.
+ACCEL=""
+[ -w /dev/kvm ] || ACCEL="-accel off"
+
+echo "==> booting $AVD (this takes several minutes without KVM)"
+# shellcheck disable=SC2086
+"$EMULATOR" -avd "$AVD" -no-window -no-audio -no-snapshot -no-boot-anim \
+    -gpu swiftshader_indirect -partition-size 2048 -wipe-data $ACCEL \
     >"$OUT/emulator.log" 2>&1 &
 
 "$ADB" wait-for-device
 i=0
 while [ "$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r\n')" != "1" ]; do
     i=$((i + 1))
-    [ "$i" -gt 180 ] && fail "emulator did not finish booting"
-    sleep 10
+    [ "$i" -gt 120 ] && fail "emulator did not finish booting"
+    sleep 15
 done
 echo "    booted: Android $("$ADB" shell getprop ro.build.version.release | tr -d '\r\n')" \
      "(API $("$ADB" shell getprop ro.build.version.sdk | tr -d '\r\n'))"
 
+# sys.boot_completed can be set before the package manager can serve installs, and adb install then
+# fails with INSTALL_FAILED_INVALID_URI. Wait for pm itself.
+echo "==> waiting for the package manager"
+i=0
+until "$ADB" shell pm list packages 2>/dev/null | grep -q "package:android"; do
+    i=$((i + 1))
+    [ "$i" -gt 40 ] && fail "package manager never came up"
+    sleep 15
+done
+
 echo "==> install"
+"$ADB" logcat -c || true
 "$ADB" install -r "$APK"
 
 "$ADB" shell settings put system accelerometer_rotation 0
@@ -66,7 +86,7 @@ shoot() {
     name=$2
     "$ADB" shell settings put system user_rotation "$rotation"
     "$ADB" shell am start -n com.reteclock/.ClockActivity >/dev/null
-    sleep 6
+    sleep 25
     "$ADB" shell screencap -p /sdcard/reteclock.png
     "$ADB" pull /sdcard/reteclock.png "$OUT/$name.png" >/dev/null
     echo "    wrote build/verify/$name.png"
