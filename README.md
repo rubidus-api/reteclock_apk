@@ -104,18 +104,20 @@ Java, Android framework only. Built with the Android SDK command-line tools (`aa
 ## Build
 
 ```sh
-scripts/test.sh          # JVM unit tests for the clock core
-scripts/build.sh         # dist/reteclock-<version>-debug.apk
-scripts/build.sh --release
+export JAVA_HOME=/path/to/jdk-17
+export ANDROID_SDK_ROOT=/path/to/android-sdk   # build-tools 34.0.0 + platforms;android-19
+
+scripts/build.sh             # dist/reteclock-<version>-debug.apk, signed with a local dev key
+scripts/build.sh --release   # signed with your own release key (RETECLOCK_KEYSTORE)
 ```
 
-Set `JAVA_HOME`, `ANDROID_SDK_ROOT` and `JUNIT_JAR` first; see `scripts/env.sh` and
-`docs/manual/build.md`.
+`scripts/build.sh` runs `aapt2` → `javac` (source 8, against the API 19 platform) → `d8`
+(`--min-api 9`) → `zipalign` → `apksigner` (v1 + v2 + v3). It needs a JDK, the Android SDK
+command-line tools, and Python 3. Nothing else — no Gradle, no downloads, no dependencies.
+See `scripts/env.sh` for every variable it reads.
 
-## Documentation
-
-- `docs/manual/` — build and install instructions
-- `docs/agents/` — working rules for AI-assisted sessions
+This repository publishes only what is needed to build the app, plus this README and its
+screenshots. Working notes, plans and test scaffolding are kept out of it on purpose.
 
 ## License
 

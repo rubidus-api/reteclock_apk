@@ -1,58 +1,38 @@
-# ── Local operating docs ───────────────────────────────────────────────
-# Working AI/operating state, kept local by default. Only the root-level files
-# below are ignored; durable, shareable docs (README.md, CHANGELOG.md,
-# DECISIONS.md, docs/) stay tracked. To version-control these instead, set
-# "Operating docs tracking: tracked" in INIT.md and delete this block.
-/AGENTS.md
-/CONTEXT.md
-/MEMORY.md
-/BACKLOGS.md
-/HANDOFF.md
-# Legacy rootsator <=0.4 projects may still have TODO.md; keep it local if present.
-/TODO.md
-/CHECKLIST.md
-/WORKLOG.md
-/SPEC.md
-/REQUIREMENTS.md
-/LESSONS.md
-/TESTS.md
-*.local.md
+# Allowlist: this repository publishes only what a person needs to build the app,
+# plus the README and the screenshots it shows. Everything else — working notes,
+# operating docs, plans, test scaffolding, private material, build output, release
+# artifacts (they live on the Releases page) — stays local by design.
+#
+# Ignore everything, then re-allow the public surface, so a new file is never
+# published by accident.
 
-# ── Private material and credentials ────────────────────────────────────
-# Containment beats guessing: keep ANYTHING sensitive inside one of these
-# ignored directories. Then the rest of the project can be fully git-tracked
-# without enumerating secret filenames. Do NOT add broad filename globs such as
-# *token* or *secret* or *.key — they also hide normal source (tokenizer.c,
-# Keynote .key files, etc.).
-*_private/
-*_internal/
-secrets/
+/*
 
-# Environment files are the one common in-place secret; commit a template instead.
-.env
-.env.*
-!.env.example
-!.env.sample
+!/.gitignore
+!/README.md
+!/LICENSE
 
-# ── Cold planning history and generated output ──────────────────────────
-docs/plans/active/*.md
-docs/plans/archive/*.md
-!docs/plans/active/README.md
-!docs/plans/archive/README.md
-build/
-resources/prep/
-resources/cache/
+# Sources and resources needed to compile the APK.
+!/src/
 
-# ── Common local noise ──────────────────────────────────────────────────
-.DS_Store
-*.tmp
-*.log
+# Build scripts needed to produce the APK.
+!/scripts/
+/scripts/*
+!/scripts/env.sh
+!/scripts/build.sh
+!/scripts/add-to-zip.py
 
-# Local toolchain paths.
-/scripts/env.local.sh
+# Regenerates the launcher icons that live in src/.
+!/tools/
+/tools/*
+!/tools/make-icons.py
 
-# apksigner v4 side output.
+# Only the screenshots the README embeds.
+!/docs/
+/docs/*
+!/docs/screenshots/
+
+# Local toolchain paths and signing material are never published.
+scripts/env.local.sh
+*.keystore
 *.idsig
-
-# Debug-signed builds stay local; only the release APK ships.
-/dist/*-debug.apk
