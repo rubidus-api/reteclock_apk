@@ -87,8 +87,8 @@ shoot() {
     "$ADB" shell settings put system user_rotation "$rotation"
     "$ADB" shell am start -n com.reteclock/.ClockActivity >/dev/null
     sleep 25
-    "$ADB" shell screencap -p /sdcard/reteclock.png
-    "$ADB" pull /sdcard/reteclock.png "$OUT/$name.png" >/dev/null
+    "$ADB" shell screencap -p /data/local/tmp/reteclock.png
+    "$ADB" pull /data/local/tmp/reteclock.png "$OUT/$name.png" >/dev/null
     echo "    wrote build/verify/$name.png"
     "$ADB" shell am force-stop com.reteclock
 }
