@@ -24,3 +24,15 @@ Detailed provenance, copyright, license, attribution, and redistribution notes.
 - Distribution: no.
 - Notes: the app ships no font file, which keeps the APK small and avoids font licensing entirely.
   On Android 4.1 and newer `sans-serif-light` exists; older devices fall back to the default sans.
+
+## R003: Verification screenshots
+
+- Source: produced by `scripts/verify-kitkat.sh` from this project running on an Android 4.4.2
+  emulator.
+- Author: project.
+- License: MIT, same as the project.
+- Retrieved: 2026-07-12.
+- Local path: `docs/manual/images/kitkat-portrait.png`, `docs/manual/images/kitkat-landscape.png`
+- Distribution: no; documentation only, not part of the APK.
+- Notes: the landscape shot is rotated upright because `screencap` on API 19 writes the framebuffer
+  in the device's native portrait orientation.

@@ -40,3 +40,11 @@ while charging.
 
 The clock moves its content by a few pixels once a minute, so an OLED panel does not keep the same
 bright pixels lit. This is intentional and cannot be turned off.
+
+## Verified screenshots (Android 4.4.2, API 19)
+
+Taken by `scripts/verify-kitkat.sh` on an API 19 system image.
+
+![Portrait](images/kitkat-portrait.png)
+
+![Landscape](images/kitkat-landscape.png)
