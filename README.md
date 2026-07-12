@@ -6,6 +6,13 @@ Plug the phone into a charger, put it on a stand, and it shows the time in large
 weekday and date. It keeps the screen on, adapts to landscape and portrait, and slowly shifts what
 it draws so an OLED panel does not burn in.
 
+## Download
+
+**[⬇ Download reteclock-0.2.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/latest/download/reteclock-0.2.0.apk)** — 58 KB, installs on Android 2.3 and newer.
+
+Open the file on the phone to install it. On Android 4.4, enable Settings > Security > Unknown
+sources first. All releases: [Releases](https://github.com/rubidus-api/reteclock_apk/releases).
+
 ## Status
 
 Working APK, version 0.2.0. Reference platform: Android 4.4 KitKat (API 19).
@@ -23,25 +30,11 @@ running on.
 
 ## What it looks like
 
-Wide screen (landscape):
+Screenshots taken on Android 4.4.2.
 
-```text
-+------------------------------+-------------+
-|                              |   25s       |
-|          13:45               |   Sun       |
-|          (bold)              |   Jul 12    |
-|                              |   2026      |
-+------------------------------+-------------+
-```
-
-Tall screen (portrait):
-
-```text
-        13        (bold)
-        45        (bold)
-    Sun, Jul 12
-     2026   25s
-```
+| Landscape (wide) | Portrait (tall) |
+|---|---|
+| <img src="docs/screenshots/landscape.png" alt="Landscape: bold 23:39 on the left, seconds, weekday, date and year on the right" width="420"> | <img src="docs/screenshots/portrait.png" alt="Portrait: bold hour and minute stacked, weekday with date, year and seconds" width="210"> |
 
 The hour and the minute are bold and take every pixel the other lines do not need. The remaining
 lines are scaled to the space that is left, so nothing is ever clipped. All text is white.
@@ -59,6 +52,9 @@ lines are scaled to the space that is left, so nothing is ever clipped. All text
 ## Settings
 
 Long press the clock to open the settings screen:
+
+<img src="docs/screenshots/settings.png" alt="Settings: show seconds, date format, start when charging" width="240">
+
 
 - **Show seconds** — on or off. With the seconds off, the hour and the minute grow into the freed space.
 - **Date format** — `Jul 12` (abbreviated month name) or `07-12` (numeric).
