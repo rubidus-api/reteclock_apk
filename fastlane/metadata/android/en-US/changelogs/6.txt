@@ -1,0 +1,6 @@
+A build release. The clock is unchanged.
+
+* The release APK is signed without re-aligning the archive. apksigner from
+  build-tools 35 rearranges an APK while signing unless told not to, which left the
+  signature unable to fit a rebuild of the same source, and broke the check F-Droid
+  runs to confirm a reproducible build.

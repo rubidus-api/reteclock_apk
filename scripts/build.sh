@@ -138,7 +138,12 @@ fi
 
 APK="$ROOT/dist/reteclock-$VERSION$SUFFIX.apk"
 
-echo "==> apksigner (v1 + v2 + v3)"
+# --alignment-preserved keeps the archive exactly as zipalign left it. apksigner from build-tools
+# 35 re-aligns while signing unless told not to, and the v2/v3 signatures cover the whole archive,
+# so the signature would no longer fit a rebuild of the same source. F-Droid verifies a
+# reproducible build by copying this signature onto its own build, which then fails with a
+# CHUNKED_SHA256 mismatch. T009 guards this.
+echo "==> apksigner (v1 + v2 + v3, alignment preserved)"
 "$APKSIGNER" sign \
     --ks "$KEYSTORE" \
     --ks-key-alias "$KEY_ALIAS" \
@@ -148,6 +153,7 @@ echo "==> apksigner (v1 + v2 + v3)"
     --v1-signing-enabled true \
     --v2-signing-enabled true \
     --v3-signing-enabled true \
+    --alignment-preserved \
     --out "$APK" \
     "$STAGE/aligned.apk"
 
