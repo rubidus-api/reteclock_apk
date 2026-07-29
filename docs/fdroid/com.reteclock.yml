@@ -20,10 +20,15 @@ Changelog: https://github.com/rubidus-api/reteclock_apk/releases
 RepoType: git
 Repo: https://github.com/rubidus-api/reteclock_apk.git
 
+# The `commit:` below is the one field that is not ready to submit as written. It must name a tag
+# or commit whose tree already contains `--unsigned` and `fastlane/` — that is, this change or
+# later. The existing v0.2.0 tag predates it and would fail the build. See docs/fdroid/README.md,
+# "Make sure a tag exists whose tree contains this material", and set versionName, versionCode and
+# commit together.
 Builds:
   - versionName: 0.2.0
     versionCode: 2
-    commit: v0.2.0
+    commit: v0.2.0  # FIXME: predates this material; retag or name the merge commit before submitting
     output: dist/reteclock-%v-unsigned.apk
     build:
       - yes | sdkmanager "platforms;android-19" "build-tools;34.0.0" > /dev/null

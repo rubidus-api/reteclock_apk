@@ -21,11 +21,27 @@ created no development key.
 These steps need a GitLab account. Nothing here needs a GitLab account to *prepare* — only to
 submit.
 
-1. Tag the release commit and push the tag, so F-Droid has something to build:
+1. Make sure a tag exists whose tree contains this material, and decide which one it is.
+
+   **This is not automatic.** The existing `v0.2.0` tag was created before F-Droid support and
+   points at a commit with no `fastlane/` and no `--unsigned` in `scripts/build.sh`. If the recipe
+   names that tag, the F-Droid build fails: the recipe's `output:` file is never produced.
+
+   Two honest ways out, and one to avoid:
+
+   - **Release 0.2.1** (recommended). Raise `versionCode` to 3 and `versionName` to `0.2.1`, add
+     `fastlane/metadata/android/en-US/changelogs/3.txt`, tag `v0.2.1`, push the tag, and set the
+     recipe's `versionName`, `versionCode` and `commit` to match. Nothing about the app changes,
+     but the tag is new, so nothing published has to be rewritten.
+   - **Name the merge commit** in the recipe instead of a tag: `commit: <full sha>`. F-Droid
+     accepts a commit hash. `UpdateCheckMode: Tags` still picks up tags for later releases. Use
+     this if you would rather not spend a version number.
+   - **Do not move the `v0.2.0` tag.** It is published, the 0.2.0 APK on the releases page hangs
+     off it, and anyone who already fetched it would get a tag that disagrees with yours.
 
    ```sh
-   git tag -a v0.2.0 -m 'reteclock 0.2.0'
-   git push origin v0.2.0
+   git tag -a v0.2.1 -m 'reteclock 0.2.1'
+   git push origin v0.2.1
    ```
 
 2. Fork <https://gitlab.com/fdroid/fdroiddata>, clone the fork, and branch off `master`. Name the
