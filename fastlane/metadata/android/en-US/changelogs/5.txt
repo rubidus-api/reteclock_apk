@@ -1,0 +1,7 @@
+A build release. The clock is unchanged.
+
+* Built with JDK 21 and build-tools 35.0.0, matching what F-Droid uses. The older
+  combination crashed inside d8, and a reproducible build has to use the same
+  toolchain that produced the published APK.
+* A release build now refuses to run under the wrong JDK rather than producing an
+  APK that F-Droid could never verify.

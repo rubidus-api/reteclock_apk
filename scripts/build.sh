@@ -40,6 +40,18 @@ case "${1:-}" in
     *)          fail "unknown option: $1 (expected --release or --unsigned)" ;;
 esac
 
+# The F-Droid listing is a reproducible build: F-Droid compiles the app itself and compares the
+# result against the APK published on the releases page. javac 17 and javac 21 emit different
+# bytecode, so a release built with the wrong JDK produces a file F-Droid can never match, and the
+# mismatch would only surface later, in someone else's build log. Refuse here instead.
+# Set RETECLOCK_JDK_MAJOR=any to build a release with a different toolchain on purpose.
+: "${RETECLOCK_JDK_MAJOR:=21}"
+if [ "$MODE" = "release" ] && [ "$RETECLOCK_JDK_MAJOR" != "any" ]; then
+    have=$("$JAVAC" -version 2>&1 | sed -n 's/^javac \([0-9][0-9]*\).*/\1/p')
+    [ "$have" = "$RETECLOCK_JDK_MAJOR" ] || fail \
+        "--release needs JDK $RETECLOCK_JDK_MAJOR, found ${have:-unknown} at $JAVA_HOME; the F-Droid reproducible build compares against this APK (RETECLOCK_JDK_MAJOR=any to override)"
+fi
+
 OUT="$ROOT/build"
 GEN="$OUT/gen"
 CLASSES="$OUT/classes"

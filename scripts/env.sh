@@ -7,7 +7,7 @@
 #   JAVA_HOME          JDK 17 or newer (javac, keytool); when unset, a javac on PATH is used
 #                      and JAVA_HOME is derived from where it lives
 #   ANDROID_SDK_ROOT   Android SDK root (also accepted: ANDROID_HOME)
-#   ANDROID_BUILD_TOOLS_VERSION  build-tools directory name, default 34.0.0
+#   ANDROID_BUILD_TOOLS_VERSION  build-tools directory name, default 35.0.0
 #   ANDROID_COMPILE_API          platform whose android.jar is compiled against, default 19
 #   JUNIT_JAR          junit-platform-console-standalone jar, for scripts/test.sh
 #   RETECLOCK_ROOT     project root, for callers outside scripts/; defaults to the caller's ../
@@ -30,7 +30,7 @@ if [ -f "$ROOT/scripts/env.local.sh" ]; then
 fi
 
 : "${ANDROID_SDK_ROOT:=${ANDROID_HOME:-}}"
-: "${ANDROID_BUILD_TOOLS_VERSION:=34.0.0}"
+: "${ANDROID_BUILD_TOOLS_VERSION:=35.0.0}"
 : "${ANDROID_COMPILE_API:=19}"
 
 fail() {
