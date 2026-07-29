@@ -111,8 +111,8 @@ Java, Android framework only. Built with the Android SDK command-line tools (`aa
 ## Build
 
 ```sh
-export JAVA_HOME=/path/to/jdk-17
-export ANDROID_SDK_ROOT=/path/to/android-sdk   # build-tools 34.0.0 + platforms;android-19
+export JAVA_HOME=/path/to/jdk-21              # only --release insists on this exact major version
+export ANDROID_SDK_ROOT=/path/to/android-sdk   # build-tools 35.0.0 + platforms;android-19
 
 scripts/build.sh             # dist/reteclock-<version>-debug.apk, signed with a local dev key
 scripts/build.sh --release   # signed with your own release key (RETECLOCK_KEYSTORE)
@@ -121,7 +121,9 @@ scripts/build.sh --unsigned  # dist/reteclock-<version>-unsigned.apk, for F-Droi
 
 `scripts/build.sh` runs `aapt2` → `javac` (source 8, against the API 19 platform) → `d8`
 (`--min-api 9`) → `zipalign` → `apksigner` (v1 + v2 + v3). It needs a JDK, the Android SDK
-command-line tools, and Python 3. Nothing else — no Gradle, no downloads, no dependencies.
+command-line tools, and Python 3. Any JDK will do for a debug build; `--release` requires JDK 21,
+because F-Droid rebuilds the app and compares the result against the published APK, and javac
+versions do not agree on bytecode. Nothing else — no Gradle, no downloads, no dependencies.
 See `scripts/env.sh` for every variable it reads.
 
 This repository publishes only what is needed to build the app, plus this README and its
