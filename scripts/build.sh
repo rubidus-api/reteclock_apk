@@ -14,6 +14,13 @@
 
 set -e
 
+# A zip entry stores its timestamp as a local date with no timezone attached. aapt2 writes the
+# fixed 1980-01-01 epoch, but writes it in the builder's local time, so the same source produces
+# different bytes in Seoul and in UTC. Pin the zone and the APK stops depending on where it was
+# built, which is what makes the build reproducible off this machine.
+TZ=UTC
+export TZ
+
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 . "$ROOT/scripts/env.sh"
 
