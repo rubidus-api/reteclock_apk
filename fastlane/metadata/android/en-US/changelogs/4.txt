@@ -1,0 +1,7 @@
+A build release. The clock is unchanged.
+
+* The build no longer requires JAVA_HOME. A JDK on PATH is enough, which is what an
+  ordinary distribution install and the F-Droid build server both provide.
+* The APK is now byte-for-byte the same wherever it is built. Zip entries store a local
+  date with no timezone, and the dex entry carried the time of the build, so the same
+  source used to produce different files on different machines.

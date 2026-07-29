@@ -4,7 +4,8 @@
 # Nothing here points at a machine-specific path. Set the variables in the environment, or put
 # them in scripts/env.local.sh (untracked), which this file sources when it exists:
 #
-#   JAVA_HOME          JDK 17 or newer (javac, keytool)
+#   JAVA_HOME          JDK 17 or newer (javac, keytool); when unset, a javac on PATH is used
+#                      and JAVA_HOME is derived from where it lives
 #   ANDROID_SDK_ROOT   Android SDK root (also accepted: ANDROID_HOME)
 #   ANDROID_BUILD_TOOLS_VERSION  build-tools directory name, default 34.0.0
 #   ANDROID_COMPILE_API          platform whose android.jar is compiled against, default 19
@@ -38,11 +39,22 @@ fail() {
 }
 
 require_jdk() {
-    [ -n "${JAVA_HOME:-}" ] || fail "JAVA_HOME is not set (see scripts/env.sh)"
+    # JAVA_HOME wins when it is set. Otherwise fall back to a JDK on PATH, which is what an
+    # ordinary distribution install and the F-Droid build server both give you: javac is there,
+    # the variable is not. keytool and the SDK wrappers are found relative to JAVA_HOME, so it
+    # has to be derived rather than left empty.
+    if [ -z "${JAVA_HOME:-}" ]; then
+        javac_path=$(command -v javac) \
+            || fail "no JDK: set JAVA_HOME, or put javac on PATH (see scripts/env.sh)"
+        # /usr/bin/javac is usually a symlink into the real JDK; resolve it before going up.
+        javac_real=$(readlink -f "$javac_path" 2>/dev/null || printf '%s' "$javac_path")
+        JAVA_HOME=$(dirname "$(dirname "$javac_real")")
+    fi
+
     JAVAC="$JAVA_HOME/bin/javac"
     JAVA="$JAVA_HOME/bin/java"
     KEYTOOL="$JAVA_HOME/bin/keytool"
-    [ -x "$JAVAC" ] || fail "no javac in JAVA_HOME"
+    [ -x "$JAVAC" ] || fail "no javac in JAVA_HOME ($JAVA_HOME)"
     # d8, apksigner and zipalign are shell wrappers that call plain `java`.
     PATH="$JAVA_HOME/bin:$PATH"
     export PATH JAVA_HOME
