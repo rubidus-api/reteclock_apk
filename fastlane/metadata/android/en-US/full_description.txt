@@ -1,0 +1,24 @@
+An old Android phone in a drawer is still a perfectly good screen with a perfectly good clock in it. reteclock is for exactly that: plug the phone into a charger, put it on a stand, and it shows the time in large digits with the weekday and the date.
+
+Old phones are hard to use for much else. Signing in to a Google account stopped working on Android 2.3.7 and older in 2021, Google Play services stopped shipping updates for Android 4.4 KitKat in 2023, and most apps now require a much newer Android. A phone that can no longer install anything can still show the time.
+
+So reteclock asks for nothing: no account, no network, no runtime permission. It runs on Android 2.3 and newer, and it is built and verified against Android 4.4.
+
+Features
+
+* Full-screen 24-hour clock with seconds, weekday, month, day and year.
+* Two layouts. Wide screen: a large HH:MM on the left, with seconds, weekday, date and year in a column on the right. Tall screen: hour and minute stacked, then the weekday with the date, then the year and the seconds.
+* The hour and the minute are bold and as large as the screen allows. Space is reserved for the smaller lines first and everything left over goes to the big time, so nothing is ever clipped.
+* Keeps the screen on while the clock is shown.
+* Burn-in protection: the drawing shifts slowly, in small steps, within a few pixels, so an OLED panel does not burn in.
+* Starts when the charger is connected, and shows over the lock screen when started that way. This can be turned off.
+* Works as a system screensaver (Daydream) on Android 4.2 and newer, and from a desk dock.
+* Settings, opened with a long press on the clock: show seconds on or off, date format (Jul 12 or 07-12), and start-when-charging on or off.
+
+Built small and plain
+
+Java and the Android framework only. No AndroidX, no support library, no Kotlin runtime, no third-party dependency, a single classes.dex, and an APK well under 100 KB. The only permission is WAKE_LOCK, which is a normal permission and is never requested at runtime.
+
+The name
+
+rete is Latin for net, and -clock is just a clock. The intended pronunciation is the Latin one, RAY-teh. The English reading of the borrowed word, REE-tee, is fine too.

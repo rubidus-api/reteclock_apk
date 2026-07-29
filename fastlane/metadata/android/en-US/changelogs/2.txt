@@ -1,0 +1,9 @@
+* New settings screen, opened by long pressing the clock: show seconds on or off,
+  date format (Jul 12 or 07-12), and start-when-charging on or off.
+* The hour and the minute are now bold and as large as the screen allows. The layout
+  reserves space for the smaller lines first and gives the rest to the big time; a line
+  that would be too wide is scaled down instead of clipped.
+* Months are three-letter abbreviations in both orientations.
+* All text is white; the secondary lines are no longer dimmed.
+* Turning the seconds off frees their line, and the hour and minute grow into it.
+* The supported Android range is shown on the settings screen.

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Generates the launcher icon PNGs into src/android/res/drawable-*/ic_launcher.png.
+"""Generates the launcher icon PNGs into src/android/res/drawable-*/ic_launcher.png, and the
+512x512 store icon into fastlane/metadata/android/en-US/images/icon.png.
 
 The icon is drawn, not downloaded: a dark rounded square showing "13" over "45", which is what
 the tall clock layout looks like. Run this only when the icon design changes; the generated PNGs
@@ -35,6 +36,12 @@ FONT_CANDIDATES = [
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RES = os.path.join(ROOT, "src", "android", "res")
+
+# F-Droid shows a 512x512 icon on the app page; it reads it from the fastlane tree.
+STORE_ICON = os.path.join(
+    ROOT, "fastlane", "metadata", "android", "en-US", "images", "icon.png"
+)
+STORE_ICON_SIZE = 512
 
 # Drawn at 8x and downsampled, which keeps the small densities clean.
 SUPERSAMPLE = 8
@@ -75,6 +82,10 @@ def main():
         path = os.path.join(directory, "ic_launcher.png")
         render(size).save(path, "PNG", optimize=True)
         print("wrote", os.path.relpath(path, ROOT))
+
+    os.makedirs(os.path.dirname(STORE_ICON), exist_ok=True)
+    render(STORE_ICON_SIZE).save(STORE_ICON, "PNG", optimize=True)
+    print("wrote", os.path.relpath(STORE_ICON, ROOT))
     return 0
 
 

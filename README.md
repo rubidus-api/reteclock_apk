@@ -13,6 +13,10 @@ it draws so an OLED panel does not burn in.
 Open the file on the phone to install it. On Android 4.4, enable Settings > Security > Unknown
 sources first. All releases: [Releases](https://github.com/rubidus-api/reteclock_apk/releases).
 
+An F-Droid listing is in preparation; the repository now carries everything F-Droid builds from.
+See [`docs/fdroid/README.md`](docs/fdroid/README.md). Note that an F-Droid build is signed with the
+F-Droid key, so it cannot be installed over an APK from this page — uninstall first.
+
 ## Status
 
 Working APK, version 0.2.0. Reference platform: Android 4.4 KitKat (API 19).
@@ -109,6 +113,7 @@ export ANDROID_SDK_ROOT=/path/to/android-sdk   # build-tools 34.0.0 + platforms;
 
 scripts/build.sh             # dist/reteclock-<version>-debug.apk, signed with a local dev key
 scripts/build.sh --release   # signed with your own release key (RETECLOCK_KEYSTORE)
+scripts/build.sh --unsigned  # dist/reteclock-<version>-unsigned.apk, for F-Droid to sign
 ```
 
 `scripts/build.sh` runs `aapt2` → `javac` (source 8, against the API 19 platform) → `d8`
@@ -117,7 +122,8 @@ command-line tools, and Python 3. Nothing else — no Gradle, no downloads, no d
 See `scripts/env.sh` for every variable it reads.
 
 This repository publishes only what is needed to build the app, plus this README and its
-screenshots. Working notes, plans and test scaffolding are kept out of it on purpose.
+screenshots and the F-Droid submission material (`fastlane/`, `docs/fdroid/`). Working notes, plans
+and test scaffolding are kept out of it on purpose.
 
 ## License
 

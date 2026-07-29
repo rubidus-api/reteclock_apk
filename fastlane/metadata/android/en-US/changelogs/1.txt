@@ -1,0 +1,6 @@
+First release.
+
+* Full-screen 24-hour clock with a wide and a tall layout.
+* Burn-in protection: the drawing shifts within a small disc, one step per minute.
+* Starts when the charger is connected; toggled with a long press.
+* Daydream screensaver service for Android 4.2 and newer.
