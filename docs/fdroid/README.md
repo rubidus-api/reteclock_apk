@@ -87,26 +87,33 @@ and generates the next build block. So a release is:
 2. Add `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt`. The file name is the version
    **code**, not the name.
 3. Commit, tag `v<versionName>`, push the tag.
+4. Build with `scripts/build.sh --release` and publish a GitHub release for that tag with the APK
+   named `reteclock-<versionName>.apk`. This is **not** optional any more: `Binaries:` points at
+   that URL and the F-Droid build fails without it.
+5. Update the download link in the README, which names the file explicitly.
 
 No merge request is needed for an ordinary release.
 
 ## Two things to know
 
-**The signature changes.** The F-Droid build is signed with the F-Droid key, not the key used for
-the APKs on the GitHub releases page. Android will not upgrade one to the other in place. Somebody
-running the GitHub APK has to uninstall it before installing the F-Droid one, and loses their
-settings in the process. This is the normal cost of an F-Droid listing.
+**The signature is ours, because this is a reproducible build.** F-Droid compiles the app on its
+own server, compares the result against the APK on the releases page, and ships that file. Both
+downloads carry the same signature, so a phone can move between them without uninstalling.
 
-**Check the signature scheme on the first F-Droid build.** reteclock declares `minSdkVersion 9` and
-requires a v1 (JAR) signature, because Android 2.3 through 6 accept nothing else (requirement R2).
-F-Droid signs with `apksigner`, which decides the schemes from the APK's own `minSdkVersion`, so a
-v1 signature is expected. That has not been confirmed on a real F-Droid-built artifact. The first
-thing to do once the app is published is download it and run:
+Two obligations come with that. Every release needs a signed APK published at
+`releases/download/v<version>/reteclock-<version>.apk`, because `Binaries:` points there and the
+build fails without it. And the signing key has to survive: if it is lost, no future version can
+update an installed reteclock, and `AllowedAPKSigningKeys` cannot be changed to a new one without
+F-Droid treating it as a different app.
+
+**The v1 signature is no longer a risk.** reteclock declares `minSdkVersion 9` and needs a v1 (JAR)
+signature, because Android 2.3 through 6 accept nothing else (requirement R2). Under a reproducible
+build F-Droid ships the APK built here, signed by `scripts/build.sh --release`, which enables v1,
+v2 and v3 explicitly. There is nothing left to hope for. Still worth one check on the first
+published build:
 
 ```sh
 apksigner verify --min-sdk-version 9 --verbose reteclock.apk
 ```
 
-`Verified using v1 scheme (JAR signing): true` is the line that matters. If it is false, the app
-installs on modern Android but not on the old phones it was written for, and that needs raising on
-the merge request.
+`Verified using v1 scheme (JAR signing): true` is the line that matters.

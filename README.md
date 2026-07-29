@@ -8,19 +8,21 @@ it draws so an OLED panel does not burn in.
 
 ## Download
 
-**[⬇ Download reteclock-0.2.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/latest/download/reteclock-0.2.0.apk)** — 58 KB, installs on Android 2.3 and newer.
+**[⬇ Download reteclock-0.2.2.apk](https://github.com/rubidus-api/reteclock_apk/releases/latest/download/reteclock-0.2.2.apk)** — 58 KB, installs on Android 2.3 and newer.
 
 Open the file on the phone to install it. On Android 4.4, enable Settings > Security > Unknown
 sources first. All releases: [Releases](https://github.com/rubidus-api/reteclock_apk/releases).
 
-An F-Droid listing is in preparation; the repository now carries everything F-Droid builds from.
-See [`docs/fdroid/README.md`](docs/fdroid/README.md). Note that an F-Droid build is signed with the
-F-Droid key, so it cannot be installed over an APK from this page — uninstall first.
+An F-Droid listing is in preparation. See [`docs/fdroid/README.md`](docs/fdroid/README.md). The
+F-Droid build is a [reproducible build](https://f-droid.org/docs/Reproducible_Builds): F-Droid
+compiles the app from source on its own server, checks the result against the APK on this page, and
+ships this exact file. Both carry the same signature, so you can move between them without
+uninstalling.
 
 ## Status
 
-Working APK. The source is at 0.2.2; 0.2.1 and 0.2.2 changed only packaging and the build, not the
-clock. The published APK above is 0.2.0. Reference platform: Android 4.4 KitKat (API 19).
+Working APK, version 0.2.2. 0.2.1 and 0.2.2 changed only packaging and the build, not the clock.
+Reference platform: Android 4.4 KitKat (API 19).
 
 ## Supported Android versions
 

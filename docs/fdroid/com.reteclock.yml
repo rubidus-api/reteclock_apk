@@ -5,34 +5,42 @@
 # together, and so anyone can see how the F-Droid build is defined without leaving this repo.
 #
 # reteclock has no Gradle, so there is no `gradle:` key. The build block runs the project's own
-# shell build and points `output:` at the unsigned APK it writes. F-Droid signs that APK with the
-# F-Droid key; a build that returns an already-signed APK is rejected, which is why the recipe
-# calls `--unsigned` and never `--release`.
+# shell build and points `output:` at the unsigned APK it writes. `%v` is not expanded there, so it
+# is a glob rather than a file name; `checkupdates` copies the field verbatim into auto-generated
+# builds, and a literal name would go stale at the next release.
+#
+# Binaries + AllowedAPKSigningKeys make this a reproducible build: F-Droid compiles the app on its
+# own server, compares the result against the APK published on the releases page, and on a match
+# ships that file, signed with this project's key rather than F-Droid's. That is only possible
+# because the build is byte-identical wherever it runs - see tests/build/test-reproducible.sh.
+# It also means the signing key must be kept: losing it ends the ability to update the app.
 
 Categories:
-  - Time
+  - Clock
 License: MIT
 AuthorName: reteclock contributors
 SourceCode: https://github.com/rubidus-api/reteclock_apk
 IssueTracker: https://github.com/rubidus-api/reteclock_apk/issues
 Changelog: https://github.com/rubidus-api/reteclock_apk/releases
 
+AutoName: reteclock
+
 RepoType: git
 Repo: https://github.com/rubidus-api/reteclock_apk.git
+Binaries: https://github.com/rubidus-api/reteclock_apk/releases/download/v%v/reteclock-%v.apk
 
-# `commit:` must name a tag whose tree already contains `--unsigned` and `fastlane/`. The older
-# v0.2.0 tag predates both and would fail the build, which is why 0.2.1 exists: it is a packaging
-# release with no change to the clock. Tag v0.2.1 before opening the merge request.
 Builds:
-  - versionName: 0.2.1
-    versionCode: 3
-    commit: v0.2.1
-    output: dist/reteclock-%v-unsigned.apk
+  - versionName: 0.2.2
+    versionCode: 4
+    commit: 665dc627dffc67e13c632c64766be1d0688271ce
+    output: dist/reteclock-*-unsigned.apk
     build:
-      - yes | sdkmanager "platforms;android-19" "build-tools;34.0.0" > /dev/null
+      - sdkmanager "platforms;android-19" "build-tools;34.0.0"
       - scripts/build.sh --unsigned
 
-AutoUpdateMode: Version v%v
+AllowedAPKSigningKeys: 90446b5280aa4ce34bfe8b33252ef6be902c744d4f5af203a5995a4bbd4c641d
+
+AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 0.2.1
-CurrentVersionCode: 3
+CurrentVersion: 0.2.2
+CurrentVersionCode: 4
