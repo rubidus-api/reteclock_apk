@@ -1,0 +1,35 @@
+# F-Droid build recipe for reteclock.
+#
+# This is the file that goes into the fdroiddata repository on GitLab, as
+# metadata/com.reteclock.yml. It is kept here so the recipe and the build it drives change
+# together, and so anyone can see how the F-Droid build is defined without leaving this repo.
+#
+# reteclock has no Gradle, so there is no `gradle:` key. The build block runs the project's own
+# shell build and points `output:` at the unsigned APK it writes. F-Droid signs that APK with the
+# F-Droid key; a build that returns an already-signed APK is rejected, which is why the recipe
+# calls `--unsigned` and never `--release`.
+
+Categories:
+  - Time
+License: MIT
+AuthorName: reteclock contributors
+SourceCode: https://github.com/rubidus-api/reteclock_apk
+IssueTracker: https://github.com/rubidus-api/reteclock_apk/issues
+Changelog: https://github.com/rubidus-api/reteclock_apk/releases
+
+RepoType: git
+Repo: https://github.com/rubidus-api/reteclock_apk.git
+
+Builds:
+  - versionName: 0.2.0
+    versionCode: 2
+    commit: v0.2.0
+    output: dist/reteclock-%v-unsigned.apk
+    build:
+      - yes | sdkmanager "platforms;android-19" "build-tools;34.0.0" > /dev/null
+      - scripts/build.sh --unsigned
+
+AutoUpdateMode: Version v%v
+UpdateCheckMode: Tags
+CurrentVersion: 0.2.0
+CurrentVersionCode: 2

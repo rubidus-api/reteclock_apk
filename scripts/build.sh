@@ -3,6 +3,11 @@
 #
 #   scripts/build.sh              debug-signed APK in dist/
 #   scripts/build.sh --release    same pipeline, but requires RETECLOCK_KEYSTORE
+#   scripts/build.sh --unsigned   same pipeline, stopping before signing
+#
+# --unsigned exists for F-Droid, which builds the app from source on its own server and signs the
+# result with its own key. It refuses an APK that arrives already signed, so that build must not
+# touch a keystore at all.
 #
 # The APK is signed with v1 (JAR) plus v2 and v3, so Android 2.3..4.4 accept the v1 signature and
 # modern Android accepts v2/v3.
@@ -20,8 +25,13 @@ TARGET_SDK=28
 VERSION=$(sed -n 's/.*android:versionName="\([^"]*\)".*/\1/p' "$ROOT/src/android/AndroidManifest.xml")
 [ -n "$VERSION" ] || fail "cannot read versionName from the manifest"
 
-RELEASE=0
-[ "${1:-}" = "--release" ] && RELEASE=1
+MODE=debug
+case "${1:-}" in
+    "")         MODE=debug ;;
+    --release)  MODE=release ;;
+    --unsigned) MODE=unsigned ;;
+    *)          fail "unknown option: $1 (expected --release or --unsigned)" ;;
+esac
 
 OUT="$ROOT/build"
 GEN="$OUT/gen"
@@ -77,7 +87,15 @@ cp "$STAGE/resources.apk" "$STAGE/unsigned.apk"
 echo "==> zipalign"
 "$ZIPALIGN" -f -p 4 "$STAGE/unsigned.apk" "$STAGE/aligned.apk"
 
-if [ "$RELEASE" = "1" ]; then
+if [ "$MODE" = "unsigned" ]; then
+    APK="$ROOT/dist/reteclock-$VERSION-unsigned.apk"
+    cp "$STAGE/aligned.apk" "$APK"
+    echo
+    echo "built $(basename "$APK") ($(wc -c < "$APK") bytes), unsigned on purpose"
+    exit 0
+fi
+
+if [ "$MODE" = "release" ]; then
     [ -n "${RETECLOCK_KEYSTORE:-}" ] || fail "--release needs RETECLOCK_KEYSTORE (see scripts/env.sh)"
     KEYSTORE="$RETECLOCK_KEYSTORE"
     KEY_ALIAS="${RETECLOCK_KEY_ALIAS:-reteclock}"

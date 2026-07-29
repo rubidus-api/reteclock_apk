@@ -9,13 +9,20 @@
 #   ANDROID_BUILD_TOOLS_VERSION  build-tools directory name, default 34.0.0
 #   ANDROID_COMPILE_API          platform whose android.jar is compiled against, default 19
 #   JUNIT_JAR          junit-platform-console-standalone jar, for scripts/test.sh
+#   RETECLOCK_ROOT     project root, for callers outside scripts/; defaults to the caller's ../
 #   RETECLOCK_KEYSTORE, RETECLOCK_KEY_ALIAS, RETECLOCK_KEYSTORE_PASS
 #                      release signing key; when unset, build.sh creates a local development
 #                      key under build/ so a fresh checkout can still produce an installable APK.
 
 set -e
 
-ROOT=$(cd "$(dirname "$0")/.." && pwd)
+# Callers inside scripts/ get the project root from their own path. A caller from anywhere else
+# (a test runner under tests/, for example) sets RETECLOCK_ROOT first.
+if [ -n "${RETECLOCK_ROOT:-}" ]; then
+    ROOT=$(cd "$RETECLOCK_ROOT" && pwd)
+else
+    ROOT=$(cd "$(dirname "$0")/.." && pwd)
+fi
 
 if [ -f "$ROOT/scripts/env.local.sh" ]; then
     . "$ROOT/scripts/env.local.sh"

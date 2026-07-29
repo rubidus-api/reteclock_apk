@@ -27,10 +27,15 @@
 /tools/*
 !/tools/make-icons.py
 
-# Only the screenshots the README embeds.
+# The screenshots the README embeds, and the F-Droid submission material.
 !/docs/
 /docs/*
 !/docs/screenshots/
+!/docs/fdroid/
+
+# Store metadata. F-Droid reads this tree out of the source at the tagged commit,
+# so it has to be published even though nothing in the build uses it.
+!/fastlane/
 
 # Local toolchain paths and signing material are never published.
 scripts/env.local.sh
