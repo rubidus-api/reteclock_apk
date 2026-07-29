@@ -1,0 +1,6 @@
+A packaging release. The clock itself is unchanged.
+
+* The build can now produce an unsigned APK, which is what F-Droid needs: F-Droid
+  builds the app on its own server and signs it with the F-Droid key.
+* The repository carries the store text, icon and screenshots F-Droid reads, and the
+  build recipe F-Droid runs.

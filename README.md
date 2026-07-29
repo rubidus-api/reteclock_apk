@@ -19,7 +19,9 @@ F-Droid key, so it cannot be installed over an APK from this page — uninstall 
 
 ## Status
 
-Working APK, version 0.2.0. Reference platform: Android 4.4 KitKat (API 19).
+Working APK. The source is at 0.2.1, a packaging release that adds the F-Droid material and
+leaves the clock unchanged; the published APK above is 0.2.0. Reference platform:
+Android 4.4 KitKat (API 19).
 
 ## Supported Android versions
 

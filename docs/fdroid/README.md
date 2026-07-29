@@ -21,28 +21,23 @@ created no development key.
 These steps need a GitLab account. Nothing here needs a GitLab account to *prepare* — only to
 submit.
 
-1. Make sure a tag exists whose tree contains this material, and decide which one it is.
-
-   **This is not automatic.** The existing `v0.2.0` tag was created before F-Droid support and
-   points at a commit with no `fastlane/` and no `--unsigned` in `scripts/build.sh`. If the recipe
-   names that tag, the F-Droid build fails: the recipe's `output:` file is never produced.
-
-   Two honest ways out, and one to avoid:
-
-   - **Release 0.2.1** (recommended). Raise `versionCode` to 3 and `versionName` to `0.2.1`, add
-     `fastlane/metadata/android/en-US/changelogs/3.txt`, tag `v0.2.1`, push the tag, and set the
-     recipe's `versionName`, `versionCode` and `commit` to match. Nothing about the app changes,
-     but the tag is new, so nothing published has to be rewritten.
-   - **Name the merge commit** in the recipe instead of a tag: `commit: <full sha>`. F-Droid
-     accepts a commit hash. `UpdateCheckMode: Tags` still picks up tags for later releases. Use
-     this if you would rather not spend a version number.
-   - **Do not move the `v0.2.0` tag.** It is published, the 0.2.0 APK on the releases page hangs
-     off it, and anyone who already fetched it would get a tag that disagrees with yours.
+1. Tag `v0.2.1` on the merged commit and push the tag. F-Droid builds from the tag, so it must
+   exist before the merge request.
 
    ```sh
    git tag -a v0.2.1 -m 'reteclock 0.2.1'
    git push origin v0.2.1
    ```
+
+   0.2.1 is a packaging release: the clock is unchanged. It exists because `v0.2.0` points at a
+   commit with no `fastlane/` and no `--unsigned`, so a recipe naming that tag would build and then
+   fail to find the file `output:` names. Do not move `v0.2.0` to fix that — it is published, and
+   the 0.2.0 APK on the releases page hangs off it.
+
+   Publishing a GitHub release for 0.2.1 is separate and optional. The tag alone is enough for
+   F-Droid, and while no 0.2.1 release exists the README's download link keeps resolving to the
+   0.2.0 one. If you do publish it, build the asset with `scripts/build.sh --release`, name it
+   `reteclock-0.2.1.apk`, and update the link in the README to match.
 
 2. Fork <https://gitlab.com/fdroid/fdroiddata>, clone the fork, and branch off `master`. Name the
    branch after the application id:
@@ -69,7 +64,7 @@ submit.
 
    `fdroid build` is the one that matters: it must produce the APK. If `fdroid lint` objects to the
    `%v` placeholder in `output:`, replace it with the literal file name
-   (`dist/reteclock-0.2.0-unsigned.apk`) and let `AutoUpdateMode` rewrite it on the next release.
+   (`dist/reteclock-0.2.1-unsigned.apk`) and let `AutoUpdateMode` rewrite it on the next release.
 
 5. Commit as `New App: com.reteclock`, push the branch to the fork, and open a merge request
    against <https://gitlab.com/fdroid/fdroiddata>. The merge request *is* the application; there is
