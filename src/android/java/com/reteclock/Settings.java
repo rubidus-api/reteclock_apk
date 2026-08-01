@@ -104,28 +104,31 @@ public final class Settings {
         prefs(context).edit().putString(KEY_FONT, name == null ? "" : name).commit();
     }
 
-    public static boolean bold(Context context) {
-        return prefs(context).getBoolean(KEY_BOLD, false);
+    /**
+     * A decoration for one field.
+     *
+     * Before decorations were per-field there was a single flag for the whole clock. It is still
+     * read as the starting value for every field, so nobody's setting is lost by upgrading — the
+     * same arrangement the fonts use.
+     */
+    public static boolean decoration(Context context, String key, String role) {
+        return prefs(context).getBoolean(key + "_" + role, prefs(context).getBoolean(key, false));
     }
 
-    public static void setBold(Context context, boolean enabled) {
-        prefs(context).edit().putBoolean(KEY_BOLD, enabled).commit();
+    public static void setDecoration(Context context, String key, String role, boolean enabled) {
+        prefs(context).edit().putBoolean(key + "_" + role, enabled).commit();
     }
 
-    public static boolean italic(Context context) {
-        return prefs(context).getBoolean(KEY_ITALIC, false);
+    public static boolean bold(Context context, String role) {
+        return decoration(context, KEY_BOLD, role);
     }
 
-    public static void setItalic(Context context, boolean enabled) {
-        prefs(context).edit().putBoolean(KEY_ITALIC, enabled).commit();
+    public static boolean italic(Context context, String role) {
+        return decoration(context, KEY_ITALIC, role);
     }
 
-    public static boolean underline(Context context) {
-        return prefs(context).getBoolean(KEY_UNDERLINE, false);
-    }
-
-    public static void setUnderline(Context context, boolean enabled) {
-        prefs(context).edit().putBoolean(KEY_UNDERLINE, enabled).commit();
+    public static boolean underline(Context context, String role) {
+        return decoration(context, KEY_UNDERLINE, role);
     }
 
     /** The display options the clock draws with. */

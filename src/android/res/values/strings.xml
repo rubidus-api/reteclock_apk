@@ -10,7 +10,7 @@
     <string name="settings_start_when_charging">Start when the charger is connected</string>
     <string name="settings_font">Font</string>
     <string name="settings_font_system">System font</string>
-    <string name="settings_font_per_field">A font for each field</string>
+    <string name="settings_font_per_field">Each field: font and decoration</string>
     <string name="settings_field_hour">Hour</string>
     <string name="settings_field_minute">Minute</string>
     <string name="settings_field_second">Seconds</string>
@@ -25,9 +25,8 @@
     <string name="settings_font_rejected">That file is not a font this device can read.</string>
     <string name="settings_font_failed">Could not read that file.</string>
     <string name="settings_font_no_picker">No app on this device can pick a file.</string>
-    <string name="settings_decoration">Decoration</string>
-    <string name="settings_bold">Bold</string>
-    <string name="settings_italic">Italic</string>
-    <string name="settings_underline">Underline</string>
+    <string name="settings_bold">B</string>
+    <string name="settings_italic">I</string>
+    <string name="settings_underline">U</string>
     <string name="settings_about">reteclock %1$s\nRuns on Android 2.3 (API 9) and newer. Built for Android 4.4.\nThis device: Android %2$s</string>
 </resources>

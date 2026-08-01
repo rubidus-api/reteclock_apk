@@ -141,26 +141,6 @@ public class SettingsActivity extends Activity {
         });
         root.addView(add);
 
-        root.addView(heading(getString(R.string.settings_decoration)));
-        root.addView(decoration(R.string.settings_bold, Settings.bold(this), new Setter() {
-            @Override
-            public void set(boolean checked) {
-                Settings.setBold(SettingsActivity.this, checked);
-            }
-        }));
-        root.addView(decoration(R.string.settings_italic, Settings.italic(this), new Setter() {
-            @Override
-            public void set(boolean checked) {
-                Settings.setItalic(SettingsActivity.this, checked);
-            }
-        }));
-        root.addView(decoration(R.string.settings_underline, Settings.underline(this), new Setter() {
-            @Override
-            public void set(boolean checked) {
-                Settings.setUnderline(SettingsActivity.this, checked);
-            }
-        }));
-
         root.addView(heading(getString(R.string.settings_dock)));
 
         final CheckBox charging = new CheckBox(this);
@@ -188,25 +168,6 @@ public class SettingsActivity extends Activity {
         setContentView(scroll);
     }
 
-
-    /** A decoration toggle. They are independent, so a checkbox each rather than a group. */
-    private interface Setter {
-        void set(boolean checked);
-    }
-
-    private CheckBox decoration(int label, boolean checked, final Setter setter) {
-        CheckBox box = new CheckBox(this);
-        box.setText(label);
-        box.setTextColor(TEXT_WHITE);
-        box.setChecked(checked);
-        box.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton button, boolean isChecked) {
-                setter.set(isChecked);
-            }
-        });
-        return box;
-    }
 
     /**
      * The system font, then one row per imported font, then what they occupy together.
@@ -279,18 +240,28 @@ public class SettingsActivity extends Activity {
         }
     }
 
+    /**
+     * One field: its name, then its font and its three decorations on the line below.
+     *
+     * Everything about a field sits together, so there is no second section to keep in step with
+     * this one. Two lines rather than one because a spinner and three checkboxes do not fit beside
+     * a label on a narrow phone.
+     */
     private View fieldRow(final String role, int label, final List<String> names,
             List<String> labels) {
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout block = new LinearLayout(this);
+        block.setOrientation(LinearLayout.VERTICAL);
+        block.setPadding(0, dp(8), 0, 0);
 
         TextView name = new TextView(this);
         name.setText(label);
-        name.setTextColor(TEXT_WHITE);
-        name.setLayoutParams(new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-        row.addView(name);
+        name.setTextColor(TEXT_DIM);
+        name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f);
+        block.addView(name);
+
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
 
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
                 android.R.layout.simple_spinner_item, labels);
@@ -301,7 +272,7 @@ public class SettingsActivity extends Activity {
         int selected = names.indexOf(Settings.fontNameFor(this, role));
         spinner.setSelection(selected < 0 ? 0 : selected);
         spinner.setLayoutParams(new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.4f));
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
         spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -313,7 +284,34 @@ public class SettingsActivity extends Activity {
             }
         });
         row.addView(spinner);
-        return row;
+
+        row.addView(toggle(role, Settings.KEY_BOLD, R.string.settings_bold));
+        row.addView(toggle(role, Settings.KEY_ITALIC, R.string.settings_italic));
+        row.addView(toggle(role, Settings.KEY_UNDERLINE, R.string.settings_underline));
+
+        block.addView(row);
+        return block;
+    }
+
+    /**
+     * One decoration toggle for one field.
+     *
+     * A decoration changes how wide the text is — bold is wider, italic leans — so switching one
+     * has to make the clock work its sizes out again. It does: the view drops its plan whenever the
+     * settings change, and rebuilds it by measuring with the decorations applied.
+     */
+    private CheckBox toggle(final String role, final String key, int label) {
+        CheckBox box = new CheckBox(this);
+        box.setText(label);
+        box.setTextColor(TEXT_WHITE);
+        box.setChecked(Settings.decoration(this, key, role));
+        box.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                Settings.setDecoration(SettingsActivity.this, key, role, checked);
+            }
+        });
+        return box;
     }
 
     /**

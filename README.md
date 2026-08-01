@@ -96,11 +96,10 @@ Long press the clock to open the settings screen:
   opens the system file picker; the file is copied into the app, so reteclock never asks for
   storage permission and the font keeps working if you move or delete the original. The list shows
   each font's size and the total they occupy, and any of them can be deleted.
-- **A font for each field** — the hour, the minute, the seconds, the weekday, the month and day,
-  and the year each choose their own font. Sizes stay worked out by the app. Deleting a font that a
-  field is using drops that field back to the system font.
-- **Decoration** — bold, italic and underline, independently, over whichever font is in use. A font
-  file holds one weight and one slant, so these are synthesised.
+- **Each field: font and decoration** — the hour, the minute, the seconds, the weekday, the month
+  and day, and the year each choose their own font and their own bold, italic and underline. Sizes
+  stay worked out by the app. Deleting a font that a field is using drops that field back to the
+  system font. A font file holds one weight and one slant, so bold and italic are synthesised.
 
 ## How it starts
 
