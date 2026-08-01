@@ -1,0 +1,3 @@
+* The hour and the minute arrive bold again on a fresh install. In 0.3.2 they came out
+  light, which was not what most people would want to see first. The difference from
+  before 0.3.2 is that this is a default you can turn off, not something fixed.
