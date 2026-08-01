@@ -108,10 +108,13 @@ public final class ClockLayout {
 
     private final boolean wide;
     private final List<Slot> slots;
+    /** Kept because which strings a field can show depends on them. */
+    private final ClockOptions options;
 
-    private ClockLayout(boolean wide, List<Slot> slots) {
+    private ClockLayout(boolean wide, List<Slot> slots, ClockOptions options) {
         this.wide = wide;
         this.slots = slots;
+        this.options = options;
     }
 
     /** True when the wide (landscape) arrangement is used. */
@@ -170,6 +173,116 @@ public final class ClockLayout {
         return starts;
     }
 
+    /**
+     * Measures a string for one field at one size. Only the view knows about glyphs.
+     *
+     * Boldness is passed because it changes the width: the hour and the minute are drawn bold, and
+     * measuring them light would size them to something narrower than they are drawn.
+     */
+    public interface Metrics {
+        float width(String role, boolean bold, String text, float textSize);
+    }
+
+    /**
+     * Sizes and cell positions, worked out once from what each field could ever show.
+     *
+     * Nothing here depends on the current time, so nothing about the drawing changes as the clock
+     * ticks: no resize as the digits change width, no sliding as a line gets narrower. Build one
+     * when the fonts, the options or the screen change, and read it every frame.
+     */
+    public static final class Plan {
+        private final java.util.Map<String, Float> sizes = new java.util.HashMap<String, Float>();
+        private final java.util.Map<String, float[]> cells = new java.util.HashMap<String, float[]>();
+
+        private static String key(Slot slot, Part part) {
+            return slot.role + "/" + part.role;
+        }
+
+        /** The size this line is drawn at, small enough that its worst case fits the box. */
+        public float textSize(Slot slot) {
+            Float size = sizes.get(slot.role);
+            return size == null ? slot.textSize : size;
+        }
+
+        /** Where this field's cell begins. The cell does not move as the text inside it changes. */
+        public float cellStart(Slot slot, Part part) {
+            float[] cell = cells.get(key(slot, part));
+            return cell == null ? slot.centerX : cell[0];
+        }
+
+        /** How wide this field's cell is: its own widest content, drawn at {@link #textSize}. */
+        public float cellWidth(Slot slot, Part part) {
+            float[] cell = cells.get(key(slot, part));
+            return cell == null ? 0f : cell[1];
+        }
+    }
+
+    /**
+     * Works out how big each line can be and how much room each field in it needs.
+     *
+     * Each field is measured at its widest — every hour for the hour, every weekday for the weekday
+     * — so a line is sized for the worst case rather than for the moment. A line is then shrunk as a
+     * whole if that worst case does not fit its box, which keeps the fields on one line in step with
+     * each other.
+     */
+    public Plan plan(Metrics metrics) {
+        Plan plan = new Plan();
+        for (Slot slot : slots) {
+            int count = slot.parts.size();
+            float[] widest = new float[count];
+            float total = 0f;
+            for (int i = 0; i < count; i++) {
+                widest[i] = widestPart(slot, slot.parts.get(i), slot.textSize, metrics);
+                total += widest[i];
+            }
+
+            float size = shrinkToFit(slot.textSize, total, slot.maxWidth);
+            if (size != slot.textSize && slot.textSize > 0f) {
+                // Widths scale with the size, so the measured worst case scales with it too. That
+                // saves measuring every candidate twice for a line that had to shrink.
+                float scale = size / slot.textSize;
+                total = 0f;
+                for (int i = 0; i < count; i++) {
+                    widest[i] *= scale;
+                    total += widest[i];
+                }
+            }
+            plan.sizes.put(slot.role, size);
+
+            float cursor = slot.centerX - total / 2f;
+            for (int i = 0; i < count; i++) {
+                plan.cells.put(Plan.key(slot, slot.parts.get(i)), new float[] {cursor, widest[i]});
+                cursor += widest[i];
+            }
+        }
+        return plan;
+    }
+
+    /**
+     * The width of the widest thing this part can ever draw, separator included.
+     *
+     * The separator belongs to the part before it and is drawn in that part's font, so it is
+     * measured as part of it.
+     */
+    private float widestPart(Slot slot, final Part part, final float textSize,
+            final Metrics metrics) {
+        final boolean bold = slot.bold;
+        String trailing = "";
+        List<Part> parts = slot.parts;
+        int index = parts.indexOf(part);
+        if (index >= 0 && index + 1 < parts.size()) {
+            trailing = parts.get(index + 1).separatorBefore;
+        }
+        final String suffix = trailing;
+        return ClockSamples.widest(ClockSamples.of(part.role, options),
+                new ClockSamples.Widths() {
+                    @Override
+                    public float of(String text) {
+                        return metrics.width(part.role, bold, text + suffix, textSize);
+                    }
+                });
+    }
+
     /** Builds the layout for a screen of the given pixel size. */
     public static ClockLayout of(int widthPx, int heightPx, ClockOptions options) {
         return widthPx > heightPx
@@ -216,7 +329,7 @@ public final class ClockLayout {
             out.add(new Slot(roles.get(i), sideCenterX, cursor + size / 2f, size, sideBoxWidth, false));
             cursor += size + lineGap;
         }
-        return new ClockLayout(true, out);
+        return new ClockLayout(true, out, options);
     }
 
     private static ClockLayout tall(int w, int h, ClockOptions options) {
@@ -247,7 +360,7 @@ public final class ClockLayout {
                 : singlePart(ROLE_YEAR);
         out.add(new Slot(ROLE_SMALL_LINE, smallParts,
                 centerX, cursor + smallSize / 2f, smallSize, boxWidth, false));
-        return new ClockLayout(false, out);
+        return new ClockLayout(false, out, options);
     }
 
     /**

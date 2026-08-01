@@ -12,11 +12,13 @@ import java.util.TimeZone;
  */
 public final class ClockText {
 
-    private static final String[] WEEKDAYS = {
+    /** Package-visible so {@link ClockSamples} can offer exactly the strings this produces. */
+    static final String[] WEEKDAYS = {
         "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
     };
 
-    private static final String[] MONTHS = {
+    /** As {@link #WEEKDAYS}. */
+    static final String[] MONTHS = {
         "Jan", "Feb", "Mar", "Apr", "May", "Jun",
         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
     };

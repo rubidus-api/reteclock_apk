@@ -40,6 +40,13 @@ public class ClockView extends View {
 
     private ClockOptions options;
     private ClockLayout layout;
+    /**
+     * Sizes and cell positions, worked out when the fonts, options or screen change.
+     *
+     * Never rebuilt while drawing: the whole point is that no measurement depends on the time, so
+     * the clock neither resizes nor slides as the digits change.
+     */
+    private ClockLayout.Plan plan;
     private boolean running;
 
     private final Runnable tick = new Runnable() {
@@ -68,6 +75,7 @@ public class ClockView extends View {
         options = Settings.options(getContext());
         loadTypeface(getContext());
         layout = null;
+        plan = null;
         invalidate();
     }
 
@@ -89,7 +97,26 @@ public class ClockView extends View {
     @Override
     protected void onSizeChanged(int w, int h, int oldW, int oldH) {
         super.onSizeChanged(w, h, oldW, oldH);
+        rebuild(w, h);
+    }
+
+
+    /**
+     * Works out the layout and, with it, the sizes and cells every field will use.
+     *
+     * This is the expensive part — it measures every string each field can ever show, in that
+     * field's own font — and it is why the draw path does none of that. Called when the screen size
+     * changes and when the settings do, which is the only time any of it can change.
+     */
+    private void rebuild(int w, int h) {
         layout = ClockLayout.of(w, h, options);
+        plan = layout.plan(new ClockLayout.Metrics() {
+            @Override
+            public float width(String role, boolean bold, String text, float textSize) {
+                applyStyle(role, bold, textSize);
+                return paint.measureText(text);
+            }
+        });
     }
 
     @Override
@@ -101,8 +128,8 @@ public class ClockView extends View {
         if (w <= 0 || h <= 0) {
             return;
         }
-        if (layout == null) {
-            layout = ClockLayout.of(w, h, options);
+        if (layout == null || plan == null) {
+            rebuild(w, h);
         }
 
         ClockText time = ClockText.of(System.currentTimeMillis(), options);
@@ -117,35 +144,19 @@ public class ClockView extends View {
             if (pieces == null) {
                 continue;
             }
-            // A line can be several parts in different fonts, so it is measured as a whole, shrunk
-            // as a whole, and then drawn piece by piece from the left edge of the group.
-            int count = slot.parts.size();
-            float[] widths = new float[count];
-            float total = 0f;
-            for (int i = 0; i < count; i++) {
+            // Everything about size and place was settled when the fonts were. All that is left is
+            // to centre the text of the moment inside the cell reserved for its widest case, so a
+            // narrow reading sits where a wide one would and nothing moves as the clock ticks.
+            float size = plan.textSize(slot);
+            for (int i = 0; i < slot.parts.size(); i++) {
                 ClockLayout.Part part = slot.parts.get(i);
-                applyStyle(part.role, slot.bold, slot.textSize);
-                widths[i] = paint.measureText(pieces[i]);
-                total += widths[i];
-            }
-
-            float fitted = ClockLayout.shrinkToFit(slot.textSize, total, slot.maxWidth);
-            if (fitted != slot.textSize) {
-                float scale = fitted / slot.textSize;
-                total = 0f;
-                for (int i = 0; i < count; i++) {
-                    widths[i] *= scale;
-                    total += widths[i];
-                }
-            }
-
-            float[] starts = ClockLayout.partOffsets(slot.centerX, widths);
-            for (int i = 0; i < count; i++) {
-                ClockLayout.Part part = slot.parts.get(i);
-                applyStyle(part.role, slot.bold, fitted);
+                applyStyle(part.role, slot.bold, size);
+                float cellStart = plan.cellStart(slot, part);
+                float cellWidth = plan.cellWidth(slot, part);
+                float textWidth = paint.measureText(pieces[i]);
                 paint.getFontMetrics(fontMetrics);
                 float baseline = slot.centerY - (fontMetrics.ascent + fontMetrics.descent) / 2f;
-                canvas.drawText(pieces[i], starts[i], baseline, paint);
+                canvas.drawText(pieces[i], cellStart + (cellWidth - textWidth) / 2f, baseline, paint);
             }
         }
         canvas.restore();
