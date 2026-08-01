@@ -1,0 +1,4 @@
+* The hour and the minute are no longer bold by default. Weight now comes only from
+  the bold toggle on that field, so the big time can be light. It used to be that
+  bold could be switched on for those two but never off. What makes the time stand
+  out is its size.

@@ -17,14 +17,14 @@ import java.util.List;
  *   +---------------------------+--------------+
  *   |                           |  25s         |
  *   |        13:45              |  Sun         |
- *   |         (bold)            |  Jul 12      |
+ *   |                           |  Jul 12      |
  *   |                           |  2026        |
  *   +---------------------------+--------------+
  *
  * Tall screens (height >= width):
  *
- *   13            (hour, bold)
- *   45            (minute, bold)
+ *   13            (hour)
+ *   45            (minute)
  *   Sun, Jul 12
  *   2026   25s
  *
@@ -71,7 +71,12 @@ public final class ClockLayout {
         }
     }
 
-    /** One line of text: what it is, where its center sits, how big it is, whether it is bold. */
+    /**
+     * One line of text: what it is, where its center sits, and how big it is.
+     *
+     * Deliberately says nothing about weight. Bold is a decoration the user sets per field, so the
+     * layout imposing one would mean two places decided it and the user could not turn it off.
+     */
     public static final class Slot {
         /** The line as a whole. Composite lines keep their old role, so callers still recognise them. */
         public final String role;
@@ -85,23 +90,19 @@ public final class ClockLayout {
         public final float textSize;
         /** Width the text must fit into, in pixels. */
         public final float maxWidth;
-        /** True for the hour and the minute, which are drawn bold. */
-        public final boolean bold;
 
-        Slot(String role, float centerX, float centerY, float textSize, float maxWidth,
-                boolean bold) {
-            this(role, singlePart(role), centerX, centerY, textSize, maxWidth, bold);
+        Slot(String role, float centerX, float centerY, float textSize, float maxWidth) {
+            this(role, singlePart(role), centerX, centerY, textSize, maxWidth);
         }
 
         Slot(String role, List<Part> parts, float centerX, float centerY, float textSize,
-                float maxWidth, boolean bold) {
+                float maxWidth) {
             this.role = role;
             this.parts = parts;
             this.centerX = centerX;
             this.centerY = centerY;
             this.textSize = textSize;
             this.maxWidth = maxWidth;
-            this.bold = bold;
         }
     }
 
@@ -211,11 +212,12 @@ public final class ClockLayout {
     /**
      * Measures a string for one field at one size. Only the view knows about glyphs.
      *
-     * Boldness is passed because it changes the width: the hour and the minute are drawn bold, and
-     * measuring them light would size them to something narrower than they are drawn.
+     * Weight and slant are not passed: they are the user's per-field decorations, and the view
+     * applies the same ones here that it applies when drawing. Measuring under a different weight
+     * from the one drawn would size a field to something narrower than it appears.
      */
     public interface Metrics {
-        float width(String role, boolean bold, String text, float textSize);
+        float width(String role, String text, float textSize);
     }
 
     /**
@@ -287,7 +289,7 @@ public final class ClockLayout {
                 // this field's font changes, and no decoration of it can reach the gap.
                 String space = gapOf(separator);
                 gap[i] = space.isEmpty() ? 0f
-                        : metrics.width(ROLE_GAP, false, space, slot.textSize);
+                        : metrics.width(ROLE_GAP, space, slot.textSize);
                 total += widest[i] + gap[i];
             }
 
@@ -325,12 +327,11 @@ public final class ClockLayout {
      */
     private float widestPart(Slot slot, final Part part, final String suffix,
             final float textSize, final Metrics metrics) {
-        final boolean bold = slot.bold;
         return ClockSamples.widest(ClockSamples.of(part.role, options),
                 new ClockSamples.Widths() {
                     @Override
                     public float of(String text) {
-                        return metrics.width(part.role, bold, text + suffix, textSize);
+                        return metrics.width(part.role, text + suffix, textSize);
                     }
                 });
     }
@@ -355,7 +356,7 @@ public final class ClockLayout {
         // it would be wider than its half of the screen.
         out.add(new Slot(ROLE_HOUR_MINUTE,
                 parts(new String[] {ROLE_HOUR, ROLE_MINUTE}, new String[] {"", ":"}),
-                mainWidth / 2f, h / 2f, h - 2f * pad, mainWidth - 2f * pad, true));
+                mainWidth / 2f, h / 2f, h - 2f * pad, mainWidth - 2f * pad));
 
         List<String> roles = new ArrayList<String>(4);
         List<Float> sizes = new ArrayList<Float>(4);
@@ -378,7 +379,7 @@ public final class ClockLayout {
         float cursor = h / 2f - blockHeight / 2f;
         for (int i = 0; i < sizes.size(); i++) {
             float size = sizes.get(i);
-            out.add(new Slot(roles.get(i), sideCenterX, cursor + size / 2f, size, sideBoxWidth, false));
+            out.add(new Slot(roles.get(i), sideCenterX, cursor + size / 2f, size, sideBoxWidth));
             cursor += size + lineGap;
         }
         return new ClockLayout(true, out, options);
@@ -399,19 +400,19 @@ public final class ClockLayout {
 
         List<Slot> out = new ArrayList<Slot>(4);
         float cursor = pad;
-        out.add(new Slot(ROLE_HOUR, centerX, cursor + mainSize / 2f, mainSize, boxWidth, true));
+        out.add(new Slot(ROLE_HOUR, centerX, cursor + mainSize / 2f, mainSize, boxWidth));
         cursor += mainSize + gap;
-        out.add(new Slot(ROLE_MINUTE, centerX, cursor + mainSize / 2f, mainSize, boxWidth, true));
+        out.add(new Slot(ROLE_MINUTE, centerX, cursor + mainSize / 2f, mainSize, boxWidth));
         cursor += mainSize + gap;
         out.add(new Slot(ROLE_WEEKDAY_DATE,
                 parts(new String[] {ROLE_WEEKDAY, ROLE_MONTH_DAY}, new String[] {"", ", "}),
-                centerX, cursor + dateSize / 2f, dateSize, boxWidth, false));
+                centerX, cursor + dateSize / 2f, dateSize, boxWidth));
         cursor += dateSize + gap;
         List<Part> smallParts = options.showSeconds
                 ? parts(new String[] {ROLE_YEAR, ROLE_SECOND}, new String[] {"", "   "})
                 : singlePart(ROLE_YEAR);
         out.add(new Slot(ROLE_SMALL_LINE, smallParts,
-                centerX, cursor + smallSize / 2f, smallSize, boxWidth, false));
+                centerX, cursor + smallSize / 2f, smallSize, boxWidth));
         return new ClockLayout(false, out, options);
     }
 
