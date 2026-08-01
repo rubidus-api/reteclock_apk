@@ -92,6 +92,13 @@ Long press the clock to open the settings screen:
 - **Show seconds** — on or off. With the seconds off, the hour and the minute grow into the freed space.
 - **Date format** — `Jul 12` (abbreviated month name) or `07-12` (numeric).
 - **Start when the charger is connected** — on or off.
+- **Font** — the clock draws in the system font unless you add your own. *Add a font from a file*
+  opens the system file picker; the file is copied into the app, so reteclock never asks for
+  storage permission and the font keeps working if you move or delete the original. Several fonts
+  can be kept: the list shows each one's size and the total, and any of them can be selected or
+  deleted. Deleting the one in use falls back to the system font.
+- **Decoration** — bold, italic and underline, independently, over whichever font is in use. A font
+  file holds one weight and one slant, so these are synthesised.
 
 ## How it starts
 

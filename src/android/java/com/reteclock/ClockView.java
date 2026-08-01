@@ -27,8 +27,16 @@ public class ClockView extends View {
     // Reused every frame: Dalvik collects garbage on the UI thread, so the draw path allocates nothing.
     private final Paint.FontMetrics fontMetrics = new Paint.FontMetrics();
 
-    private final Typeface regular = Typeface.create("sans-serif-light", Typeface.NORMAL);
-    private final Typeface bold = Typeface.create("sans-serif", Typeface.BOLD);
+    private static final Typeface SYSTEM_REGULAR = Typeface.create("sans-serif-light", Typeface.NORMAL);
+    private static final Typeface SYSTEM_BOLD = Typeface.create("sans-serif", Typeface.BOLD);
+    /** How far italic leans. Synthesised, because a user font has one weight and one slant. */
+    private static final float ITALIC_SKEW = -0.25f;
+
+    /** The user's font, or null to draw with the system faces exactly as the app always has. */
+    private Typeface userFont;
+    private boolean decorBold;
+    private boolean decorItalic;
+    private boolean decorUnderline;
 
     private ClockOptions options;
     private ClockLayout layout;
@@ -48,6 +56,7 @@ public class ClockView extends View {
     public ClockView(Context context) {
         super(context);
         options = Settings.options(context);
+        loadTypeface(context);
         setBackgroundColor(Color.BLACK);
         paint.setColor(Color.WHITE);
         paint.setTextAlign(Paint.Align.CENTER);
@@ -56,6 +65,7 @@ public class ClockView extends View {
     /** Re-reads the options, e.g. after the user comes back from the settings screen. */
     public void reloadOptions() {
         options = Settings.options(getContext());
+        loadTypeface(getContext());
         layout = null;
         invalidate();
     }
@@ -106,7 +116,18 @@ public class ClockView extends View {
             if (text == null) {
                 continue;
             }
-            paint.setTypeface(slot.bold ? bold : regular);
+            // With no user font this is exactly what the app has always drawn: two system faces,
+            // hour and minute bold. A user font has one weight, so bold there is synthesised.
+            boolean wantBold = slot.bold || decorBold;
+            if (userFont != null) {
+                paint.setTypeface(userFont);
+                paint.setFakeBoldText(wantBold);
+            } else {
+                paint.setTypeface(wantBold ? SYSTEM_BOLD : SYSTEM_REGULAR);
+                paint.setFakeBoldText(false);
+            }
+            paint.setTextSkewX(decorItalic ? ITALIC_SKEW : 0f);
+            paint.setUnderlineText(decorUnderline);
             paint.setTextSize(slot.textSize);
             float measured = paint.measureText(text);
             float fitted = ClockLayout.shrinkToFit(slot.textSize, measured, slot.maxWidth);
@@ -120,6 +141,29 @@ public class ClockView extends View {
             canvas.drawText(text, slot.centerX, baseline, paint);
         }
         canvas.restore();
+    }
+
+
+    /**
+     * Reads the chosen font. A file that is not a usable font leaves the system faces in place
+     * rather than a broken clock; the settings screen refuses such files on import, and this is the
+     * second line of defence for a file that goes bad afterwards.
+     */
+    private void loadTypeface(Context context) {
+        decorBold = Settings.bold(context);
+        decorItalic = Settings.italic(context);
+        decorUnderline = Settings.underline(context);
+
+        java.io.File file = Settings.fontFile(context);
+        if (file == null) {
+            userFont = null;
+            return;
+        }
+        try {
+            userFont = Typeface.createFromFile(file);
+        } catch (RuntimeException e) {
+            userFont = null;
+        }
     }
 
     private static String textFor(String role, ClockText time) {

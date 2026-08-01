@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">reteclock</string>
-    <string name="app_version">0.2.0</string>
     <string name="settings_title">reteclock settings</string>
     <string name="settings_show_seconds">Show seconds</string>
     <string name="settings_date_format">Date format</string>
@@ -9,5 +8,19 @@
     <string name="settings_date_numeric">07-12</string>
     <string name="settings_dock">Dock</string>
     <string name="settings_start_when_charging">Start when the charger is connected</string>
+    <string name="settings_font">Font</string>
+    <string name="settings_font_system">System font</string>
+    <string name="settings_font_add">Add a font from a file\u2026</string>
+    <string name="settings_font_total">%1$d fonts, %2$s in all</string>
+    <string name="settings_font_none">No fonts added yet.</string>
+    <string name="settings_font_delete">Delete</string>
+    <string name="settings_font_added">Added %1$s</string>
+    <string name="settings_font_rejected">That file is not a font this device can read.</string>
+    <string name="settings_font_failed">Could not read that file.</string>
+    <string name="settings_font_no_picker">No app on this device can pick a file.</string>
+    <string name="settings_decoration">Decoration</string>
+    <string name="settings_bold">Bold</string>
+    <string name="settings_italic">Italic</string>
+    <string name="settings_underline">Underline</string>
     <string name="settings_about">reteclock %1$s\nRuns on Android 2.3 (API 9) and newer. Built for Android 4.4.\nThis device: Android %2$s</string>
 </resources>
