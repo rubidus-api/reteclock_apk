@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 
 import java.io.File;
 
+import com.reteclock.core.ClockDefaults;
 import com.reteclock.core.ClockLayout;
 import com.reteclock.core.ClockOptions;
 import com.reteclock.core.FontLibrary;
@@ -112,7 +113,22 @@ public final class Settings {
      * same arrangement the fonts use.
      */
     public static boolean decoration(Context context, String key, String role) {
-        return prefs(context).getBoolean(key + "_" + role, prefs(context).getBoolean(key, false));
+        return prefs(context).getBoolean(key + "_" + role, defaultDecoration(context, key, role));
+    }
+
+    /**
+     * What a field's decoration is before anyone has touched it.
+     *
+     * The hour and the minute start bold — see {@link ClockDefaults} — and that ignores the old
+     * single flag, because in the versions that had it those two were drawn bold regardless of what
+     * it said. Everything else falls back to that flag, so a decoration set before there were
+     * per-field ones still means something.
+     */
+    private static boolean defaultDecoration(Context context, String key, String role) {
+        if (KEY_BOLD.equals(key) && ClockDefaults.boldByDefault(role)) {
+            return true;
+        }
+        return prefs(context).getBoolean(key, false);
     }
 
     public static void setDecoration(Context context, String key, String role, boolean enabled) {
