@@ -1,0 +1,5 @@
+* Bold, italic and underline are now set for each field on its own, next to that
+  field's font, instead of applying to the whole clock. Whatever you had set before
+  becomes the starting point for every field.
+* Fixed: underlining the year drew the line under the gap that follows it too. The
+  space between two fields now belongs to neither of them.
