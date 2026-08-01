@@ -8,7 +8,7 @@ it draws so an OLED panel does not burn in.
 
 ## Download
 
-**[⬇ Download reteclock-0.3.1.apk](https://github.com/rubidus-api/reteclock_apk/releases/latest/download/reteclock-0.3.1.apk)** — 69 KB, installs on Android 2.3 and newer.
+**[⬇ Download reteclock-0.3.2.apk](https://github.com/rubidus-api/reteclock_apk/releases/latest/download/reteclock-0.3.2.apk)** — 69 KB, installs on Android 2.3 and newer.
 
 Open the file on the phone to install it. On Android 4.4, enable Settings > Security > Unknown
 sources first. All releases: [Releases](https://github.com/rubidus-api/reteclock_apk/releases).
@@ -21,7 +21,7 @@ uninstalling.
 
 ## Status
 
-Working APK, version 0.3.1. Reference platform: Android 4.4 KitKat (API 19).
+Working APK, version 0.3.2. Reference platform: Android 4.4 KitKat (API 19).
 Reference platform: Android 4.4 KitKat (API 19).
 
 ## Supported Android versions
@@ -69,8 +69,9 @@ Screenshots taken on Android 4.4.2.
 |---|---|
 | <img src="docs/screenshots/landscape.png" alt="Landscape: bold 23:39 on the left, seconds, weekday, date and year on the right" width="420"> | <img src="docs/screenshots/portrait.png" alt="Portrait: bold hour and minute stacked, weekday with date, year and seconds" width="210"> |
 
-The hour and the minute are bold and take every pixel the other lines do not need. The remaining
-lines are scaled to the space that is left, so nothing is ever clipped. All text is white.
+The hour and the minute take every pixel the other lines do not need. The remaining lines are
+scaled to the space that is left, so nothing is ever clipped. All text is white. Nothing is bold
+unless you set it to be: weight is one of the per-field decorations.
 
 ## Compatibility
 

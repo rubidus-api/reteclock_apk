@@ -113,8 +113,8 @@ public class ClockView extends View {
         layout = ClockLayout.of(w, h, options);
         plan = layout.plan(new ClockLayout.Metrics() {
             @Override
-            public float width(String role, boolean bold, String text, float textSize) {
-                applyStyle(role, bold, textSize);
+            public float width(String role, String text, float textSize) {
+                applyStyle(role, textSize);
                 return paint.measureText(text);
             }
         });
@@ -151,7 +151,7 @@ public class ClockView extends View {
             float size = plan.textSize(slot);
             for (int i = 0; i < slot.parts.size(); i++) {
                 ClockLayout.Part part = slot.parts.get(i);
-                applyStyle(part.role, slot.bold, size);
+                applyStyle(part.role, size);
                 float cellStart = plan.cellStart(slot, part);
                 float cellWidth = plan.cellWidth(slot, part);
                 float textWidth = paint.measureText(pieces[i]);
@@ -233,13 +233,15 @@ public class ClockView extends View {
         return anything ? pieces : null;
     }
 
-    /** Sets the paint up for one field: its font, its weight, and the decorations. */
-    private void applyStyle(String role, boolean slotBold, float textSize) {
+    /** Sets the paint up for one field: its font and its decorations. */
+    private void applyStyle(String role, float textSize) {
         Typeface font = userFonts.get(role);
-        boolean wantBold = slotBold || boldRoles.contains(role);
-        // With no font of its own this is exactly what the app has always drawn: two system faces,
-        // hour and minute bold. A user font has one weight, so bold there is synthesised.
+        // Weight comes from the field's own bold toggle and from nothing else. The layout used to
+        // make the hour and minute bold whatever the user wanted, which meant bold could be turned
+        // on but never off for the two fields most likely to want a light face.
+        boolean wantBold = boldRoles.contains(role);
         if (font != null) {
+            // A user font has one weight, so bold over it is synthesised.
             paint.setTypeface(font);
             paint.setFakeBoldText(wantBold);
         } else {
