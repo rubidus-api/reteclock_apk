@@ -3,27 +3,40 @@ package com.reteclock.core;
 /**
  * OLED burn-in protection.
  *
- * The whole drawing is translated by a small offset that walks a closed path: the angle advances
- * one step of a full turn each minute while the radius cycles through three values, so the offsets
- * spread over a small disc instead of retracing a single ring. Every position in a cycle is
+ * The whole drawing is translated by an offset that walks a closed path: the angle advances one
+ * step of a full turn each time the position changes, while the radius cycles through three values,
+ * so the offsets spread over a disc instead of retracing a single ring. Every position in a cycle is
  * distinct, consecutive positions are close together, and the path returns to its start after
  * {@link #STEPS} steps.
+ *
+ * The disc is deliberately wide and walked slowly: a wider spread wears the panel more evenly, and
+ * a slow walk keeps the drift from being something you notice. Widening alone would make each move
+ * a bigger jump, so the number of positions grew with the radius rather than staying put.
+ *
+ * How far the drawing may move is bounded by the padding {@link ClockLayout} reserves, which is
+ * derived from this amplitude, so content cannot be pushed off the screen.
  *
  * Pure Java: no android.* imports.
  */
 public final class BurnInShift {
 
-    /** How long one position is held, in milliseconds. */
-    public static final long STEP_MS = 60000L;
+    /** How long one position is held, in milliseconds. Three minutes: slow enough to go unnoticed. */
+    public static final long STEP_MS = 180000L;
 
-    /** Number of distinct positions in one full cycle. */
-    public static final int STEPS = 24;
+    /**
+     * Number of distinct positions in one full cycle, so a cycle closes after STEPS * STEP_MS —
+     * a little under two and a half hours. A multiple of 3, because the radius cycles through three
+     * values and the path has to close cleanly.
+     */
+    public static final int STEPS = 48;
 
     /** Shift amplitude as a fraction of the shorter screen edge. */
-    private static final float AMPLITUDE_FRACTION = 0.03f;
+    public static final float AMPLITUDE_FRACTION = 0.06f;
 
-    private static final int MIN_SHIFT_PX = 4;
-    private static final int MAX_SHIFT_PX = 32;
+    // Kept at one pixel: a larger floor could exceed the padding on a very small screen, and the
+    // whole point of that padding is that the shift always fits inside it.
+    private static final int MIN_SHIFT_PX = 1;
+    private static final int MAX_SHIFT_PX = 96;
 
     private BurnInShift() {
     }

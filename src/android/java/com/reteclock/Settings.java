@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 
 import java.io.File;
 
+import com.reteclock.core.ClockLayout;
 import com.reteclock.core.ClockOptions;
 import com.reteclock.core.FontLibrary;
 
@@ -60,23 +61,47 @@ public final class Settings {
         return new FontLibrary(new File(context.getFilesDir(), FONT_DIR));
     }
 
-    /** The chosen font's file name, or "" for the system font. */
+    /** The fields that can each carry their own font, in the order the settings screen lists them. */
+    public static final String[] FONT_ROLES = {
+        ClockLayout.ROLE_HOUR,
+        ClockLayout.ROLE_MINUTE,
+        ClockLayout.ROLE_SECOND,
+        ClockLayout.ROLE_WEEKDAY,
+        ClockLayout.ROLE_MONTH_DAY,
+        ClockLayout.ROLE_YEAR,
+    };
+
+    /**
+     * The font chosen for one field, or "" for the system font.
+     *
+     * Before fonts were per-field there was a single choice under KEY_FONT. It is still read as the
+     * starting value for every field, so nobody's setting is lost by upgrading.
+     */
+    public static String fontNameFor(Context context, String role) {
+        return prefs(context).getString(KEY_FONT + "_" + role, fontName(context));
+    }
+
+    public static void setFontNameFor(Context context, String role, String name) {
+        prefs(context).edit().putString(KEY_FONT + "_" + role, name == null ? "" : name).commit();
+    }
+
+    /**
+     * That field's font file, or null to draw it with the system font.
+     *
+     * Null also when the setting names a font that has since been deleted, so removing a font in
+     * use leaves a working clock rather than a blank one.
+     */
+    public static File fontFileFor(Context context, String role) {
+        return fonts(context).file(fontNameFor(context, role));
+    }
+
+    /** The font every field started from, kept only so an existing setting still means something. */
     public static String fontName(Context context) {
         return prefs(context).getString(KEY_FONT, "");
     }
 
     public static void setFontName(Context context, String name) {
         prefs(context).edit().putString(KEY_FONT, name == null ? "" : name).commit();
-    }
-
-    /**
-     * The chosen font's file, or null to draw with the system font.
-     *
-     * Null also when the setting names a font that has since been deleted, so removing the font in
-     * use leaves a working clock rather than a blank one.
-     */
-    public static File fontFile(Context context) {
-        return fonts(context).file(fontName(context));
     }
 
     public static boolean bold(Context context) {
