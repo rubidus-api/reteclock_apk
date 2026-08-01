@@ -43,12 +43,23 @@ public final class ClockLayout {
     public static final String ROLE_YEAR = "year";
     public static final String ROLE_WEEKDAY_DATE = "weekday_date";
     public static final String ROLE_SMALL_LINE = "small_line";
+    /**
+     * Not a field: the space between two of them.
+     *
+     * Whitespace separating two fields belongs to neither, so it is measured under this rather than
+     * under whichever field happens to sit before it. Otherwise the gap inherits that field's font
+     * and decoration — underline the year and the space after it gets underlined too.
+     */
+    public static final String ROLE_GAP = "gap";
 
     /**
      * One piece of a line: which field it shows, and what separates it from the piece before it.
      *
-     * A line can be several pieces so that each field can be drawn in its own font. The separator
-     * is drawn in the font of the part before it, since it belongs to what it follows.
+     * A line can be several pieces so that each field can be drawn in its own font. A separator is
+     * read in two halves: the visible characters belong to the part before it and are drawn in its
+     * font, because a comma or a colon is punctuation attached to what it follows; the whitespace
+     * belongs to nobody and is reserved as a plain gap. So underlining a field cannot underline the
+     * space beside it.
      */
     public static final class Part {
         public final String role;
@@ -127,6 +138,30 @@ public final class ClockLayout {
         return slots;
     }
 
+    /**
+     * The visible characters of a separator: punctuation, which belongs to the part before it.
+     *
+     * Public because the view has to draw exactly this much and no more — the whitespace is the
+     * plan's business, not something to paint.
+     */
+    public static String visibleOf(String separator) {
+        return separator == null ? "" : separator.trim();
+    }
+
+    /** The whitespace of a separator: a gap, belonging to neither field. */
+    public static String gapOf(String separator) {
+        if (separator == null) {
+            return "";
+        }
+        String visible = separator.trim();
+        if (visible.isEmpty()) {
+            return separator;
+        }
+        // Whatever follows the punctuation, e.g. the space in ", ".
+        int end = separator.lastIndexOf(visible) + visible.length();
+        return separator.substring(end);
+    }
+
     /** One part, for a line that shows a single field. */
     private static List<Part> singlePart(String role) {
         List<Part> one = new ArrayList<Part>(1);
@@ -193,6 +228,7 @@ public final class ClockLayout {
     public static final class Plan {
         private final java.util.Map<String, Float> sizes = new java.util.HashMap<String, Float>();
         private final java.util.Map<String, float[]> cells = new java.util.HashMap<String, float[]>();
+        private final java.util.Map<String, Float> gaps = new java.util.HashMap<String, Float>();
 
         private static String key(Slot slot, Part part) {
             return slot.role + "/" + part.role;
@@ -215,6 +251,17 @@ public final class ClockLayout {
             float[] cell = cells.get(key(slot, part));
             return cell == null ? 0f : cell[1];
         }
+
+        /**
+         * Space reserved after this field and drawn by nobody.
+         *
+         * Zero when the next field follows immediately. Nothing is painted here, so no field's
+         * decoration can reach it.
+         */
+        public float gapAfter(Slot slot, Part part) {
+            Float gap = gaps.get(key(slot, part));
+            return gap == null ? 0f : gap;
+        }
     }
 
     /**
@@ -230,10 +277,18 @@ public final class ClockLayout {
         for (Slot slot : slots) {
             int count = slot.parts.size();
             float[] widest = new float[count];
+            float[] gap = new float[count];
             float total = 0f;
             for (int i = 0; i < count; i++) {
-                widest[i] = widestPart(slot, slot.parts.get(i), slot.textSize, metrics);
-                total += widest[i];
+                String separator = i + 1 < count ? slot.parts.get(i + 1).separatorBefore : "";
+                widest[i] = widestPart(slot, slot.parts.get(i), visibleOf(separator),
+                        slot.textSize, metrics);
+                // Measured as nobody's: not under this field's role, so the gap does not move when
+                // this field's font changes, and no decoration of it can reach the gap.
+                String space = gapOf(separator);
+                gap[i] = space.isEmpty() ? 0f
+                        : metrics.width(ROLE_GAP, false, space, slot.textSize);
+                total += widest[i] + gap[i];
             }
 
             float size = shrinkToFit(slot.textSize, total, slot.maxWidth);
@@ -244,36 +299,33 @@ public final class ClockLayout {
                 total = 0f;
                 for (int i = 0; i < count; i++) {
                     widest[i] *= scale;
-                    total += widest[i];
+                    gap[i] *= scale;
+                    total += widest[i] + gap[i];
                 }
             }
             plan.sizes.put(slot.role, size);
 
             float cursor = slot.centerX - total / 2f;
             for (int i = 0; i < count; i++) {
-                plan.cells.put(Plan.key(slot, slot.parts.get(i)), new float[] {cursor, widest[i]});
-                cursor += widest[i];
+                String key = Plan.key(slot, slot.parts.get(i));
+                plan.cells.put(key, new float[] {cursor, widest[i]});
+                plan.gaps.put(key, gap[i]);
+                cursor += widest[i] + gap[i];
             }
         }
         return plan;
     }
 
     /**
-     * The width of the widest thing this part can ever draw, separator included.
+     * The width of the widest thing this part can ever draw, including any punctuation that
+     * follows it.
      *
-     * The separator belongs to the part before it and is drawn in that part's font, so it is
-     * measured as part of it.
+     * Whitespace after the part is not included: that is a gap, measured separately and belonging
+     * to no field.
      */
-    private float widestPart(Slot slot, final Part part, final float textSize,
-            final Metrics metrics) {
+    private float widestPart(Slot slot, final Part part, final String suffix,
+            final float textSize, final Metrics metrics) {
         final boolean bold = slot.bold;
-        String trailing = "";
-        List<Part> parts = slot.parts;
-        int index = parts.indexOf(part);
-        if (index >= 0 && index + 1 < parts.size()) {
-            trailing = parts.get(index + 1).separatorBefore;
-        }
-        final String suffix = trailing;
         return ClockSamples.widest(ClockSamples.of(part.role, options),
                 new ClockSamples.Widths() {
                     @Override

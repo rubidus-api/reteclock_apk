@@ -217,10 +217,15 @@ public class ClockView extends View {
             if (text == null) {
                 return null;
             }
-            // The separator is measured and drawn with the part before it, so it goes on the end of
-            // that piece rather than the start of this one.
-            if (i > 0 && !part.separatorBefore.isEmpty()) {
-                pieces[i - 1] = pieces[i - 1] + part.separatorBefore;
+            // Punctuation goes on the end of the piece before it, drawn in that field's font,
+            // because a comma or a colon belongs to what it follows. The whitespace does not: it is
+            // reserved as a gap by the plan and nothing is painted there, so underlining a field
+            // cannot underline the space beside it.
+            if (i > 0) {
+                String punctuation = ClockLayout.visibleOf(part.separatorBefore);
+                if (!punctuation.isEmpty()) {
+                    pieces[i - 1] = pieces[i - 1] + punctuation;
+                }
             }
             pieces[i] = text;
             anything = anything || !text.isEmpty();
