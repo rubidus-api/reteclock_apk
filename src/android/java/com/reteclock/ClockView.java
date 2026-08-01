@@ -34,9 +34,10 @@ public class ClockView extends View {
 
     /** One font per field, null where the system face is wanted. Indexed by role. */
     private final java.util.Map<String, Typeface> userFonts = new java.util.HashMap<String, Typeface>();
-    private boolean decorBold;
-    private boolean decorItalic;
-    private boolean decorUnderline;
+    /** Decorations per field, alongside the fonts. Empty means the field carries none. */
+    private final java.util.Set<String> boldRoles = new java.util.HashSet<String>();
+    private final java.util.Set<String> italicRoles = new java.util.HashSet<String>();
+    private final java.util.Set<String> underlineRoles = new java.util.HashSet<String>();
 
     private ClockOptions options;
     private ClockLayout layout;
@@ -169,9 +170,20 @@ public class ClockView extends View {
      * second line of defence for a file that goes bad afterwards.
      */
     private void loadTypeface(Context context) {
-        decorBold = Settings.bold(context);
-        decorItalic = Settings.italic(context);
-        decorUnderline = Settings.underline(context);
+        boldRoles.clear();
+        italicRoles.clear();
+        underlineRoles.clear();
+        for (String role : Settings.FONT_ROLES) {
+            if (Settings.bold(context, role)) {
+                boldRoles.add(role);
+            }
+            if (Settings.italic(context, role)) {
+                italicRoles.add(role);
+            }
+            if (Settings.underline(context, role)) {
+                underlineRoles.add(role);
+            }
+        }
 
         userFonts.clear();
         for (String role : Settings.FONT_ROLES) {
@@ -219,7 +231,7 @@ public class ClockView extends View {
     /** Sets the paint up for one field: its font, its weight, and the decorations. */
     private void applyStyle(String role, boolean slotBold, float textSize) {
         Typeface font = userFonts.get(role);
-        boolean wantBold = slotBold || decorBold;
+        boolean wantBold = slotBold || boldRoles.contains(role);
         // With no font of its own this is exactly what the app has always drawn: two system faces,
         // hour and minute bold. A user font has one weight, so bold there is synthesised.
         if (font != null) {
@@ -229,8 +241,8 @@ public class ClockView extends View {
             paint.setTypeface(wantBold ? SYSTEM_BOLD : SYSTEM_REGULAR);
             paint.setFakeBoldText(false);
         }
-        paint.setTextSkewX(decorItalic ? ITALIC_SKEW : 0f);
-        paint.setUnderlineText(decorUnderline);
+        paint.setTextSkewX(italicRoles.contains(role) ? ITALIC_SKEW : 0f);
+        paint.setUnderlineText(underlineRoles.contains(role));
         paint.setTextSize(textSize);
     }
 
