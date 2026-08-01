@@ -9,9 +9,10 @@ package com.reteclock.core;
  * distinct, consecutive positions are close together, and the path returns to its start after
  * {@link #STEPS} steps.
  *
- * The disc is deliberately wide and walked slowly: a wider spread wears the panel more evenly, and
- * a slow walk keeps the drift from being something you notice. Widening alone would make each move
- * a bigger jump, so the number of positions grew with the radius rather than staying put.
+ * The disc is deliberately wide and walked in many small steps: a wider spread wears the panel more
+ * evenly, and a small step keeps the drift from being something you notice. The step lands on the
+ * minute, when the displayed minute changes anyway, so the movement rides along with a change the
+ * eye is already expecting.
  *
  * How far the drawing may move is bounded by the padding {@link ClockLayout} reserves, which is
  * derived from this amplitude, so content cannot be pushed off the screen.
@@ -20,15 +21,24 @@ package com.reteclock.core;
  */
 public final class BurnInShift {
 
-    /** How long one position is held, in milliseconds. Three minutes: slow enough to go unnoticed. */
-    public static final long STEP_MS = 180000L;
+    /**
+     * How long one position is held. One minute, because the minute digit changes then anyway, so
+     * the drift rides along with a change the eye is already expecting.
+     */
+    public static final long STEP_MS = 60000L;
 
     /**
      * Number of distinct positions in one full cycle, so a cycle closes after STEPS * STEP_MS —
-     * a little under two and a half hours. A multiple of 3, because the radius cycles through three
-     * values and the path has to close cleanly.
+     * 144 minutes. Many positions is what keeps each minute's move tiny while the disc stays wide.
      */
-    public static final int STEPS = 48;
+    public static final int STEPS = 144;
+
+    /** How many times the radius swells and shrinks over one cycle. */
+    private static final int RADIAL_CYCLES = 3;
+
+    /** The radius swings between these fractions of the maximum. */
+    private static final double RADIUS_MIN = 0.4;
+    private static final double RADIUS_MAX = 1.0;
 
     /** Shift amplitude as a fraction of the shorter screen edge. */
     public static final float AMPLITUDE_FRACTION = 0.06f;
@@ -78,11 +88,16 @@ public final class BurnInShift {
     }
 
     /**
-     * Radius for a step: full, then 70%, then 40%, repeating.
+     * Radius for a step: a smooth swell between 40% and 100%, three times around the cycle.
      *
-     * STEPS is a multiple of the radius cycle length, so the whole path closes cleanly.
+     * It used to step between three fixed values, which moved the drawing by a third of the radius
+     * from one position to the next. That was tolerable when a position lasted three minutes; with
+     * a move every minute it would read as a lurch. Varying it smoothly keeps every move small,
+     * and the path still closes because the swell divides the cycle evenly.
      */
     private static double radius(int stepIndex, int maxShiftPx) {
-        return maxShiftPx * (1.0 - 0.3 * (stepIndex % 3));
+        double phase = 2.0 * Math.PI * RADIAL_CYCLES * stepIndex / STEPS;
+        double unit = RADIUS_MIN + (RADIUS_MAX - RADIUS_MIN) * (1.0 + Math.cos(phase)) / 2.0;
+        return maxShiftPx * unit;
     }
 }
