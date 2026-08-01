@@ -8,7 +8,7 @@ it draws so an OLED panel does not burn in.
 
 ## Download
 
-**[⬇ Download reteclock-0.2.4.apk](https://github.com/rubidus-api/reteclock_apk/releases/latest/download/reteclock-0.2.4.apk)** — 58 KB, installs on Android 2.3 and newer.
+**[⬇ Download reteclock-0.3.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/latest/download/reteclock-0.3.0.apk)** — 69 KB, installs on Android 2.3 and newer.
 
 Open the file on the phone to install it. On Android 4.4, enable Settings > Security > Unknown
 sources first. All releases: [Releases](https://github.com/rubidus-api/reteclock_apk/releases).
@@ -21,7 +21,7 @@ uninstalling.
 
 ## Status
 
-Working APK, version 0.2.4. Everything since 0.2.0 changed only packaging and the build, not the clock.
+Working APK, version 0.3.0. Reference platform: Android 4.4 KitKat (API 19).
 Reference platform: Android 4.4 KitKat (API 19).
 
 ## Supported Android versions

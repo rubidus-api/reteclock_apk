@@ -1,0 +1,10 @@
+Your own fonts, and a steadier clock.
+
+* Add fonts from a file. They are kept inside the app, so no storage permission is
+  asked for, and the font survives you moving or deleting the original. Keep several,
+  see what they occupy, delete any of them.
+* The hour, minute, seconds, weekday, month-and-day and year each take their own font.
+* Bold, italic and underline.
+* Every field is now sized from the widest text it could ever show, so the clock no
+  longer resizes or shifts as the digits change. 11:11 sits exactly where 88:88 would.
+* Burn-in protection covers a wider area, moving a few pixels each minute.
