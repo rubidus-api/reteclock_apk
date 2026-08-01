@@ -14,6 +14,8 @@ import android.provider.OpenableColumns;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
@@ -21,6 +23,7 @@ import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.ScrollView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -50,8 +53,20 @@ public class SettingsActivity extends Activity {
 
     private static final int REQUEST_PICK_FONT = 1;
 
-    /** Rebuilt in place whenever a font is added, chosen or deleted. */
+    /** In the order Settings.FONT_ROLES lists them. */
+    private static final int[] FIELD_LABELS = {
+        R.string.settings_field_hour,
+        R.string.settings_field_minute,
+        R.string.settings_field_second,
+        R.string.settings_field_weekday,
+        R.string.settings_field_month_day,
+        R.string.settings_field_year,
+    };
+
+    /** Rebuilt in place whenever a font is added or deleted. */
     private LinearLayout fontSection;
+    /** The per-field font choices, rebuilt with it because the choices are the stored fonts. */
+    private LinearLayout fieldSection;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -110,7 +125,11 @@ public class SettingsActivity extends Activity {
         fontSection = new LinearLayout(this);
         fontSection.setOrientation(LinearLayout.VERTICAL);
         root.addView(fontSection);
-        rebuildFontSection();
+
+        root.addView(heading(getString(R.string.settings_font_per_field)));
+        fieldSection = new LinearLayout(this);
+        fieldSection.setOrientation(LinearLayout.VERTICAL);
+        root.addView(fieldSection);
 
         Button add = new Button(this);
         add.setText(R.string.settings_font_add);
@@ -160,6 +179,9 @@ public class SettingsActivity extends Activity {
         root.addView(footer(getString(R.string.settings_about,
                 versionName(), Build.VERSION.RELEASE)));
 
+        rebuildFontSection();
+        rebuildFieldSection();
+
         ScrollView scroll = new ScrollView(this);
         scroll.setBackgroundColor(Color.BLACK);
         scroll.addView(root);
@@ -197,14 +219,9 @@ public class SettingsActivity extends Activity {
 
         FontLibrary library = Settings.fonts(this);
         List<FontLibrary.Entry> entries = library.list();
-        String chosen = Settings.fontName(this);
-        final List<RadioButton> buttons = new ArrayList<RadioButton>();
-
-        fontSection.addView(fontRow(buttons, null, getString(R.string.settings_font_system),
-                chosen.isEmpty()));
         for (FontLibrary.Entry entry : entries) {
             String label = entry.name + "  \u00b7  " + FontLibrary.humanBytes(entry.bytes);
-            fontSection.addView(fontRow(buttons, entry.name, label, entry.name.equals(chosen)));
+            fontSection.addView(fontRow(entry.name, label));
         }
 
         TextView total = footer(entries.isEmpty()
@@ -215,48 +232,87 @@ public class SettingsActivity extends Activity {
         fontSection.addView(total);
     }
 
-    /** One row: a radio that selects the font, and for an imported one, a button that deletes it. */
-    private View fontRow(final List<RadioButton> buttons, final String name, String label,
-            boolean selected) {
+    /** One row: the font's name and size, and a button that deletes it. */
+    private View fontRow(final String name, String label) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
 
-        final RadioButton radio = new RadioButton(this);
-        radio.setText(label);
-        radio.setTextColor(TEXT_WHITE);
-        radio.setChecked(selected);
-        radio.setLayoutParams(new LinearLayout.LayoutParams(
+        TextView text = new TextView(this);
+        text.setText(label);
+        text.setTextColor(TEXT_WHITE);
+        text.setLayoutParams(new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-        radio.setOnClickListener(new View.OnClickListener() {
+        row.addView(text);
+
+        Button delete = new Button(this);
+        delete.setText(R.string.settings_font_delete);
+        delete.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                for (RadioButton other : buttons) {
-                    other.setChecked(other == radio);
-                }
-                Settings.setFontName(SettingsActivity.this, name == null ? "" : name);
+                Settings.fonts(SettingsActivity.this).delete(name);
+                // A field still naming this font falls back to the system face on its own, because
+                // the lookup checks the file is there. Nothing else to clean up.
+                rebuildFontSection();
+                rebuildFieldSection();
             }
         });
-        buttons.add(radio);
-        row.addView(radio);
+        row.addView(delete);
+        return row;
+    }
 
-        if (name != null) {
-            Button delete = new Button(this);
-            delete.setText(R.string.settings_font_delete);
-            delete.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Settings.fonts(SettingsActivity.this).delete(name);
-                    // Deleting the font in use falls back to the system font rather than leaving
-                    // the clock with nothing to draw with.
-                    if (name.equals(Settings.fontName(SettingsActivity.this))) {
-                        Settings.setFontName(SettingsActivity.this, "");
-                    }
-                    rebuildFontSection();
-                }
-            });
-            row.addView(delete);
+    /** One spinner per field, each offering the system font and every stored font. */
+    private void rebuildFieldSection() {
+        fieldSection.removeAllViews();
+
+        List<String> names = new ArrayList<String>();
+        List<String> labels = new ArrayList<String>();
+        names.add("");
+        labels.add(getString(R.string.settings_font_system));
+        for (FontLibrary.Entry entry : Settings.fonts(this).list()) {
+            names.add(entry.name);
+            labels.add(entry.name);
         }
+
+        for (int i = 0; i < Settings.FONT_ROLES.length; i++) {
+            fieldSection.addView(fieldRow(Settings.FONT_ROLES[i], FIELD_LABELS[i], names, labels));
+        }
+    }
+
+    private View fieldRow(final String role, int label, final List<String> names,
+            List<String> labels) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+
+        TextView name = new TextView(this);
+        name.setText(label);
+        name.setTextColor(TEXT_WHITE);
+        name.setLayoutParams(new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        row.addView(name);
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
+                android.R.layout.simple_spinner_item, labels);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+        final Spinner spinner = new Spinner(this);
+        spinner.setAdapter(adapter);
+        int selected = names.indexOf(Settings.fontNameFor(this, role));
+        spinner.setSelection(selected < 0 ? 0 : selected);
+        spinner.setLayoutParams(new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.4f));
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                Settings.setFontNameFor(SettingsActivity.this, role, names.get(position));
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+            }
+        });
+        row.addView(spinner);
         return row;
     }
 
@@ -318,8 +374,8 @@ public class SettingsActivity extends Activity {
             return;
         }
 
-        Settings.setFontName(this, stored);
         rebuildFontSection();
+        rebuildFieldSection();
         toast(getString(R.string.settings_font_added, stored));
     }
 

@@ -10,6 +10,13 @@
     <string name="settings_start_when_charging">Start when the charger is connected</string>
     <string name="settings_font">Font</string>
     <string name="settings_font_system">System font</string>
+    <string name="settings_font_per_field">A font for each field</string>
+    <string name="settings_field_hour">Hour</string>
+    <string name="settings_field_minute">Minute</string>
+    <string name="settings_field_second">Seconds</string>
+    <string name="settings_field_weekday">Weekday</string>
+    <string name="settings_field_month_day">Month and day</string>
+    <string name="settings_field_year">Year</string>
     <string name="settings_font_add">Add a font from a file\u2026</string>
     <string name="settings_font_total">%1$d fonts, %2$s in all</string>
     <string name="settings_font_none">No fonts added yet.</string>

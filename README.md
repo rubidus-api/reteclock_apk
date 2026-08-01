@@ -94,9 +94,11 @@ Long press the clock to open the settings screen:
 - **Start when the charger is connected** — on or off.
 - **Font** — the clock draws in the system font unless you add your own. *Add a font from a file*
   opens the system file picker; the file is copied into the app, so reteclock never asks for
-  storage permission and the font keeps working if you move or delete the original. Several fonts
-  can be kept: the list shows each one's size and the total, and any of them can be selected or
-  deleted. Deleting the one in use falls back to the system font.
+  storage permission and the font keeps working if you move or delete the original. The list shows
+  each font's size and the total they occupy, and any of them can be deleted.
+- **A font for each field** — the hour, the minute, the seconds, the weekday, the month and day,
+  and the year each choose their own font. Sizes stay worked out by the app. Deleting a font that a
+  field is using drops that field back to the system font.
 - **Decoration** — bold, italic and underline, independently, over whichever font is in use. A font
   file holds one weight and one slant, so these are synthesised.
 
