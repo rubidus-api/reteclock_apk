@@ -6,6 +6,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.Toast;
 
 /**
  * Full-screen clock activity.
@@ -13,7 +14,8 @@ import android.view.WindowManager;
  * Launched from the home screen, from a desk dock, or by {@link PowerConnectionReceiver} when the
  * device starts charging. It keeps the screen on for as long as it is visible.
  *
- * A long press opens the settings screen.
+ * A long press opens the settings screen. Since nothing on screen says so, the clock says it once
+ * on launch — but only when the user opened it themselves, and only until they have been there.
  */
 public class ClockActivity extends Activity {
 
@@ -46,6 +48,23 @@ public class ClockActivity extends Activity {
         });
         setContentView(view);
         hideSystemBars();
+        maybeHintAtSettings();
+    }
+
+    /**
+     * Says that a long press opens the settings, briefly.
+     *
+     * Not when the charger started the clock: that happens on a bedside stand, possibly in the
+     * middle of the night, and a message nobody asked for has no business appearing there. And not
+     * once the user has opened the settings, because then they know.
+     */
+    private void maybeHintAtSettings() {
+        boolean startedByCharger =
+                getIntent() != null && getIntent().getBooleanExtra(EXTRA_DOCK, false);
+        if (startedByCharger || Settings.hintSeen(this)) {
+            return;
+        }
+        Toast.makeText(this, R.string.hint_long_press, Toast.LENGTH_LONG).show();
     }
 
     @Override
