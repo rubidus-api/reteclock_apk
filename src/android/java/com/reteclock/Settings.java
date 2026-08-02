@@ -22,6 +22,7 @@ public final class Settings {
     public static final String KEY_BOLD = "text_bold";
     public static final String KEY_ITALIC = "text_italic";
     public static final String KEY_UNDERLINE = "text_underline";
+    public static final String KEY_HINT_SEEN = "hint_seen";
 
     /** Where imported fonts live, inside the app's own storage: no permission needed to read it. */
     private static final String FONT_DIR = "fonts";
@@ -60,6 +61,20 @@ public final class Settings {
     /** The fonts the user has imported. */
     public static FontLibrary fonts(Context context) {
         return new FontLibrary(new File(context.getFilesDir(), FONT_DIR));
+    }
+
+    /**
+     * Whether the user has been to the settings screen.
+     *
+     * The clock hints that a long press opens it, and stops once they have found it — a hint nobody
+     * needs any more is just something in the way.
+     */
+    public static boolean hintSeen(Context context) {
+        return prefs(context).getBoolean(KEY_HINT_SEEN, false);
+    }
+
+    public static void setHintSeen(Context context) {
+        prefs(context).edit().putBoolean(KEY_HINT_SEEN, true).commit();
     }
 
     /** The fields that can each carry their own font, in the order the settings screen lists them. */

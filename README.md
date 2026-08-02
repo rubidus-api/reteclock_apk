@@ -8,7 +8,7 @@ it draws so an OLED panel does not burn in.
 
 ## Download
 
-**[⬇ Download reteclock-0.3.3.apk](https://github.com/rubidus-api/reteclock_apk/releases/latest/download/reteclock-0.3.3.apk)** — 69 KB, installs on Android 2.3 and newer.
+**[⬇ Download reteclock-0.3.4.apk](https://github.com/rubidus-api/reteclock_apk/releases/latest/download/reteclock-0.3.4.apk)** — 69 KB, installs on Android 2.3 and newer.
 
 Open the file on the phone to install it. On Android 4.4, enable Settings > Security > Unknown
 sources first. All releases: [Releases](https://github.com/rubidus-api/reteclock_apk/releases).
@@ -21,7 +21,7 @@ uninstalling.
 
 ## Status
 
-Working APK, version 0.3.3. Reference platform: Android 4.4 KitKat (API 19).
+Working APK, version 0.3.4. Reference platform: Android 4.4 KitKat (API 19).
 Reference platform: Android 4.4 KitKat (API 19).
 
 ## Supported Android versions
@@ -85,7 +85,9 @@ per-field decorations; the hour and the minute have it on to begin with, and you
 
 ## Settings
 
-Long press the clock to open the settings screen:
+Press and hold the clock to open the settings screen. The clock says so once when you open it, and
+stops saying it once you have been there — and never says it when the charger started the clock, so
+it stays quiet on a bedside stand.
 
 <img src="docs/screenshots/settings.png" alt="Settings: a font for each field, each with bold, italic and underline" width="240">
 
@@ -96,8 +98,10 @@ In the order they appear on the screen:
 - **Date format** — `Jul 12` (abbreviated month name) or `07-12` (numeric).
 - **Font** — the clock draws in the system font unless you add your own. *Add a font from a file*
   opens the system file picker; the file is copied into the app, so reteclock never asks for
-  storage permission and the font keeps working if you move or delete the original. The list shows
-  each font's size and the total they occupy, and any of them can be deleted.
+  storage permission and the font keeps working if you move or delete the original. TrueType
+  (`.ttf`) and OpenType (`.otf`) are what a device can generally read, and anything it cannot is
+  refused on the spot rather than left in the list. The list shows each font's size and the total
+  they occupy, and any of them can be deleted.
 - **Each field: font and decoration** — the hour, the minute, the seconds, the weekday, the month
   and day, and the year each choose their own font, and their own **B**old, **I**talic and
   **U**nderline. The hour and the minute start bold; you can turn that off. Sizes stay worked out

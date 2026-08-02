@@ -1,0 +1,7 @@
+* Each field in the settings now puts its name and its bold, italic and underline on
+  one line, with the font on the line below. The font name no longer gets cut off on
+  a narrow screen.
+* The settings screen says which kinds of font file generally work.
+* Opening the clock says once that pressing and holding it opens the settings. It
+  stops once you have been there, and never appears when the charger started the
+  clock, so a bedside stand stays quiet.

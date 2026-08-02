@@ -72,6 +72,9 @@ public class SettingsActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // Getting here is proof the long-press hint has done its job.
+        Settings.setHintSeen(this);
+
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(Color.BLACK);
@@ -140,6 +143,7 @@ public class SettingsActivity extends Activity {
             }
         });
         root.addView(add);
+        root.addView(footer(getString(R.string.settings_font_kinds)));
 
         root.addView(heading(getString(R.string.settings_dock)));
 
@@ -241,11 +245,11 @@ public class SettingsActivity extends Activity {
     }
 
     /**
-     * One field: its name, then its font and its three decorations on the line below.
+     * One field: its name and its three decorations on one line, its font on the next.
      *
-     * Everything about a field sits together, so there is no second section to keep in step with
-     * this one. Two lines rather than one because a spinner and three checkboxes do not fit beside
-     * a label on a narrow phone.
+     * The name is short and the toggles are narrow, so they share a line comfortably. The spinner
+     * then gets the full width, which it needs — sharing a line with three checkboxes truncated it
+     * to "System for" on a 320dp screen.
      */
     private View fieldRow(final String role, int label, final List<String> names,
             List<String> labels) {
@@ -253,15 +257,22 @@ public class SettingsActivity extends Activity {
         block.setOrientation(LinearLayout.VERTICAL);
         block.setPadding(0, dp(8), 0, 0);
 
+        LinearLayout header = new LinearLayout(this);
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+
         TextView name = new TextView(this);
         name.setText(label);
         name.setTextColor(TEXT_DIM);
         name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f);
-        block.addView(name);
+        name.setLayoutParams(new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        header.addView(name);
 
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER_VERTICAL);
+        header.addView(toggle(role, Settings.KEY_BOLD, R.string.settings_bold));
+        header.addView(toggle(role, Settings.KEY_ITALIC, R.string.settings_italic));
+        header.addView(toggle(role, Settings.KEY_UNDERLINE, R.string.settings_underline));
+        block.addView(header);
 
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
                 android.R.layout.simple_spinner_item, labels);
@@ -272,7 +283,7 @@ public class SettingsActivity extends Activity {
         int selected = names.indexOf(Settings.fontNameFor(this, role));
         spinner.setSelection(selected < 0 ? 0 : selected);
         spinner.setLayoutParams(new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
         spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -283,13 +294,7 @@ public class SettingsActivity extends Activity {
             public void onNothingSelected(AdapterView<?> parent) {
             }
         });
-        row.addView(spinner);
-
-        row.addView(toggle(role, Settings.KEY_BOLD, R.string.settings_bold));
-        row.addView(toggle(role, Settings.KEY_ITALIC, R.string.settings_italic));
-        row.addView(toggle(role, Settings.KEY_UNDERLINE, R.string.settings_underline));
-
-        block.addView(row);
+        block.addView(spinner);
         return block;
     }
 
