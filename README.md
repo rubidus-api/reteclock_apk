@@ -67,7 +67,7 @@ Screenshots taken on Android 4.4.2.
 
 | Landscape (wide) | Portrait (tall) |
 |---|---|
-| <img src="docs/screenshots/landscape.png" alt="Landscape: bold 23:39 on the left, seconds, weekday, date and year on the right" width="420"> | <img src="docs/screenshots/portrait.png" alt="Portrait: bold hour and minute stacked, weekday with date, year and seconds" width="210"> |
+| <img src="docs/screenshots/landscape.png" alt="Landscape: a large bold HH:MM on the left, with seconds, weekday, date and year in a column on the right" width="420"> | <img src="docs/screenshots/portrait.png" alt="Portrait: bold hour and minute stacked, then the weekday with the date, then the year and the seconds" width="210"> |
 
 The hour and the minute take every pixel the other lines do not need. The remaining lines are
 scaled to the space that is left, so nothing is ever clipped. All text is white. Weight is one of the
@@ -87,20 +87,23 @@ per-field decorations; the hour and the minute have it on to begin with, and you
 
 Long press the clock to open the settings screen:
 
-<img src="docs/screenshots/settings.png" alt="Settings: show seconds, date format, start when charging" width="240">
+<img src="docs/screenshots/settings.png" alt="Settings: a font for each field, each with bold, italic and underline" width="240">
 
+
+In the order they appear on the screen:
 
 - **Show seconds** — on or off. With the seconds off, the hour and the minute grow into the freed space.
 - **Date format** — `Jul 12` (abbreviated month name) or `07-12` (numeric).
-- **Start when the charger is connected** — on or off.
 - **Font** — the clock draws in the system font unless you add your own. *Add a font from a file*
   opens the system file picker; the file is copied into the app, so reteclock never asks for
   storage permission and the font keeps working if you move or delete the original. The list shows
   each font's size and the total they occupy, and any of them can be deleted.
 - **Each field: font and decoration** — the hour, the minute, the seconds, the weekday, the month
-  and day, and the year each choose their own font and their own bold, italic and underline. Sizes
-  stay worked out by the app. Deleting a font that a field is using drops that field back to the
-  system font. A font file holds one weight and one slant, so bold and italic are synthesised.
+  and day, and the year each choose their own font, and their own **B**old, **I**talic and
+  **U**nderline. The hour and the minute start bold; you can turn that off. Sizes stay worked out
+  by the app. Deleting a font that a field is using drops that field back to the system font. A
+  font file holds one weight and one slant, so bold and italic are synthesised.
+- **Start when the charger is connected** — on or off.
 
 ## How it starts
 
