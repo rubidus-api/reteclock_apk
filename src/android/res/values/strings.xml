@@ -18,7 +18,7 @@
     <string name="settings_field_month_day">Month and day</string>
     <string name="settings_field_year">Year</string>
     <string name="settings_font_add">Add a font from a file\u2026</string>
-    <string name="settings_font_kinds">TrueType (.ttf) or OpenType (.otf). Anything this device cannot read as a font is refused.</string>
+    <string name="settings_font_kinds">TrueType (.ttf), OpenType (.otf) or a collection (.ttc). Anything this device cannot read as a font is refused.</string>
     <string name="settings_font_total">%1$d fonts, %2$s in all</string>
     <string name="settings_font_none">No fonts added yet.</string>
     <string name="settings_font_delete">Delete</string>

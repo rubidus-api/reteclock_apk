@@ -8,7 +8,7 @@ it draws so an OLED panel does not burn in.
 
 ## Download
 
-**[⬇ Download reteclock-0.3.4.apk](https://github.com/rubidus-api/reteclock_apk/releases/latest/download/reteclock-0.3.4.apk)** — 69 KB, installs on Android 2.3 and newer.
+**[⬇ Download reteclock-0.3.5.apk](https://github.com/rubidus-api/reteclock_apk/releases/latest/download/reteclock-0.3.5.apk)** — 69 KB, installs on Android 2.3 and newer.
 
 Open the file on the phone to install it. On Android 4.4, enable Settings > Security > Unknown
 sources first. All releases: [Releases](https://github.com/rubidus-api/reteclock_apk/releases).
@@ -73,6 +73,12 @@ The hour and the minute take every pixel the other lines do not need. The remain
 scaled to the space that is left, so nothing is ever clipped. All text is white. Weight is one of the
 per-field decorations; the hour and the minute have it on to begin with, and you can turn it off.
 
+Every field can be drawn in a font of your own, with its own bold, italic and underline. Below, the
+hour is a TrueType face, the minute a font collection, the weekday and date an OpenType one, the
+year is italic and the seconds are underlined — and the app worked out every size.
+
+<img src="docs/screenshots/fonts.png" alt="Portrait clock with a different user font on the hour, the minute and the date line, an italic year and underlined seconds" width="210">
+
 ## Compatibility
 
 - `minSdkVersion 9` (Android 2.3) through current Android; built and verified against the
@@ -89,7 +95,7 @@ Press and hold the clock to open the settings screen. The clock says so once whe
 stops saying it once you have been there — and never says it when the charger started the clock, so
 it stays quiet on a bedside stand.
 
-<img src="docs/screenshots/settings.png" alt="Settings: a font for each field, each with bold, italic and underline" width="240">
+<img src="docs/screenshots/settings.png" alt="Settings: show seconds, date format, and the font library listing each font's size and the total" width="240"> <img src="docs/screenshots/fields.png" alt="Settings, further down: each field on two lines — its name with bold, italic and underline, then its font — and the accepted file kinds" width="240">
 
 
 In the order they appear on the screen:
@@ -99,8 +105,9 @@ In the order they appear on the screen:
 - **Font** — the clock draws in the system font unless you add your own. *Add a font from a file*
   opens the system file picker; the file is copied into the app, so reteclock never asks for
   storage permission and the font keeps working if you move or delete the original. TrueType
-  (`.ttf`) and OpenType (`.otf`) are what a device can generally read, and anything it cannot is
-  refused on the spot rather than left in the list. The list shows each font's size and the total
+  (`.ttf`), OpenType (`.otf`) and font collections (`.ttc`) all load — a collection was tried on
+  Android 4.4 rather than assumed — and anything the device cannot read is refused on the spot
+  rather than left in the list. The list shows each font's size and the total
   they occupy, and any of them can be deleted.
 - **Each field: font and decoration** — the hour, the minute, the seconds, the weekday, the month
   and day, and the year each choose their own font, and their own **B**old, **I**talic and

@@ -1,0 +1,3 @@
+* Font collections (.ttc) are named as a kind that works, alongside TrueType and
+  OpenType. They always loaded; the settings screen just never said so, so nobody
+  would have tried one.
