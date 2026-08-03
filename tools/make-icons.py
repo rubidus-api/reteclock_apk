@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Generates the launcher icon PNGs into src/android/res/drawable-*/ic_launcher.png, and the
-512x512 store icon into fastlane/metadata/android/en-US/images/icon.png.
+"""Generates the launcher icon PNGs into src/android/res/drawable-*/ic_launcher.png, the 512x512
+store icon, and the 1024x500 feature graphic F-Droid shows at the top of the app page.
 
 The icon is drawn, not downloaded: a dark rounded square showing "13" over "45", which is what
 the tall clock layout looks like. Run this only when the icon design changes; the generated PNGs
@@ -43,6 +43,13 @@ STORE_ICON = os.path.join(
 )
 STORE_ICON_SIZE = 512
 
+# F-Droid puts this across the top of the app page. Drawn from the same parts as the icon, so the
+# listing and the launcher agree with each other and with the clock itself.
+FEATURE_GRAPHIC = os.path.join(
+    ROOT, "fastlane", "metadata", "android", "en-US", "images", "featureGraphic.png"
+)
+FEATURE_SIZE = (1024, 500)
+
 # Drawn at 8x and downsampled, which keeps the small densities clean.
 SUPERSAMPLE = 8
 
@@ -75,6 +82,33 @@ def render(size):
     return image.resize((size, size), Image.LANCZOS)
 
 
+def render_feature_graphic():
+    """The clock face as it really looks, on the black it really uses."""
+    width, height = FEATURE_SIZE
+    big = SUPERSAMPLE
+    image = Image.new("RGB", (width * big, height * big), BACKGROUND[:3])
+    draw = ImageDraw.Draw(image)
+
+    time_font = load_font(int(height * big * 0.52))
+    side_font = load_font(int(height * big * 0.13))
+
+    # Same arrangement as the wide layout: the time on the left, the details in a column right.
+    x, y = centered(draw, "13:45", time_font,
+                    (0, 0, width * big * 0.62, height * big))
+    draw.text((x, y), "13:45", font=time_font, fill=FOREGROUND[:3])
+
+    lines = ["25s", "Sun", "Jul 12", "2026"]
+    line_height = height * big * 0.19
+    top = height * big / 2 - line_height * len(lines) / 2
+    for i, line in enumerate(lines):
+        lx, ly = centered(draw, line, side_font,
+                          (width * big * 0.62, top + line_height * i,
+                           width * big, top + line_height * (i + 1)))
+        draw.text((lx, ly), line, font=side_font, fill=FOREGROUND[:3])
+
+    return image.resize(FEATURE_SIZE, Image.LANCZOS)
+
+
 def main():
     for density, size in DENSITIES.items():
         directory = os.path.join(RES, "drawable-" + density)
@@ -86,6 +120,9 @@ def main():
     os.makedirs(os.path.dirname(STORE_ICON), exist_ok=True)
     render(STORE_ICON_SIZE).save(STORE_ICON, "PNG", optimize=True)
     print("wrote", os.path.relpath(STORE_ICON, ROOT))
+
+    render_feature_graphic().save(FEATURE_GRAPHIC, "PNG", optimize=True)
+    print("wrote", os.path.relpath(FEATURE_GRAPHIC, ROOT))
     return 0
 
 
