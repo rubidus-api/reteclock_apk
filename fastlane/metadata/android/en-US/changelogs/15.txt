@@ -1,0 +1,4 @@
+* Your colours: the text and the background, each picked from a palette. The
+  two can never be the same — a clock in its own background colour is no clock —
+  and the background colour shows wherever no image does, letterbox bars
+  included.

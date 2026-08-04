@@ -18,7 +18,8 @@ Features
 * The clock does not fidget. Each field is sized from the widest text it could ever show, so 11:11 is drawn at the same size and in the same place as 88:88 and nothing shifts as the digits change.
 * Your own pictures, in one pool. Each image is ticked as a background or as the text fill — the digits become a window onto it — or held on hand, unused; a select-all tops each column. The backgrounds take turns: an animated GIF plays through once, a still holds for a time you choose, one cross-fades into the next, and six fit modes cover every shape. The text images cycle on the same rules. Sort by name or date, rename (001, 002 … makes the name sort your order), arrange by hand, or select many and delete together.
 * How much room the time takes is yours: two sliders — its share of the width in landscape, of the height in portrait.
-* Settings, opened with a long press on the clock — the clock says so once when you open it, and stops once you have been there: show seconds on or off, date format (Jul 12 or 07-12), the fonts, images and sliders above, and start-when-charging on or off.
+* Your colours: the text and the background, each from a palette — and never the same colour, so the clock cannot vanish into itself.
+* Settings, opened with a long press on the clock: show seconds, date format, colours, the fonts, images and sliders above, and start-when-charging.
 
 Built small and plain
 

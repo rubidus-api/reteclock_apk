@@ -8,7 +8,7 @@ it draws so an OLED panel does not burn in.
 
 ## Download
 
-**[⬇ Download reteclock-0.5.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/latest/download/reteclock-0.5.0.apk)** — 91 KB, installs on Android 2.3 and newer.
+**[⬇ Download reteclock-0.6.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/latest/download/reteclock-0.6.0.apk)** — 91 KB, installs on Android 2.3 and newer.
 
 Open the file on the phone to install it. On Android 4.4, enable Settings > Security > Unknown
 sources first. All releases: [Releases](https://github.com/rubidus-api/reteclock_apk/releases).
@@ -20,7 +20,7 @@ file. Both carry the same signature, so you can move between them without uninst
 
 ## Status
 
-Working APK, version 0.5.0. Reference platform: Android 4.4 KitKat (API 19).
+Working APK, version 0.6.0. Reference platform: Android 4.4 KitKat (API 19).
 
 ## Supported Android versions
 
@@ -68,7 +68,8 @@ Screenshots taken on Android 4.4.2.
 | <img src="docs/screenshots/landscape.png" alt="Landscape: a large bold HH:MM on the left, with seconds, weekday, date and year in a column on the right" width="420"> | <img src="docs/screenshots/portrait.png" alt="Portrait: bold hour and minute stacked, then the weekday with the date, then the year and the seconds" width="210"> |
 
 The hour and the minute take every pixel the other lines do not need. The remaining lines are
-scaled to the space that is left, so nothing is ever clipped. All text is white. Weight is one of the
+scaled to the space that is left, so nothing is ever clipped. The text and background colours are
+yours to pick. Weight is one of the
 per-field decorations; the hour and the minute have it on to begin with, and you can turn it off.
 
 Every field can be drawn in a font of your own, with its own bold, italic and underline. Below, the
@@ -104,6 +105,9 @@ In the order they appear on the screen:
 
 - **Show seconds** — on or off. With the seconds off, the hour and the minute grow into the freed space.
 - **Date format** — `Jul 12` (abbreviated month name) or `07-12` (numeric).
+- **Colours** — the text colour and the background colour, each from a palette. The two can never
+  be the same (a clock in its own background colour is no clock), and the background colour shows
+  wherever no image does — including the letterbox bars of the show-it-all fit.
 - **Font** — the clock draws in the system font unless you add your own. *Add a font from a file*
   opens the system file picker; the file is copied into the app, so reteclock never asks for
   storage permission and the font keeps working if you move or delete the original. TrueType
