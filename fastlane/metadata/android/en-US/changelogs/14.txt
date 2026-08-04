@@ -1,0 +1,5 @@
+* One pool for all the images. Every picture carries two ticks — background or
+  text, never both — with a select-all per column; neither ticked keeps it on
+  hand, unused. The text can now cycle several images, on the slideshow's rules.
+* The settings screen got a redesign: rounded cards on black, one accent colour,
+  compact controls that fit a narrow screen. Tap an image's name to rename it.

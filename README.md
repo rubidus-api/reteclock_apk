@@ -8,7 +8,7 @@ it draws so an OLED panel does not burn in.
 
 ## Download
 
-**[⬇ Download reteclock-0.4.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/latest/download/reteclock-0.4.0.apk)** — 87 KB, installs on Android 2.3 and newer.
+**[⬇ Download reteclock-0.5.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/latest/download/reteclock-0.5.0.apk)** — 91 KB, installs on Android 2.3 and newer.
 
 Open the file on the phone to install it. On Android 4.4, enable Settings > Security > Unknown
 sources first. All releases: [Releases](https://github.com/rubidus-api/reteclock_apk/releases).
@@ -20,7 +20,7 @@ file. Both carry the same signature, so you can move between them without uninst
 
 ## Status
 
-Working APK, version 0.4.0. Reference platform: Android 4.4 KitKat (API 19).
+Working APK, version 0.5.0. Reference platform: Android 4.4 KitKat (API 19).
 
 ## Supported Android versions
 
@@ -119,17 +119,16 @@ In the order they appear on the screen:
 - **Room for the time** — two sliders, one per orientation: how much of the width the hour and
   minute take in landscape, how much of the height in portrait. Everything sizes itself to fill
   its share, and stops when it would not fit.
-- **Background images** — add pictures the same no-permission way the fonts arrive, and they take
-  turns behind the clock: an animated GIF plays through once, a still holds for a time you choose
-  (5 seconds to 5 minutes), and one cross-fades into the next unless you turn the fade off. The
-  fit is yours too: fill cropping to keep the shape, show it all, stretch, match the width, match
-  the height, or original size. Sort the list by name or by the date each file was added, either
-  way round, arrange it by hand with the arrows, rename any image (name them `001 …`, `002 …` and
-  the A-to-Z sort is your order), and tick any of them — or all — to delete together. Importing a
-  file the library already holds is recognised and not stored twice; a different file under a
-  taken name steps aside to `name-2` like a desktop file manager.
-- **Image inside the text** — one picture, and the digits become a window onto it. An animated
-  GIF plays and loops in there.
+- **Images** — one pool for every picture, imported the same no-permission way the fonts arrive.
+  Each image carries two exclusive ticks: **BG** puts it behind the clock, **Text** shows it
+  inside the digits — the glyphs become a window onto it — and with neither it is held, kept but
+  unused. Each tick column has a select-all; the first column selects for deleting many at once.
+  The background images take turns: an animated GIF plays through once, a still holds for a time
+  you choose (5 seconds to 5 minutes), one cross-fades into the next unless you turn the fade
+  off, and six fit modes cover every shape. The text images cycle on the same rules. Sort the
+  pool by name or by the date each file was added, either way round, arrange it by hand with the
+  arrows, or tap a name to rename it — `001 …`, `002 …` makes the A-to-Z sort your order. A file
+  the pool already holds is recognised on import and not stored twice.
 - **Start when the charger is connected** — on or off.
 
 ## How it starts
