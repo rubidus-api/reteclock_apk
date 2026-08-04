@@ -13,7 +13,9 @@ import java.util.List;
  * The fonts the user has imported, held as files in one directory.
  *
  * Pure Java: no android.* imports, so it is unit tested on a JVM. The Android layer hands it the
- * app's private directory and the bytes a document picker produced.
+ * app's private directory and the bytes a document picker produced. Nothing here is font-specific
+ * — it is a file store with safe names — so the background image is kept in one of these too,
+ * pointed at its own directory.
  *
  * Names come from a picker, which is free to return anything at all — a path, a colon, an empty
  * string. Every name is sanitised down to a single harmless file name, and every lookup is checked
@@ -21,16 +23,19 @@ import java.util.List;
  */
 public final class FontLibrary {
 
-    /** One stored font. */
+    /** One stored file. */
     public static final class Entry {
         /** The file name inside the directory, which is also what the setting stores. */
         public final String name;
         /** Its size on disk. */
         public final long bytes;
+        /** When it landed in the directory — import time, since nothing edits a stored file. */
+        public final long modifiedMs;
 
-        Entry(String name, long bytes) {
+        Entry(String name, long bytes, long modifiedMs) {
             this.name = name;
             this.bytes = bytes;
+            this.modifiedMs = modifiedMs;
         }
     }
 
@@ -52,7 +57,7 @@ public final class FontLibrary {
         List<Entry> entries = new ArrayList<Entry>(files.length);
         for (File f : files) {
             if (f.isFile()) {
-                entries.add(new Entry(f.getName(), f.length()));
+                entries.add(new Entry(f.getName(), f.length(), f.lastModified()));
             }
         }
         Collections.sort(entries, new Comparator<Entry>() {
@@ -106,8 +111,13 @@ public final class FontLibrary {
         if (!dir.isDirectory() && !dir.mkdirs()) {
             throw new IOException("cannot create " + dir);
         }
-        String name = available(sanitise(suggestedName));
+        String name = available(sanitise(suggestedName), content);
         File target = new File(dir, name);
+        if (target.isFile()) {
+            // available() only hands back an occupied name when that file already holds exactly
+            // these bytes: the same file imported again is the file it already is.
+            return name;
+        }
         OutputStream out = new FileOutputStream(target);
         try {
             out.write(content);
@@ -115,6 +125,29 @@ public final class FontLibrary {
             out.close();
         }
         return name;
+    }
+
+    /**
+     * Renames one stored file, and returns the name it now has — or null when the source does not
+     * exist, the sanitised target is already another file's name, or the filesystem refuses. The
+     * new name goes through the same sanitiser an import does, so a rename cannot reach outside
+     * the directory either. A rename is not an edit: the stored date rides along, so a date sort
+     * does not reshuffle.
+     */
+    public String rename(String name, String suggestedNewName) {
+        File from = file(name);
+        if (from == null) {
+            return null;
+        }
+        String target = sanitise(suggestedNewName);
+        if (target.equals(name)) {
+            return name;
+        }
+        File to = new File(dir, target);
+        if (to.exists() || !from.renameTo(to)) {
+            return null;
+        }
+        return target;
     }
 
     /** Removes one font. Returns whether there was one to remove. */
@@ -161,11 +194,13 @@ public final class FontLibrary {
         return name;
     }
 
-    /** {@code name}, or the first free variation of it, so an import never overwrites a font. */
-    private String available(String name) {
-        if (!new File(dir, name).exists()) {
-            return name;
-        }
+    /**
+     * {@code name}, or the first variation of it that is free — or that already holds exactly
+     * {@code content}, because the same file arriving again should be recognised, not copied. An
+     * import therefore never overwrites anything: a taken name either matches (and is reused) or
+     * is stepped past, the way a desktop file manager renames a colliding copy.
+     */
+    private String available(String name, byte[] content) {
         String stem = name;
         String extension = "";
         int dot = name.lastIndexOf('.');
@@ -173,13 +208,80 @@ public final class FontLibrary {
             stem = name.substring(0, dot);
             extension = name.substring(dot);
         }
-        for (int n = 2; n < 1000; n++) {
-            String candidate = stem + "-" + n + extension;
-            if (!new File(dir, candidate).exists()) {
+        for (int n = 1; n < 1000; n++) {
+            String candidate = n == 1 ? name : stem + "-" + n + extension;
+            File file = new File(dir, candidate);
+            if (!file.exists() || (file.isFile() && sameContent(file, content))) {
                 return candidate;
             }
         }
-        throw new IllegalStateException("too many fonts named " + name);
+        throw new IllegalStateException("too many files named " + name);
+    }
+
+    /**
+     * Whether this file holds exactly these bytes.
+     *
+     * Staged so a mismatch is caught as early as it can be: the length first, then the head and
+     * the tail (where formats put their headers and their tables of contents), then a handful of
+     * sampled positions through the middle, and only then — when the file has matched everywhere
+     * it was probed — the whole thing. The samples are seeded from the length, so the same
+     * comparison always probes the same places and a flaky pass cannot exist.
+     */
+    static boolean sameContent(File file, byte[] content) {
+        if (file.length() != content.length) {
+            return false;
+        }
+        try {
+            java.io.RandomAccessFile in = new java.io.RandomAccessFile(file, "r");
+            try {
+                int edge = Math.min(4096, content.length);
+                if (!matches(in, content, 0, edge)
+                        || !matches(in, content, content.length - edge, edge)) {
+                    return false;
+                }
+                java.util.Random sampler = new java.util.Random(content.length);
+                for (int i = 0; i < 8 && content.length > 2 * 4096; i++) {
+                    int at = 4096 + sampler.nextInt(content.length - 2 * 4096);
+                    if (!matches(in, content, at, Math.min(512, content.length - at))) {
+                        return false;
+                    }
+                }
+                in.seek(0);
+                byte[] buffer = new byte[8192];
+                int offset = 0;
+                while (offset < content.length) {
+                    int read = in.read(buffer, 0, Math.min(buffer.length, content.length - offset));
+                    if (read <= 0) {
+                        return false;
+                    }
+                    for (int i = 0; i < read; i++) {
+                        if (buffer[i] != content[offset + i]) {
+                            return false;
+                        }
+                    }
+                    offset += read;
+                }
+                return true;
+            } finally {
+                in.close();
+            }
+        } catch (IOException e) {
+            // A file that cannot be read cannot be called the same file.
+            return false;
+        }
+    }
+
+    private static boolean matches(java.io.RandomAccessFile in, byte[] content, int at, int count)
+            throws IOException {
+        byte[] chunk = new byte[count];
+        in.seek(at);
+        in.readFully(chunk);
+        for (int i = 0; i < count; i++) {
+            if (chunk[i] != content[at + i]) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /** Whether this file really sits in our directory, after any "..'" has been resolved away. */

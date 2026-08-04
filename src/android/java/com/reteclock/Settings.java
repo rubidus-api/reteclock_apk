@@ -9,6 +9,8 @@ import com.reteclock.core.ClockDefaults;
 import com.reteclock.core.ClockLayout;
 import com.reteclock.core.ClockOptions;
 import com.reteclock.core.FontLibrary;
+import com.reteclock.core.ImageFit;
+import com.reteclock.core.SlideOrder;
 
 /** The stored settings, and the bridge to the pure-Java {@link ClockOptions}. */
 public final class Settings {
@@ -23,9 +25,24 @@ public final class Settings {
     public static final String KEY_ITALIC = "text_italic";
     public static final String KEY_UNDERLINE = "text_underline";
     public static final String KEY_HINT_SEEN = "hint_seen";
+    public static final String KEY_BACKGROUND_FIT = "background_fit";
+    public static final String KEY_BACKGROUND_STILL_SECONDS = "background_still_seconds";
+    public static final String KEY_BACKGROUND_FADE = "background_fade";
+    public static final String KEY_BACKGROUND_ORDER_MODE = "background_order_mode";
+    public static final String KEY_BACKGROUND_ORDER = "background_order";
+    public static final String KEY_FOREGROUND = "foreground";
+    public static final String KEY_TIME_PERCENT_WIDE = "time_percent_wide";
+    public static final String KEY_TIME_PERCENT_TALL = "time_percent_tall";
+
+    /** How long a still background image shows before the slideshow moves on. */
+    public static final int DEFAULT_STILL_SECONDS = 10;
 
     /** Where imported fonts live, inside the app's own storage: no permission needed to read it. */
     private static final String FONT_DIR = "fonts";
+    /** Where the background images live, next to the fonts and stored the same way. */
+    private static final String BACKGROUND_DIR = "background";
+    /** Where the image that fills the text lives. */
+    private static final String FOREGROUND_DIR = "foreground";
 
     private Settings() {
     }
@@ -61,6 +78,108 @@ public final class Settings {
     /** The fonts the user has imported. */
     public static FontLibrary fonts(Context context) {
         return new FontLibrary(new File(context.getFilesDir(), FONT_DIR));
+    }
+
+    /**
+     * The store holding the background images. The font library is a plain file store with safe
+     * names, which is exactly what images need too; only the directory differs. Everything in it
+     * is the slideshow, in name order — there is no separate list of what is chosen.
+     */
+    public static FontLibrary backgrounds(Context context) {
+        return new FontLibrary(new File(context.getFilesDir(), BACKGROUND_DIR));
+    }
+
+    /** The store holding the image that fills the text, one at most. */
+    public static FontLibrary foregrounds(Context context) {
+        return new FontLibrary(new File(context.getFilesDir(), FOREGROUND_DIR));
+    }
+
+    /** The stored name of the text-fill image, or "" for plain white text. */
+    public static String foregroundName(Context context) {
+        return prefs(context).getString(KEY_FOREGROUND, "");
+    }
+
+    public static void setForegroundName(Context context, String name) {
+        prefs(context).edit().putString(KEY_FOREGROUND, name == null ? "" : name).commit();
+    }
+
+    /**
+     * The text-fill image file, or null when none is set — or when the setting names a file that
+     * has since gone away, so a lost image means white text rather than a crash.
+     */
+    public static File foregroundFile(Context context) {
+        return foregrounds(context).file(foregroundName(context));
+    }
+
+    /** How long a still background shows before the slideshow moves on. */
+    public static int backgroundStillSeconds(Context context) {
+        return prefs(context).getInt(KEY_BACKGROUND_STILL_SECONDS, DEFAULT_STILL_SECONDS);
+    }
+
+    public static void setBackgroundStillSeconds(Context context, int seconds) {
+        prefs(context).edit().putInt(KEY_BACKGROUND_STILL_SECONDS, seconds).commit();
+    }
+
+    /** How the background images are ordered; a {@link SlideOrder} mode. */
+    public static int backgroundOrderMode(Context context) {
+        return prefs(context).getInt(KEY_BACKGROUND_ORDER_MODE, SlideOrder.NAME_ASC);
+    }
+
+    public static void setBackgroundOrderMode(Context context, int mode) {
+        prefs(context).edit().putInt(KEY_BACKGROUND_ORDER_MODE, mode).commit();
+    }
+
+    /**
+     * The user's own arrangement, one name per line. Newline is safe as a separator: stored names
+     * come out of the library's sanitiser, which never lets one through.
+     */
+    public static java.util.List<String> backgroundCustomOrder(Context context) {
+        String stored = prefs(context).getString(KEY_BACKGROUND_ORDER, "");
+        java.util.List<String> out = new java.util.ArrayList<String>();
+        for (String name : stored.split("\n")) {
+            if (!name.isEmpty()) {
+                out.add(name);
+            }
+        }
+        return out;
+    }
+
+    public static void setBackgroundCustomOrder(Context context, java.util.List<String> names) {
+        StringBuilder joined = new StringBuilder();
+        for (String name : names) {
+            if (joined.length() > 0) {
+                joined.append('\n');
+            }
+            joined.append(name);
+        }
+        prefs(context).edit().putString(KEY_BACKGROUND_ORDER, joined.toString()).commit();
+    }
+
+    /**
+     * The background images in the order they show and list — the one place both the slideshow
+     * and the settings screen read, so they cannot disagree.
+     */
+    public static java.util.List<FontLibrary.Entry> orderedBackgrounds(Context context) {
+        return SlideOrder.apply(backgrounds(context).list(),
+                backgroundOrderMode(context), backgroundCustomOrder(context));
+    }
+
+    /** Whether one background cross-fades into the next, or just becomes it. */
+    public static boolean backgroundFade(Context context) {
+        return prefs(context).getBoolean(KEY_BACKGROUND_FADE, true);
+    }
+
+    public static void setBackgroundFade(Context context, boolean enabled) {
+        prefs(context).edit().putBoolean(KEY_BACKGROUND_FADE, enabled).commit();
+    }
+
+    /** How the background images are fitted to the screen; an {@link ImageFit} mode. */
+    public static int backgroundFit(Context context) {
+        return prefs(context).getInt(KEY_BACKGROUND_FIT, ImageFit.COVER);
+    }
+
+    public static void setBackgroundFit(Context context, int mode) {
+        prefs(context).edit().putInt(KEY_BACKGROUND_FIT, mode).commit();
     }
 
     /**
@@ -162,8 +281,26 @@ public final class Settings {
         return decoration(context, KEY_UNDERLINE, role);
     }
 
+    /**
+     * The time's share of the screen, in whole percent — of the width when the screen is wide, of
+     * the content height when it is tall. ClockOptions clamps, so a wild stored value cannot
+     * break the layout.
+     */
+    public static int timePercent(Context context, String key) {
+        int fallback = KEY_TIME_PERCENT_WIDE.equals(key)
+                ? Math.round(ClockOptions.DEFAULT_TIME_FRACTION_WIDE * 100f)
+                : Math.round(ClockOptions.DEFAULT_TIME_FRACTION_TALL * 100f);
+        return prefs(context).getInt(key, fallback);
+    }
+
+    public static void setTimePercent(Context context, String key, int percent) {
+        prefs(context).edit().putInt(key, percent).commit();
+    }
+
     /** The display options the clock draws with. */
     public static ClockOptions options(Context context) {
-        return new ClockOptions(showSeconds(context), dateStyle(context));
+        return new ClockOptions(showSeconds(context), dateStyle(context),
+                timePercent(context, KEY_TIME_PERCENT_WIDE) / 100f,
+                timePercent(context, KEY_TIME_PERCENT_TALL) / 100f);
     }
 }

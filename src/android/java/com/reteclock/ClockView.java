@@ -1,9 +1,13 @@
 package com.reteclock;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapShader;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.os.Handler;
 import android.os.SystemClock;
@@ -13,6 +17,8 @@ import com.reteclock.core.BurnInShift;
 import com.reteclock.core.ClockLayout;
 import com.reteclock.core.ClockOptions;
 import com.reteclock.core.ClockText;
+import com.reteclock.core.ImageFit;
+import com.reteclock.core.Slideshow;
 
 /**
  * The clock face. Draws itself with a Canvas, so it needs no layout XML and no support library.
@@ -23,9 +29,15 @@ import com.reteclock.core.ClockText;
 public class ClockView extends View {
 
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint imagePaint = new Paint(Paint.FILTER_BITMAP_FLAG);
+    /** Its own paint, because the fade sets an alpha that must never touch anything else. */
+    private final Paint fadePaint = new Paint(Paint.FILTER_BITMAP_FLAG);
     private final Handler handler = new Handler();
     // Reused every frame: Dalvik collects garbage on the UI thread, so the draw path allocates nothing.
     private final Paint.FontMetrics fontMetrics = new Paint.FontMetrics();
+
+    /** How often an animated background redraws. GIFs rarely carry more frames than this. */
+    private static final long ANIMATION_FRAME_MS = 40L;
 
     private static final Typeface SYSTEM_REGULAR = Typeface.create("sans-serif-light", Typeface.NORMAL);
     private static final Typeface SYSTEM_BOLD = Typeface.create("sans-serif", Typeface.BOLD);
@@ -38,6 +50,44 @@ public class ClockView extends View {
     private final java.util.Set<String> boldRoles = new java.util.HashSet<String>();
     private final java.util.Set<String> italicRoles = new java.util.HashSet<String>();
     private final java.util.Set<String> underlineRoles = new java.util.HashSet<String>();
+
+    /** The background slideshow's files, in name order; empty for the plain black clock. */
+    private final java.util.List<java.io.File> slides = new java.util.ArrayList<java.io.File>();
+    /** The timing of the show, or null until the first draw begins it. */
+    private Slideshow slideshow;
+    /**
+     * The slide on screen while it animates; a still is pre-rendered into {@link #slideBitmap}
+     * instead and its decode is let go, so at rest only one screen-sized bitmap is held.
+     */
+    private BackgroundImage slide;
+    /** A still slide, already fitted to the screen: drawing it is one unscaled blit. */
+    private Bitmap slideBitmap;
+    /** Whether the current slide decoded to something drawable. */
+    private boolean slideVisible;
+    /** How long a still slide holds, from the settings. */
+    private long stillMs;
+    /** An {@link ImageFit} mode, read with the backgrounds. */
+    private int backgroundFit;
+
+    /** How long one background cross-fades into the next. */
+    private static final long FADE_MS = 500L;
+    /** The outgoing image, captured at the moment of the change, drawn over the new one thinning. */
+    private Bitmap snapshot;
+    private boolean fadeEnabled;
+    /** When the running fade began; any time at least FADE_MS ago means no fade is running. */
+    private long fadeStart = Long.MIN_VALUE / 2L;
+
+    /** The image the glyphs are filled with, or null for plain white text. */
+    private BackgroundImage foreground;
+    /** What the text paint actually samples: the still itself, or the animation's current frame. */
+    private BitmapShader foregroundShader;
+    /** The offscreen frame an animated foreground is rendered into, at the movie's own size. */
+    private Bitmap foregroundFrame;
+    private Canvas foregroundFrameCanvas;
+    private final Matrix foregroundMatrix = new Matrix();
+    /** The size the shader's matrix was computed for, so a rotation recomputes it. */
+    private int foregroundForW;
+    private int foregroundForH;
 
     private ClockOptions options;
     private ClockLayout layout;
@@ -57,7 +107,13 @@ public class ClockView extends View {
                 return;
             }
             invalidate();
-            handler.postDelayed(this, ClockText.millisToNextSecond(System.currentTimeMillis()));
+            // A moving image or a running fade needs frames; a still clock needs one redraw per
+            // second. The once-a-second tick also advances the slideshow, to within a second —
+            // close enough for slides that hold for many.
+            long delay = fastFrames(SystemClock.elapsedRealtime())
+                    ? ANIMATION_FRAME_MS
+                    : ClockText.millisToNextSecond(System.currentTimeMillis());
+            handler.postDelayed(this, delay);
         }
     };
 
@@ -65,6 +121,7 @@ public class ClockView extends View {
         super(context);
         options = Settings.options(context);
         loadTypeface(context);
+        loadImages(context);
         setBackgroundColor(Color.BLACK);
         paint.setColor(Color.WHITE);
         // Parts are positioned by their left edge, since a line can be several of them.
@@ -75,9 +132,77 @@ public class ClockView extends View {
     public void reloadOptions() {
         options = Settings.options(getContext());
         loadTypeface(getContext());
+        loadImages(getContext());
         layout = null;
         plan = null;
         invalidate();
+    }
+
+    /**
+     * Reads the background slideshow's file list and the text-fill image.
+     *
+     * Slides are decoded one at a time as the show reaches them, not all up front — ten camera
+     * photos would not fit an old device's heap together. The show itself starts on the first
+     * draw, which is the first moment there is a frame time to start it at.
+     */
+    private void loadImages(Context context) {
+        slides.clear();
+        for (com.reteclock.core.FontLibrary.Entry entry : Settings.orderedBackgrounds(context)) {
+            java.io.File file = Settings.backgrounds(context).file(entry.name);
+            if (file != null) {
+                slides.add(file);
+            }
+        }
+        stillMs = Settings.backgroundStillSeconds(context) * 1000L;
+        backgroundFit = Settings.backgroundFit(context);
+        fadeEnabled = Settings.backgroundFade(context);
+        slideshow = null;
+        slide = null;
+        slideBitmap = null;
+        slideVisible = false;
+        snapshot = null;
+        fadeStart = Long.MIN_VALUE / 2L;
+
+        foreground = BackgroundImage.load(Settings.foregroundFile(context));
+        foregroundShader = null;
+        foregroundFrame = null;
+        foregroundFrameCanvas = null;
+        foregroundForW = 0;
+        foregroundForH = 0;
+        updateLayerType();
+    }
+
+    /** Whether anything on screen is an animation right now, which is what decides the layer. */
+    private boolean animating() {
+        return (slide != null && slide.animated())
+                || (foreground != null && foreground.animated());
+    }
+
+    /** Whether a cross-fade is mid-flight. */
+    private boolean fading(long nowMs) {
+        return nowMs - fadeStart < FADE_MS;
+    }
+
+    /** Whether the next frame is wanted in milliseconds rather than at the next second. */
+    private boolean fastFrames(long nowMs) {
+        return animating() || fading(nowMs);
+    }
+
+    /**
+     * Movie can only draw on a software canvas, so an animated image puts the view on a software
+     * layer; anything else takes the layer away again. The software layer also keeps the animated
+     * text shader honest: it samples a bitmap redrawn every frame, which a hardware texture cache
+     * would be free to ignore. setLayerType arrived in API 11 — on API 9 and 10 there is no
+     * hardware acceleration to switch off. Re-checked at every slide change, since one slide can
+     * move and the next not.
+     */
+    private void updateLayerType() {
+        if (android.os.Build.VERSION.SDK_INT >= 11) {
+            int wanted = animating() ? LAYER_TYPE_SOFTWARE : LAYER_TYPE_NONE;
+            if (getLayerType() != wanted) {
+                setLayerType(wanted, null);
+            }
+        }
     }
 
     /** Starts the once-per-second redraw. */
@@ -110,6 +235,7 @@ public class ClockView extends View {
      * changes and when the settings do, which is the only time any of it can change.
      */
     private void rebuild(int w, int h) {
+        refreshSlideForSize(w, h);
         layout = ClockLayout.of(w, h, options);
         plan = layout.plan(new ClockLayout.Metrics() {
             @Override
@@ -137,6 +263,34 @@ public class ClockView extends View {
 
         int maxShift = BurnInShift.maxShiftPx(w, h);
         long elapsed = SystemClock.elapsedRealtime();
+
+        // The background sits under everything and does not follow the burn-in shift: a shifted
+        // full-screen image would expose a black edge every cycle, and an image is not the kind of
+        // fixed bright shape the shift exists to smear.
+        if (!slides.isEmpty()) {
+            if (slideshow == null) {
+                slideshow = new Slideshow(slides.size());
+                advanceTo(0, elapsed);
+            } else if (slideshow.due(elapsed)) {
+                advanceTo(slideshow.next(), elapsed);
+            }
+            if (slide != null) {
+                drawFitted(canvas, slide, slideshow.frameMs(elapsed));
+            } else if (slideVisible && slideBitmap != null) {
+                canvas.drawBitmap(slideBitmap, 0f, 0f, imagePaint);
+            }
+            // The outgoing image, thinning over whatever replaced it — the cross-fade.
+            if (fading(elapsed) && snapshot != null) {
+                fadePaint.setAlpha(Slideshow.fadeOutAlpha(elapsed - fadeStart, FADE_MS));
+                canvas.drawBitmap(snapshot, 0f, 0f, fadePaint);
+            }
+        }
+
+        if (foreground != null) {
+            updateForegroundShader(w, h, elapsed);
+        }
+        paint.setShader(foreground != null ? foregroundShader : null);
+
         canvas.save();
         canvas.translate(BurnInShift.offsetX(elapsed, maxShift), BurnInShift.offsetY(elapsed, maxShift));
 
@@ -161,6 +315,199 @@ public class ClockView extends View {
             }
         }
         canvas.restore();
+        // The shader must not leak into measurement or into a later draw without a foreground.
+        paint.setShader(null);
+    }
+
+    /**
+     * Moves the slideshow to this slide, decoding it now — one slide is in memory at a time.
+     *
+     * A file that will not decode is skipped, trying each in turn so one bad file cannot stop the
+     * show. If nothing decodes, the screen stays black for one still-time and the show tries
+     * again — the cost of retrying is one decode attempt per slide per interval, and it means a
+     * transient failure heals on its own.
+     *
+     * With the fade on, the outgoing image is captured at screen size first, and thins over the
+     * incoming one — or over black, when the incoming one would not decode, which is still a
+     * gentler exit than vanishing.
+     */
+    private void advanceTo(int index, long nowMs) {
+        boolean fade = fadeEnabled && slideVisible && captureSnapshot(nowMs);
+        slideVisible = false;
+        for (int tried = 0; tried < slides.size(); tried++) {
+            int at = (index + tried) % slides.size();
+            BackgroundImage decoded = BackgroundImage.load(slides.get(at));
+            if (decoded != null) {
+                show(decoded);
+                slideshow.begin(at,
+                        Slideshow.slideDurationMs(decoded.durationMs(), stillMs), nowMs);
+                if (fade) {
+                    fadeStart = nowMs;
+                }
+                updateLayerType();
+                return;
+            }
+        }
+        slide = null;
+        slideshow.begin(index, stillMs, nowMs);
+        if (fade) {
+            fadeStart = nowMs;
+        }
+        updateLayerType();
+    }
+
+    /**
+     * A turned screen invalidates everything pre-rendered at the old size: the fade is cut short
+     * — its snapshot shows the old orientation — and a still slide is decoded again and fitted to
+     * the new one. An animation just fits itself at the next draw.
+     */
+    private void refreshSlideForSize(int w, int h) {
+        if (fading(SystemClock.elapsedRealtime())
+                && snapshot != null && (snapshot.getWidth() != w || snapshot.getHeight() != h)) {
+            fadeStart = Long.MIN_VALUE / 2L;
+            snapshot = null;
+        }
+        if (slideshow != null && slideVisible && slide == null && slideBitmap != null
+                && (slideBitmap.getWidth() != w || slideBitmap.getHeight() != h)) {
+            BackgroundImage decoded = BackgroundImage.load(slides.get(slideshow.index()));
+            if (decoded == null) {
+                slideVisible = false;
+            } else {
+                show(decoded);
+            }
+        }
+    }
+
+    /**
+     * Takes the new slide on screen. An animated one is kept and drawn live; a still is rendered
+     * once into a screen-sized bitmap and its decode is dropped, so drawing it costs one blit and
+     * holding it costs one screenful — the decode happens again only if the screen turns.
+     *
+     * If the screen bitmap cannot be had, the decode is simply kept and fitted at draw time, the
+     * way an animation always is.
+     */
+    private void show(BackgroundImage decoded) {
+        slideVisible = true;
+        if (decoded.animated()) {
+            slide = decoded;
+            return;
+        }
+        int w = getWidth();
+        int h = getHeight();
+        if (w <= 0 || h <= 0) {
+            slide = decoded;
+            return;
+        }
+        if (slideBitmap == null || slideBitmap.getWidth() != w || slideBitmap.getHeight() != h) {
+            slideBitmap = screenBitmap(w, h);
+            if (slideBitmap == null) {
+                slide = decoded;
+                return;
+            }
+        }
+        slideBitmap.eraseColor(Color.BLACK);
+        drawFitted(new Canvas(slideBitmap), decoded, 0L);
+        slide = null;
+    }
+
+    /**
+     * What is on screen right now, at screen size, for fading out. False when there is nothing
+     * to capture into.
+     */
+    private boolean captureSnapshot(long nowMs) {
+        int w = getWidth();
+        int h = getHeight();
+        if (w <= 0 || h <= 0) {
+            return false;
+        }
+        if (snapshot == null || snapshot.getWidth() != w || snapshot.getHeight() != h) {
+            snapshot = screenBitmap(w, h);
+            if (snapshot == null) {
+                return false;
+            }
+        }
+        snapshot.eraseColor(Color.BLACK);
+        Canvas canvas = new Canvas(snapshot);
+        if (slide != null) {
+            drawFitted(canvas, slide, slideshow.frameMs(nowMs));
+        } else if (slideBitmap != null) {
+            canvas.drawBitmap(slideBitmap, 0f, 0f, imagePaint);
+        }
+        return true;
+    }
+
+    /** One screen-sized buffer, or null on a heap that cannot spare one — then there is no fade. */
+    private static Bitmap screenBitmap(int w, int h) {
+        try {
+            return Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        } catch (OutOfMemoryError e) {
+            return null;
+        }
+    }
+
+    /** Draws this image fitted to the whole view, on whichever canvas — the screen or a buffer. */
+    private void drawFitted(Canvas canvas, BackgroundImage image, long frameMs) {
+        ImageFit.Placement place = ImageFit.of(getWidth(), getHeight(),
+                image.width(), image.height(), backgroundFit);
+        if (place == null) {
+            return;
+        }
+        canvas.save();
+        canvas.translate(place.dx, place.dy);
+        canvas.scale(place.scaleX, place.scaleY);
+        image.draw(canvas, frameMs, imagePaint);
+        canvas.restore();
+    }
+
+    /**
+     * Keeps the shader the glyphs are filled with current.
+     *
+     * A still image needs work only when the screen size changes: one shader, its matrix mapping
+     * the image over the whole screen, cover-cropped and centred. An animated one is rendered
+     * into an offscreen bitmap every frame — Movie decides the frame from the elapsed time modulo
+     * its duration, so the GIF loops — and the shader samples that bitmap. The shader object is
+     * reused: the view is on a software layer whenever the foreground animates, so the paint
+     * reads the bitmap's pixels live rather than from a stale texture.
+     *
+     * The shader is in the canvas's coordinates at draw time, so the burn-in shift moves the
+     * image with the glyphs and the picture does not swim inside the text at each step.
+     */
+    private void updateForegroundShader(int w, int h, long elapsed) {
+        boolean resized = w != foregroundForW || h != foregroundForH;
+        if (foreground.animated()) {
+            if (foregroundFrame == null) {
+                try {
+                    foregroundFrame = Bitmap.createBitmap(foreground.width(), foreground.height(),
+                            Bitmap.Config.ARGB_8888);
+                } catch (OutOfMemoryError e) {
+                    // A frame too big for this device's heap means white text, not a dead clock.
+                    foreground = null;
+                    foregroundShader = null;
+                    updateLayerType();
+                    return;
+                }
+                foregroundFrameCanvas = new Canvas(foregroundFrame);
+                foregroundShader = new BitmapShader(foregroundFrame,
+                        Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+            }
+            foregroundFrame.eraseColor(Color.TRANSPARENT);
+            foreground.draw(foregroundFrameCanvas,
+                    elapsed % foreground.durationMs(), imagePaint);
+        } else if (foregroundShader == null) {
+            foregroundShader = new BitmapShader(foreground.still(),
+                    Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+        }
+        if (resized) {
+            ImageFit.Placement place = ImageFit.of(w, h,
+                    foreground.width(), foreground.height(), ImageFit.COVER);
+            if (place != null) {
+                foregroundMatrix.setScale(place.scaleX, place.scaleY);
+                foregroundMatrix.postTranslate(place.dx, place.dy);
+                foregroundShader.setLocalMatrix(foregroundMatrix);
+            }
+            foregroundForW = w;
+            foregroundForH = h;
+        }
     }
 
 

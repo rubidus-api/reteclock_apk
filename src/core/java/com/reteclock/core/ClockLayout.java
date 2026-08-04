@@ -106,8 +106,20 @@ public final class ClockLayout {
         }
     }
 
-    /** Fraction of a wide screen given to the big time block. */
-    private static final float WIDE_MAIN_FRACTION = 0.62f;
+    /**
+     * The side column's line proportions, relative to each other: seconds, weekday, month-day,
+     * year, and the gap between lines. Only the ratios matter — the block is scaled as a whole to
+     * fill the height its share of the screen offers, so a bigger side region means bigger lines,
+     * up to exactly that height and no further.
+     */
+    private static final float SIDE_SECOND = 0.13f;
+    private static final float SIDE_WEEKDAY = 0.15f;
+    private static final float SIDE_MONTH_DAY = 0.13f;
+    private static final float SIDE_YEAR = 0.11f;
+    private static final float SIDE_LINE_GAP = 0.05f;
+
+    /** The date and small lines' split of what the tall time leaves, 0.075 : 0.050 as always. */
+    private static final float TALL_DATE_SHARE = 0.6f;
 
     /**
      * Padding kept free on every edge, as a fraction of the shorter edge.
@@ -345,7 +357,9 @@ public final class ClockLayout {
 
     private static ClockLayout wide(int w, int h, ClockOptions options) {
         float pad = paddingPx(w, h);
-        float mainWidth = w * WIDE_MAIN_FRACTION;
+        // The user's dial: how much of the width belongs to the big time. The rest is the side
+        // column's region, and its lines grow with it.
+        float mainWidth = w * options.timeFractionWide;
         float sideWidth = w - mainWidth;
         float sideCenterX = mainWidth + sideWidth / 2f;
         float sideBoxWidth = sideWidth - 2f * pad;
@@ -353,7 +367,7 @@ public final class ClockLayout {
         List<Slot> out = new ArrayList<Slot>(5);
 
         // The big time takes the full height between the paddings; the view scales it down only if
-        // it would be wider than its half of the screen.
+        // it would be wider than its share of the screen.
         out.add(new Slot(ROLE_HOUR_MINUTE,
                 parts(new String[] {ROLE_HOUR, ROLE_MINUTE}, new String[] {"", ":"}),
                 mainWidth / 2f, h / 2f, h - 2f * pad, mainWidth - 2f * pad));
@@ -362,23 +376,27 @@ public final class ClockLayout {
         List<Float> sizes = new ArrayList<Float>(4);
         if (options.showSeconds) {
             roles.add(ROLE_SECOND);
-            sizes.add(h * 0.13f);
+            sizes.add(SIDE_SECOND);
         }
         roles.add(ROLE_WEEKDAY);
-        sizes.add(h * 0.15f);
+        sizes.add(SIDE_WEEKDAY);
         roles.add(ROLE_MONTH_DAY);
-        sizes.add(h * 0.13f);
+        sizes.add(SIDE_MONTH_DAY);
         roles.add(ROLE_YEAR);
-        sizes.add(h * 0.11f);
+        sizes.add(SIDE_YEAR);
 
-        float lineGap = h * 0.05f;
-        float blockHeight = lineGap * (sizes.size() - 1);
+        // The block is scaled, proportions intact, to exactly the height between the paddings:
+        // the lines are as big as their region allows and no bigger. A line still too wide for
+        // the side's width is shrunk by the plan, the same way it always was.
+        float proportionTotal = SIDE_LINE_GAP * (sizes.size() - 1);
         for (float size : sizes) {
-            blockHeight += size;
+            proportionTotal += size;
         }
-        float cursor = h / 2f - blockHeight / 2f;
+        float scale = (h - 2f * pad) / proportionTotal;
+        float lineGap = SIDE_LINE_GAP * scale;
+        float cursor = pad;
         for (int i = 0; i < sizes.size(); i++) {
-            float size = sizes.get(i);
+            float size = sizes.get(i) * scale;
             out.add(new Slot(roles.get(i), sideCenterX, cursor + size / 2f, size, sideBoxWidth));
             cursor += size + lineGap;
         }
@@ -390,13 +408,17 @@ public final class ClockLayout {
         float boxWidth = w - 2f * pad;
         float centerX = w / 2f;
 
-        float dateSize = h * 0.075f;
-        float smallSize = h * 0.050f;
         float gap = h * 0.020f;
 
-        // Whatever the small lines and the gaps do not need is split between the hour and the minute.
-        float reserved = 2f * pad + dateSize + smallSize + 3f * gap;
-        float mainSize = (h - reserved) / 2f;
+        // The user's dial: the content height — everything between the paddings that is not a
+        // gap — is split between the time and the rest at the chosen fraction. Each side fills
+        // its share exactly; a line too wide for the screen is shrunk by the plan as always,
+        // which is where the growing stops.
+        float content = h - 2f * pad - 3f * gap;
+        float mainSize = content * options.timeFractionTall / 2f;
+        float rest = content * (1f - options.timeFractionTall);
+        float dateSize = rest * TALL_DATE_SHARE;
+        float smallSize = rest * (1f - TALL_DATE_SHARE);
 
         List<Slot> out = new ArrayList<Slot>(4);
         float cursor = pad;

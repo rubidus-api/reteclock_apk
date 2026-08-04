@@ -36,6 +36,8 @@ import java.util.List;
 
 import com.reteclock.core.ClockOptions;
 import com.reteclock.core.FontLibrary;
+import com.reteclock.core.ImageFit;
+import com.reteclock.core.SlideOrder;
 
 /**
  * The settings screen, reached by long pressing the clock.
@@ -52,6 +54,55 @@ public class SettingsActivity extends Activity {
     private static final int MAX_FONT_BYTES = 32 * 1024 * 1024;
 
     private static final int REQUEST_PICK_FONT = 1;
+    private static final int REQUEST_PICK_BACKGROUND = 2;
+    private static final int REQUEST_PICK_FOREGROUND = 3;
+
+    /** The orderings the spinner offers, the default first. */
+    private static final int[] ORDER_MODES = {
+        SlideOrder.NAME_ASC,
+        SlideOrder.NAME_DESC,
+        SlideOrder.DATE_ASC,
+        SlideOrder.DATE_DESC,
+        SlideOrder.CUSTOM,
+    };
+    private static final int[] ORDER_LABELS = {
+        R.string.settings_order_name_asc,
+        R.string.settings_order_name_desc,
+        R.string.settings_order_date_asc,
+        R.string.settings_order_date_desc,
+        R.string.settings_order_custom,
+    };
+
+    /** The images ticked for a group action. Checked names only; pruned as files go. */
+    private final java.util.Set<String> selectedBackgrounds = new java.util.HashSet<String>();
+
+    /** How long a still slide can hold, in the order the spinner offers them. */
+    private static final int[] SLIDE_SECONDS = {5, 10, 30, 60, 300};
+    private static final int[] SLIDE_LABELS = {
+        R.string.settings_slide_5s,
+        R.string.settings_slide_10s,
+        R.string.settings_slide_30s,
+        R.string.settings_slide_1m,
+        R.string.settings_slide_5m,
+    };
+
+    /** The fit modes, in the order the spinner offers them; the sensible default first. */
+    private static final int[] FIT_MODES = {
+        ImageFit.COVER,
+        ImageFit.CONTAIN,
+        ImageFit.STRETCH,
+        ImageFit.FIT_WIDTH,
+        ImageFit.FIT_HEIGHT,
+        ImageFit.CENTER,
+    };
+    private static final int[] FIT_LABELS = {
+        R.string.settings_fit_cover,
+        R.string.settings_fit_contain,
+        R.string.settings_fit_stretch,
+        R.string.settings_fit_width,
+        R.string.settings_fit_height,
+        R.string.settings_fit_center,
+    };
 
     /** In the order Settings.FONT_ROLES lists them. */
     private static final int[] FIELD_LABELS = {
@@ -67,6 +118,10 @@ public class SettingsActivity extends Activity {
     private LinearLayout fontSection;
     /** The per-field font choices, rebuilt with it because the choices are the stored fonts. */
     private LinearLayout fieldSection;
+    /** Rebuilt in place whenever the background images change. */
+    private LinearLayout backgroundSection;
+    /** Rebuilt in place whenever the text-fill image changes. */
+    private LinearLayout foregroundSection;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -145,6 +200,21 @@ public class SettingsActivity extends Activity {
         root.addView(add);
         root.addView(footer(getString(R.string.settings_font_kinds)));
 
+        root.addView(heading(getString(R.string.settings_ratio)));
+        root.addView(ratioRow(R.string.settings_ratio_wide, Settings.KEY_TIME_PERCENT_WIDE));
+        root.addView(ratioRow(R.string.settings_ratio_tall, Settings.KEY_TIME_PERCENT_TALL));
+        root.addView(footer(getString(R.string.settings_ratio_note)));
+
+        root.addView(heading(getString(R.string.settings_background)));
+        backgroundSection = new LinearLayout(this);
+        backgroundSection.setOrientation(LinearLayout.VERTICAL);
+        root.addView(backgroundSection);
+
+        root.addView(heading(getString(R.string.settings_foreground)));
+        foregroundSection = new LinearLayout(this);
+        foregroundSection.setOrientation(LinearLayout.VERTICAL);
+        root.addView(foregroundSection);
+
         root.addView(heading(getString(R.string.settings_dock)));
 
         final CheckBox charging = new CheckBox(this);
@@ -165,6 +235,8 @@ public class SettingsActivity extends Activity {
 
         rebuildFontSection();
         rebuildFieldSection();
+        rebuildBackgroundSection();
+        rebuildForegroundSection();
 
         ScrollView scroll = new ScrollView(this);
         scroll.setBackgroundColor(Color.BLACK);
@@ -320,6 +392,487 @@ public class SettingsActivity extends Activity {
     }
 
     /**
+     * The background images: the slideshow's list, its order, how long a still holds, how they
+     * are fitted, and the way to add more.
+     *
+     * The list *is* the slideshow — everything stored shows, in the order this screen shows it,
+     * because both read {@link Settings#orderedBackgrounds}. Each row is a checkbox for choosing
+     * and two arrows for the user's own arrangement; deleting acts on what is chosen.
+     */
+    private void rebuildBackgroundSection() {
+        backgroundSection.removeAllViews();
+
+        final FontLibrary store = Settings.backgrounds(this);
+        final List<FontLibrary.Entry> entries = Settings.orderedBackgrounds(this);
+        final List<String> names = new ArrayList<String>();
+        for (FontLibrary.Entry entry : entries) {
+            names.add(entry.name);
+        }
+        selectedBackgrounds.retainAll(names);
+
+        if (!entries.isEmpty()) {
+            backgroundSection.addView(spinner(ORDER_LABELS,
+                    orderIndex(Settings.backgroundOrderMode(this)),
+                    new AdapterView.OnItemSelectedListener() {
+                        @Override
+                        public void onItemSelected(AdapterView<?> parent, View view, int position,
+                                long id) {
+                            int mode = ORDER_MODES[position];
+                            if (mode == Settings.backgroundOrderMode(SettingsActivity.this)) {
+                                return;
+                            }
+                            // Choosing "my own order" freezes what is on screen right now; the
+                            // arrows then rearrange it.
+                            if (mode == SlideOrder.CUSTOM) {
+                                Settings.setBackgroundCustomOrder(SettingsActivity.this,
+                                        orderedNames());
+                            }
+                            Settings.setBackgroundOrderMode(SettingsActivity.this, mode);
+                            rebuildBackgroundSection();
+                        }
+
+                        @Override
+                        public void onNothingSelected(AdapterView<?> parent) {
+                        }
+                    }));
+        }
+
+        for (int i = 0; i < entries.size(); i++) {
+            backgroundSection.addView(backgroundRow(entries.get(i), i, entries.size()));
+        }
+
+        if (!entries.isEmpty()) {
+            LinearLayout chosen = new LinearLayout(this);
+            chosen.setOrientation(LinearLayout.HORIZONTAL);
+            chosen.setGravity(Gravity.CENTER_VERTICAL);
+
+            final CheckBox all = new CheckBox(this);
+            all.setText(R.string.settings_select_all);
+            all.setTextColor(TEXT_WHITE);
+            all.setChecked(selectedBackgrounds.containsAll(names));
+            all.setLayoutParams(new LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+            all.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton button, boolean checked) {
+                    if (checked) {
+                        selectedBackgrounds.addAll(names);
+                    } else {
+                        selectedBackgrounds.clear();
+                    }
+                    rebuildBackgroundSection();
+                }
+            });
+            chosen.addView(all);
+
+            Button deleteSelected = new Button(this);
+            deleteSelected.setText(R.string.settings_delete_selected);
+            deleteSelected.setEnabled(!selectedBackgrounds.isEmpty());
+            deleteSelected.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    List<String> arrangement = Settings.backgroundCustomOrder(SettingsActivity.this);
+                    for (String name : new ArrayList<String>(selectedBackgrounds)) {
+                        store.delete(name);
+                        arrangement.remove(name);
+                    }
+                    Settings.setBackgroundCustomOrder(SettingsActivity.this, arrangement);
+                    selectedBackgrounds.clear();
+                    rebuildBackgroundSection();
+                }
+            });
+            chosen.addView(deleteSelected);
+            backgroundSection.addView(chosen);
+        }
+
+        TextView total = footer(entries.isEmpty()
+                ? getString(R.string.settings_background_none)
+                : getString(R.string.settings_background_total, entries.size(),
+                        FontLibrary.humanBytes(store.totalBytes())));
+        total.setPadding(0, dp(6), 0, dp(4));
+        backgroundSection.addView(total);
+
+        if (!entries.isEmpty()) {
+            TextView slideLabel = footer(getString(R.string.settings_slide_time));
+            backgroundSection.addView(slideLabel);
+            backgroundSection.addView(spinner(SLIDE_LABELS,
+                    slideIndex(Settings.backgroundStillSeconds(this)),
+                    new AdapterView.OnItemSelectedListener() {
+                        @Override
+                        public void onItemSelected(AdapterView<?> parent, View view, int position,
+                                long id) {
+                            Settings.setBackgroundStillSeconds(SettingsActivity.this,
+                                    SLIDE_SECONDS[position]);
+                        }
+
+                        @Override
+                        public void onNothingSelected(AdapterView<?> parent) {
+                        }
+                    }));
+            backgroundSection.addView(spinner(FIT_LABELS,
+                    fitIndex(Settings.backgroundFit(this)),
+                    new AdapterView.OnItemSelectedListener() {
+                        @Override
+                        public void onItemSelected(AdapterView<?> parent, View view, int position,
+                                long id) {
+                            Settings.setBackgroundFit(SettingsActivity.this, FIT_MODES[position]);
+                        }
+
+                        @Override
+                        public void onNothingSelected(AdapterView<?> parent) {
+                        }
+                    }));
+
+            CheckBox fade = new CheckBox(this);
+            fade.setText(R.string.settings_background_fade);
+            fade.setTextColor(TEXT_WHITE);
+            fade.setChecked(Settings.backgroundFade(this));
+            fade.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton button, boolean checked) {
+                    Settings.setBackgroundFade(SettingsActivity.this, checked);
+                }
+            });
+            backgroundSection.addView(fade);
+        }
+
+        Button add = new Button(this);
+        add.setText(R.string.settings_background_add);
+        add.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                pickImage(REQUEST_PICK_BACKGROUND);
+            }
+        });
+        backgroundSection.addView(add);
+        backgroundSection.addView(footer(getString(R.string.settings_background_kinds)));
+    }
+
+    /** One image of the slideshow: chosen with its checkbox, moved with its arrows. */
+    private View backgroundRow(final FontLibrary.Entry entry, final int position, int count) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+
+        final CheckBox choose = new CheckBox(this);
+        choose.setText(entry.name + "  ·  " + FontLibrary.humanBytes(entry.bytes));
+        choose.setTextColor(TEXT_WHITE);
+        choose.setChecked(selectedBackgrounds.contains(entry.name));
+        choose.setLayoutParams(new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        choose.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                if (checked) {
+                    selectedBackgrounds.add(entry.name);
+                } else {
+                    selectedBackgrounds.remove(entry.name);
+                }
+                rebuildBackgroundSection();
+            }
+        });
+        row.addView(choose);
+
+        Button rename = new Button(this);
+        rename.setText(R.string.settings_rename);
+        rename.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                askForNewName(entry.name);
+            }
+        });
+        row.addView(rename);
+
+        row.addView(moveButton(R.string.settings_move_up, position, -1, position > 0));
+        row.addView(moveButton(R.string.settings_move_down, position, +1, position < count - 1));
+        return row;
+    }
+
+    /**
+     * A dialog asking what to call this image now.
+     *
+     * Renaming is how the name sorts become an ordering tool: put "001", "002" in front and the
+     * A-to-Z sort is the show's order. The hint says so.
+     */
+    private void askForNewName(final String name) {
+        final android.widget.EditText input = new android.widget.EditText(this);
+        input.setText(name);
+        input.setSelection(0);
+
+        new android.app.AlertDialog.Builder(this)
+                .setTitle(R.string.settings_rename_title)
+                .setMessage(R.string.settings_rename_hint)
+                .setView(input)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(android.R.string.ok,
+                        new android.content.DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(android.content.DialogInterface dialog, int which) {
+                        renameBackground(name, input.getText().toString());
+                    }
+                })
+                .show();
+    }
+
+    /** Applies one rename and carries the arrangement, the ticks and the screen along with it. */
+    private void renameBackground(String name, String wanted) {
+        String stored = Settings.backgrounds(this).rename(name, wanted);
+        if (stored == null) {
+            toast(getString(R.string.settings_rename_taken));
+            return;
+        }
+        if (!stored.equals(name)) {
+            // The user's own arrangement follows the file: same position, new name.
+            List<String> arrangement = Settings.backgroundCustomOrder(this);
+            int at = arrangement.indexOf(name);
+            if (at >= 0) {
+                arrangement.set(at, stored);
+                Settings.setBackgroundCustomOrder(this, arrangement);
+            }
+            if (selectedBackgrounds.remove(name)) {
+                selectedBackgrounds.add(stored);
+            }
+        }
+        rebuildBackgroundSection();
+    }
+
+    /**
+     * An arrow that steps one image through the list. The first touch of an arrow adopts whatever
+     * order is on screen as the user's own — from then on the spinner reads "my own order".
+     */
+    private Button moveButton(int label, final int position, final int direction, boolean enabled) {
+        Button button = new Button(this);
+        button.setText(label);
+        button.setEnabled(enabled);
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Settings.setBackgroundCustomOrder(SettingsActivity.this,
+                        SlideOrder.moved(orderedNames(), position, direction));
+                Settings.setBackgroundOrderMode(SettingsActivity.this, SlideOrder.CUSTOM);
+                rebuildBackgroundSection();
+            }
+        });
+        return button;
+    }
+
+    /** The names in the order the screen and the show both use right now. */
+    private List<String> orderedNames() {
+        List<String> names = new ArrayList<String>();
+        for (FontLibrary.Entry entry : Settings.orderedBackgrounds(this)) {
+            names.add(entry.name);
+        }
+        return names;
+    }
+
+    /** The spinner row for this order mode; an unknown stored mode lands on the default. */
+    private static int orderIndex(int mode) {
+        for (int i = 0; i < ORDER_MODES.length; i++) {
+            if (ORDER_MODES[i] == mode) {
+                return i;
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * The image inside the text: what is set and the ways to change it. One image; the glyphs are
+     * a window onto it, so a second would have nowhere to show.
+     */
+    private void rebuildForegroundSection() {
+        foregroundSection.removeAllViews();
+
+        String name = Settings.foregroundName(this);
+        File file = Settings.foregrounds(this).file(name);
+
+        TextView current = footer(file == null
+                ? getString(R.string.settings_foreground_none)
+                : name + "  ·  " + FontLibrary.humanBytes(file.length()));
+        current.setPadding(0, 0, 0, dp(4));
+        foregroundSection.addView(current);
+
+        LinearLayout buttons = new LinearLayout(this);
+        buttons.setOrientation(LinearLayout.HORIZONTAL);
+
+        Button choose = new Button(this);
+        choose.setText(R.string.settings_background_choose);
+        choose.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                pickImage(REQUEST_PICK_FOREGROUND);
+            }
+        });
+        buttons.addView(choose);
+
+        if (file != null) {
+            Button remove = new Button(this);
+            remove.setText(R.string.settings_background_remove);
+            remove.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Settings.foregrounds(SettingsActivity.this)
+                            .delete(Settings.foregroundName(SettingsActivity.this));
+                    Settings.setForegroundName(SettingsActivity.this, "");
+                    rebuildForegroundSection();
+                }
+            });
+            buttons.addView(remove);
+        }
+        foregroundSection.addView(buttons);
+        foregroundSection.addView(footer(getString(R.string.settings_foreground_kinds)));
+    }
+
+    /**
+     * A labelled slider for one orientation's time share, 20 to 90 percent.
+     *
+     * SeekBar has counted from zero since API 1 and only grew a minimum in API 26, so the
+     * progress is kept zero-based and the floor added on. The label repeats the current number,
+     * because a bare slider answers "more or less?" but never "how much?".
+     */
+    private View ratioRow(final int label, final String key) {
+        LinearLayout block = new LinearLayout(this);
+        block.setOrientation(LinearLayout.VERTICAL);
+        block.setPadding(0, dp(4), 0, 0);
+
+        final int floor = Math.round(com.reteclock.core.ClockOptions.MIN_TIME_FRACTION * 100f);
+        final int ceiling = Math.round(com.reteclock.core.ClockOptions.MAX_TIME_FRACTION * 100f);
+
+        final TextView caption = footer(getString(label, Settings.timePercent(this, key)));
+        block.addView(caption);
+
+        final android.widget.SeekBar bar = new android.widget.SeekBar(this);
+        bar.setMax(ceiling - floor);
+        bar.setProgress(Settings.timePercent(this, key) - floor);
+        bar.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(android.widget.SeekBar seekBar, int progress,
+                    boolean fromUser) {
+                int percent = floor + progress;
+                caption.setText(getString(label, percent));
+                if (fromUser) {
+                    Settings.setTimePercent(SettingsActivity.this, key, percent);
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(android.widget.SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(android.widget.SeekBar seekBar) {
+            }
+        });
+        block.addView(bar);
+        return block;
+    }
+
+    /** A full-width spinner over these string resources, selecting {@code selected}. */
+    private Spinner spinner(int[] labels, int selected,
+            AdapterView.OnItemSelectedListener listener) {
+        String[] texts = new String[labels.length];
+        for (int i = 0; i < labels.length; i++) {
+            texts[i] = getString(labels[i]);
+        }
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
+                android.R.layout.simple_spinner_item, texts);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        Spinner spinner = new Spinner(this);
+        spinner.setAdapter(adapter);
+        spinner.setSelection(selected);
+        spinner.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        spinner.setOnItemSelectedListener(listener);
+        return spinner;
+    }
+
+    /** The spinner row for this stored mode; a mode from the future lands on the default. */
+    private static int fitIndex(int mode) {
+        for (int i = 0; i < FIT_MODES.length; i++) {
+            if (FIT_MODES[i] == mode) {
+                return i;
+            }
+        }
+        return 0;
+    }
+
+    /** The spinner row for this still time; an unknown stored value lands on the default. */
+    private static int slideIndex(int seconds) {
+        for (int i = 0; i < SLIDE_SECONDS.length; i++) {
+            if (SLIDE_SECONDS[i] == seconds) {
+                return i;
+            }
+        }
+        return 1;
+    }
+
+    private void pickImage(int requestCode) {
+        Intent intent;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        } else {
+            intent = new Intent(Intent.ACTION_GET_CONTENT);
+        }
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("image/*");
+        try {
+            startActivityForResult(intent, requestCode);
+        } catch (ActivityNotFoundException e) {
+            toast(getString(R.string.settings_font_no_picker));
+        }
+    }
+
+    /** Adds one image to the slideshow. Nothing is replaced; the show just gains a slide. */
+    private void importBackground(Uri uri) {
+        String stored = importImage(uri, Settings.backgrounds(this));
+        if (stored != null) {
+            rebuildBackgroundSection();
+        }
+    }
+
+    /** Sets the text-fill image; the old one goes only once the new one has decoded. */
+    private void importForeground(Uri uri) {
+        FontLibrary store = Settings.foregrounds(this);
+        String stored = importImage(uri, store);
+        if (stored == null) {
+            return;
+        }
+        String old = Settings.foregroundName(this);
+        if (!old.isEmpty() && !old.equals(stored)) {
+            store.delete(old);
+        }
+        Settings.setForegroundName(this, stored);
+        rebuildForegroundSection();
+    }
+
+    /**
+     * Reads, stores and decode-checks one picked image; returns its stored name, or null after a
+     * toast. Whether the file is an image this device can draw is something only decoding can
+     * say, so it is asked now, while the file can still be thrown away.
+     */
+    private String importImage(Uri uri, FontLibrary store) {
+        byte[] content;
+        try {
+            content = readAll(uri, BackgroundImage.MAX_IMAGE_BYTES);
+        } catch (IOException e) {
+            toast(getString(R.string.settings_font_failed));
+            return null;
+        }
+        String stored;
+        try {
+            stored = store.add(displayName(uri), content);
+        } catch (IOException e) {
+            toast(getString(R.string.settings_font_failed));
+            return null;
+        }
+        if (BackgroundImage.load(store.file(stored)) == null) {
+            store.delete(stored);
+            toast(getString(R.string.settings_background_rejected));
+            return null;
+        }
+        return stored;
+    }
+
+    /**
      * Asks the system for a file. ACTION_OPEN_DOCUMENT is the modern picker and arrived in API 19;
      * older devices get ACTION_GET_CONTENT, which has been there since API 1. Either way the file
      * comes back as a stream the system opens for us, so the app needs no storage permission.
@@ -344,17 +897,22 @@ public class SettingsActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode != REQUEST_PICK_FONT || resultCode != RESULT_OK || data == null
-                || data.getData() == null) {
+        if (resultCode != RESULT_OK || data == null || data.getData() == null) {
             return;
         }
-        importFont(data.getData());
+        if (requestCode == REQUEST_PICK_FONT) {
+            importFont(data.getData());
+        } else if (requestCode == REQUEST_PICK_BACKGROUND) {
+            importBackground(data.getData());
+        } else if (requestCode == REQUEST_PICK_FOREGROUND) {
+            importForeground(data.getData());
+        }
     }
 
     private void importFont(Uri uri) {
         byte[] content;
         try {
-            content = readAll(uri);
+            content = readAll(uri, MAX_FONT_BYTES);
         } catch (IOException e) {
             toast(getString(R.string.settings_font_failed));
             return;
@@ -401,7 +959,7 @@ public class SettingsActivity extends Activity {
         }
     }
 
-    private byte[] readAll(Uri uri) throws IOException {
+    private byte[] readAll(Uri uri, int maxBytes) throws IOException {
         InputStream in = getContentResolver().openInputStream(uri);
         if (in == null) {
             throw new IOException("cannot open " + uri);
@@ -413,8 +971,8 @@ public class SettingsActivity extends Activity {
             long total = 0;
             while ((read = in.read(buffer)) != -1) {
                 total += read;
-                if (total > MAX_FONT_BYTES) {
-                    throw new IOException("font larger than " + MAX_FONT_BYTES + " bytes");
+                if (total > maxBytes) {
+                    throw new IOException("file larger than " + maxBytes + " bytes");
                 }
                 out.write(buffer, 0, read);
             }
