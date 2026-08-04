@@ -2,11 +2,12 @@ package com.reteclock;
 
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
-import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.StateListDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -16,7 +17,6 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.LinearLayout;
@@ -37,25 +37,34 @@ import java.util.List;
 import com.reteclock.core.ClockOptions;
 import com.reteclock.core.FontLibrary;
 import com.reteclock.core.ImageFit;
+import com.reteclock.core.ImageRoles;
 import com.reteclock.core.SlideOrder;
 
 /**
  * The settings screen, reached by long pressing the clock.
  *
- * The views are built in code rather than inflated from XML: the screen is small, and this keeps the
- * app free of layout resources and of any support library, down to API 9.
+ * The views are built in code rather than inflated from XML: the screen is small, and this keeps
+ * the app free of layout resources and of any support library, down to API 9. The look is built
+ * from the same era's parts — GradientDrawable corners, StateListDrawable presses — arranged as
+ * cards on black with one quiet accent, because an API-9 floor limits the toolkit, not the taste.
  */
 public class SettingsActivity extends Activity {
 
-    private static final int TEXT_WHITE = Color.WHITE;
-    private static final int TEXT_DIM = Color.parseColor("#B0B0B0");
+    private static final int TEXT_WHITE = 0xFFF2F2F2;
+    private static final int TEXT_DIM = 0xFF9E9E9E;
+    /** One accent, used sparingly: section names, action buttons, the pressed state. */
+    private static final int ACCENT = 0xFF4DB6AC;
+    private static final int CARD = 0xFF161616;
+    private static final int CARD_STROKE = 0xFF262626;
+    private static final int DIVIDER = 0xFF272727;
+    private static final int PRESSED = 0x334DB6AC;
+    private static final int BUTTON_FACE = 0xFF212121;
 
     /** Anything larger than this is a suspicious thing to call a font on an old phone. */
     private static final int MAX_FONT_BYTES = 32 * 1024 * 1024;
 
     private static final int REQUEST_PICK_FONT = 1;
-    private static final int REQUEST_PICK_BACKGROUND = 2;
-    private static final int REQUEST_PICK_FOREGROUND = 3;
+    private static final int REQUEST_PICK_IMAGE = 2;
 
     /** The orderings the spinner offers, the default first. */
     private static final int[] ORDER_MODES = {
@@ -74,7 +83,7 @@ public class SettingsActivity extends Activity {
     };
 
     /** The images ticked for a group action. Checked names only; pruned as files go. */
-    private final java.util.Set<String> selectedBackgrounds = new java.util.HashSet<String>();
+    private final java.util.Set<String> selectedImages = new java.util.HashSet<String>();
 
     /** How long a still slide can hold, in the order the spinner offers them. */
     private static final int[] SLIDE_SECONDS = {5, 10, 30, 60, 300};
@@ -118,26 +127,27 @@ public class SettingsActivity extends Activity {
     private LinearLayout fontSection;
     /** The per-field font choices, rebuilt with it because the choices are the stored fonts. */
     private LinearLayout fieldSection;
-    /** Rebuilt in place whenever the background images change. */
-    private LinearLayout backgroundSection;
-    /** Rebuilt in place whenever the text-fill image changes. */
-    private LinearLayout foregroundSection;
+    /** Rebuilt in place whenever the image pool or the roles change. */
+    private LinearLayout imageSection;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // The page carries its own title; the window frame repeating it is clutter.
+        requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
 
         // Getting here is proof the long-press hint has done its job.
         Settings.setHintSeen(this);
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(Color.BLACK);
-        int pad = dp(20);
-        root.setPadding(pad, pad, pad, pad);
+        int pad = dp(12);
+        root.setPadding(pad, dp(16), pad, dp(16));
 
         root.addView(title(getString(R.string.settings_title)));
 
+        // ---- Clock ----
+        LinearLayout clock = card(getString(R.string.settings_card_clock));
         final CheckBox seconds = new CheckBox(this);
         seconds.setText(R.string.settings_show_seconds);
         seconds.setTextColor(TEXT_WHITE);
@@ -148,23 +158,19 @@ public class SettingsActivity extends Activity {
                 Settings.setShowSeconds(SettingsActivity.this, checked);
             }
         });
-        root.addView(seconds);
+        clock.addView(seconds);
 
-        root.addView(heading(getString(R.string.settings_date_format)));
-
-        final RadioGroup dateStyle = new RadioGroup(this);
+        clock.addView(subheading(getString(R.string.settings_date_format)));
+        RadioGroup dateStyle = new RadioGroup(this);
         dateStyle.setOrientation(RadioGroup.VERTICAL);
-
         RadioButton byName = new RadioButton(this);
         byName.setId(1);
         byName.setText(R.string.settings_date_name);
         byName.setTextColor(TEXT_WHITE);
-
         RadioButton byNumber = new RadioButton(this);
         byNumber.setId(2);
         byNumber.setText(R.string.settings_date_numeric);
         byNumber.setTextColor(TEXT_WHITE);
-
         dateStyle.addView(byName);
         dateStyle.addView(byNumber);
         dateStyle.check(Settings.dateStyle(this) == ClockOptions.DATE_STYLE_NUMERIC ? 2 : 1);
@@ -176,47 +182,43 @@ public class SettingsActivity extends Activity {
                         : ClockOptions.DATE_STYLE_NAME);
             }
         });
-        root.addView(dateStyle);
+        clock.addView(dateStyle);
 
-        root.addView(heading(getString(R.string.settings_font)));
+        clock.addView(subheading(getString(R.string.settings_ratio)));
+        clock.addView(ratioRow(R.string.settings_ratio_wide, Settings.KEY_TIME_PERCENT_WIDE));
+        clock.addView(ratioRow(R.string.settings_ratio_tall, Settings.KEY_TIME_PERCENT_TALL));
+        clock.addView(footer(getString(R.string.settings_ratio_note)));
+        root.addView(clock);
 
+        // ---- Fonts ----
+        LinearLayout fonts = card(getString(R.string.settings_font));
         fontSection = new LinearLayout(this);
         fontSection.setOrientation(LinearLayout.VERTICAL);
-        root.addView(fontSection);
-
-        root.addView(heading(getString(R.string.settings_font_per_field)));
+        fonts.addView(fontSection);
+        fonts.addView(actionButton(getString(R.string.settings_font_add),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        pickFont();
+                    }
+                }));
+        fonts.addView(footer(getString(R.string.settings_font_kinds)));
+        fonts.addView(divider());
+        fonts.addView(subheading(getString(R.string.settings_font_per_field)));
         fieldSection = new LinearLayout(this);
         fieldSection.setOrientation(LinearLayout.VERTICAL);
-        root.addView(fieldSection);
+        fonts.addView(fieldSection);
+        root.addView(fonts);
 
-        Button add = new Button(this);
-        add.setText(R.string.settings_font_add);
-        add.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                pickFont();
-            }
-        });
-        root.addView(add);
-        root.addView(footer(getString(R.string.settings_font_kinds)));
+        // ---- Images ----
+        LinearLayout images = card(getString(R.string.settings_images));
+        imageSection = new LinearLayout(this);
+        imageSection.setOrientation(LinearLayout.VERTICAL);
+        images.addView(imageSection);
+        root.addView(images);
 
-        root.addView(heading(getString(R.string.settings_ratio)));
-        root.addView(ratioRow(R.string.settings_ratio_wide, Settings.KEY_TIME_PERCENT_WIDE));
-        root.addView(ratioRow(R.string.settings_ratio_tall, Settings.KEY_TIME_PERCENT_TALL));
-        root.addView(footer(getString(R.string.settings_ratio_note)));
-
-        root.addView(heading(getString(R.string.settings_background)));
-        backgroundSection = new LinearLayout(this);
-        backgroundSection.setOrientation(LinearLayout.VERTICAL);
-        root.addView(backgroundSection);
-
-        root.addView(heading(getString(R.string.settings_foreground)));
-        foregroundSection = new LinearLayout(this);
-        foregroundSection.setOrientation(LinearLayout.VERTICAL);
-        root.addView(foregroundSection);
-
-        root.addView(heading(getString(R.string.settings_dock)));
-
+        // ---- Dock ----
+        LinearLayout dock = card(getString(R.string.settings_dock));
         final CheckBox charging = new CheckBox(this);
         charging.setText(R.string.settings_start_when_charging);
         charging.setTextColor(TEXT_WHITE);
@@ -227,16 +229,18 @@ public class SettingsActivity extends Activity {
                 Settings.setStartWhenCharging(SettingsActivity.this, checked);
             }
         });
-        root.addView(charging);
+        dock.addView(charging);
+        root.addView(dock);
 
-        root.addView(spacer());
-        root.addView(footer(getString(R.string.settings_about,
-                versionName(), Build.VERSION.RELEASE)));
+        TextView about = footer(getString(R.string.settings_about,
+                versionName(), Build.VERSION.RELEASE));
+        about.setGravity(Gravity.CENTER_HORIZONTAL);
+        about.setPadding(0, dp(8), 0, dp(4));
+        root.addView(about);
 
         rebuildFontSection();
         rebuildFieldSection();
-        rebuildBackgroundSection();
-        rebuildForegroundSection();
+        rebuildImageSection();
 
         ScrollView scroll = new ScrollView(this);
         scroll.setBackgroundColor(Color.BLACK);
@@ -256,8 +260,12 @@ public class SettingsActivity extends Activity {
 
         FontLibrary library = Settings.fonts(this);
         List<FontLibrary.Entry> entries = library.list();
-        for (FontLibrary.Entry entry : entries) {
-            String label = entry.name + "  \u00b7  " + FontLibrary.humanBytes(entry.bytes);
+        for (int i = 0; i < entries.size(); i++) {
+            FontLibrary.Entry entry = entries.get(i);
+            String label = entry.name + "  ·  " + FontLibrary.humanBytes(entry.bytes);
+            if (i > 0) {
+                fontSection.addView(divider());
+            }
             fontSection.addView(fontRow(entry.name, label));
         }
 
@@ -265,11 +273,11 @@ public class SettingsActivity extends Activity {
                 ? getString(R.string.settings_font_none)
                 : getString(R.string.settings_font_total, entries.size(),
                         FontLibrary.humanBytes(library.totalBytes())));
-        total.setPadding(0, dp(6), 0, 0);
+        total.setPadding(0, dp(6), 0, dp(6));
         fontSection.addView(total);
     }
 
-    /** One row: the font's name and size, and a button that deletes it. */
+    /** One row: the font's name and size, and a compact button that deletes it. */
     private View fontRow(final String name, String label) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
@@ -278,13 +286,13 @@ public class SettingsActivity extends Activity {
         TextView text = new TextView(this);
         text.setText(label);
         text.setTextColor(TEXT_WHITE);
+        text.setSingleLine(true);
+        text.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
         text.setLayoutParams(new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
         row.addView(text);
 
-        Button delete = new Button(this);
-        delete.setText(R.string.settings_font_delete);
-        delete.setOnClickListener(new View.OnClickListener() {
+        row.addView(iconButton("✕", true, new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Settings.fonts(SettingsActivity.this).delete(name);
@@ -293,8 +301,7 @@ public class SettingsActivity extends Activity {
                 rebuildFontSection();
                 rebuildFieldSection();
             }
-        });
-        row.addView(delete);
+        }));
         return row;
     }
 
@@ -391,27 +398,34 @@ public class SettingsActivity extends Activity {
         return box;
     }
 
-    /**
-     * The background images: the slideshow's list, its order, how long a still holds, how they
-     * are fitted, and the way to add more.
-     *
-     * The list *is* the slideshow — everything stored shows, in the order this screen shows it,
-     * because both read {@link Settings#orderedBackgrounds}. Each row is a checkbox for choosing
-     * and two arrows for the user's own arrangement; deleting acts on what is chosen.
-     */
-    private void rebuildBackgroundSection() {
-        backgroundSection.removeAllViews();
+    /** The pixel width of one checkbox column, so the header and every row line up. */
+    private int columnWidth() {
+        return dp(38);
+    }
 
-        final FontLibrary store = Settings.backgrounds(this);
-        final List<FontLibrary.Entry> entries = Settings.orderedBackgrounds(this);
+    /**
+     * The image pool: one list, three checkbox columns.
+     *
+     * The first column chooses images for group actions (delete). The other two say where an
+     * image serves — behind the clock or inside the digits — and are exclusive: ticking one
+     * clears the other, and neither ticked means the image is held, kept but unused. The header
+     * carries a select-all for each column. Both shows and this screen read the same ordered
+     * pool, so what is listed is what plays, in this order.
+     */
+    private void rebuildImageSection() {
+        imageSection.removeAllViews();
+
+        final FontLibrary store = Settings.images(this);
+        final List<FontLibrary.Entry> entries = Settings.orderedImages(this);
+        final ImageRoles.Lists roles = Settings.roles(this);
         final List<String> names = new ArrayList<String>();
         for (FontLibrary.Entry entry : entries) {
             names.add(entry.name);
         }
-        selectedBackgrounds.retainAll(names);
+        selectedImages.retainAll(names);
 
         if (!entries.isEmpty()) {
-            backgroundSection.addView(spinner(ORDER_LABELS,
+            imageSection.addView(spinner(ORDER_LABELS,
                     orderIndex(Settings.backgroundOrderMode(this)),
                     new AdapterView.OnItemSelectedListener() {
                         @Override
@@ -428,61 +442,21 @@ public class SettingsActivity extends Activity {
                                         orderedNames());
                             }
                             Settings.setBackgroundOrderMode(SettingsActivity.this, mode);
-                            rebuildBackgroundSection();
+                            rebuildImageSection();
                         }
 
                         @Override
                         public void onNothingSelected(AdapterView<?> parent) {
                         }
                     }));
-        }
 
-        for (int i = 0; i < entries.size(); i++) {
-            backgroundSection.addView(backgroundRow(entries.get(i), i, entries.size()));
-        }
-
-        if (!entries.isEmpty()) {
-            LinearLayout chosen = new LinearLayout(this);
-            chosen.setOrientation(LinearLayout.HORIZONTAL);
-            chosen.setGravity(Gravity.CENTER_VERTICAL);
-
-            final CheckBox all = new CheckBox(this);
-            all.setText(R.string.settings_select_all);
-            all.setTextColor(TEXT_WHITE);
-            all.setChecked(selectedBackgrounds.containsAll(names));
-            all.setLayoutParams(new LinearLayout.LayoutParams(
-                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-            all.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-                @Override
-                public void onCheckedChanged(CompoundButton button, boolean checked) {
-                    if (checked) {
-                        selectedBackgrounds.addAll(names);
-                    } else {
-                        selectedBackgrounds.clear();
-                    }
-                    rebuildBackgroundSection();
-                }
-            });
-            chosen.addView(all);
-
-            Button deleteSelected = new Button(this);
-            deleteSelected.setText(R.string.settings_delete_selected);
-            deleteSelected.setEnabled(!selectedBackgrounds.isEmpty());
-            deleteSelected.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    List<String> arrangement = Settings.backgroundCustomOrder(SettingsActivity.this);
-                    for (String name : new ArrayList<String>(selectedBackgrounds)) {
-                        store.delete(name);
-                        arrangement.remove(name);
-                    }
-                    Settings.setBackgroundCustomOrder(SettingsActivity.this, arrangement);
-                    selectedBackgrounds.clear();
-                    rebuildBackgroundSection();
-                }
-            });
-            chosen.addView(deleteSelected);
-            backgroundSection.addView(chosen);
+            imageSection.addView(columnLabels());
+            imageSection.addView(selectAllRow(names, roles));
+            imageSection.addView(divider());
+            for (int i = 0; i < entries.size(); i++) {
+                imageSection.addView(imageRow(entries.get(i), roles, i, entries.size()));
+            }
+            imageSection.addView(divider());
         }
 
         TextView total = footer(entries.isEmpty()
@@ -490,12 +464,12 @@ public class SettingsActivity extends Activity {
                 : getString(R.string.settings_background_total, entries.size(),
                         FontLibrary.humanBytes(store.totalBytes())));
         total.setPadding(0, dp(6), 0, dp(4));
-        backgroundSection.addView(total);
+        imageSection.addView(total);
 
         if (!entries.isEmpty()) {
             TextView slideLabel = footer(getString(R.string.settings_slide_time));
-            backgroundSection.addView(slideLabel);
-            backgroundSection.addView(spinner(SLIDE_LABELS,
+            imageSection.addView(slideLabel);
+            imageSection.addView(spinner(SLIDE_LABELS,
                     slideIndex(Settings.backgroundStillSeconds(this)),
                     new AdapterView.OnItemSelectedListener() {
                         @Override
@@ -509,7 +483,7 @@ public class SettingsActivity extends Activity {
                         public void onNothingSelected(AdapterView<?> parent) {
                         }
                     }));
-            backgroundSection.addView(spinner(FIT_LABELS,
+            imageSection.addView(spinner(FIT_LABELS,
                     fitIndex(Settings.backgroundFit(this)),
                     new AdapterView.OnItemSelectedListener() {
                         @Override
@@ -533,59 +507,228 @@ public class SettingsActivity extends Activity {
                     Settings.setBackgroundFade(SettingsActivity.this, checked);
                 }
             });
-            backgroundSection.addView(fade);
+            imageSection.addView(fade);
         }
 
-        Button add = new Button(this);
-        add.setText(R.string.settings_background_add);
-        add.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                pickImage(REQUEST_PICK_BACKGROUND);
-            }
-        });
-        backgroundSection.addView(add);
-        backgroundSection.addView(footer(getString(R.string.settings_background_kinds)));
+        imageSection.addView(actionButton(getString(R.string.settings_background_add),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        pickImage();
+                    }
+                }));
+        imageSection.addView(footer(getString(R.string.settings_images_hint)));
+        imageSection.addView(footer(getString(R.string.settings_background_kinds)));
     }
 
-    /** One image of the slideshow: chosen with its checkbox, moved with its arrows. */
-    private View backgroundRow(final FontLibrary.Entry entry, final int position, int count) {
+    /** The three column captions, sitting exactly over their checkboxes. */
+    private View columnLabels() {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setPadding(0, dp(6), 0, 0);
+        row.addView(columnLabel(R.string.settings_col_sel));
+        row.addView(columnLabel(R.string.settings_col_bg));
+        row.addView(columnLabel(R.string.settings_col_text));
+        TextView image = new TextView(this);
+        image.setText(R.string.settings_col_image);
+        image.setTextColor(TEXT_DIM);
+        image.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f);
+        image.setLayoutParams(new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        row.addView(image);
+        return row;
+    }
+
+    private TextView columnLabel(int label) {
+        TextView view = new TextView(this);
+        view.setText(label);
+        view.setTextColor(TEXT_DIM);
+        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f);
+        view.setGravity(Gravity.CENTER_HORIZONTAL);
+        view.setLayoutParams(new LinearLayout.LayoutParams(
+                columnWidth(), LinearLayout.LayoutParams.WRAP_CONTENT));
+        return view;
+    }
+
+    /** One select-all per column, and the delete that acts on the first of them. */
+    private View selectAllRow(final List<String> names, final ImageRoles.Lists roles) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
 
-        final CheckBox choose = new CheckBox(this);
-        choose.setText(entry.name + "  ·  " + FontLibrary.humanBytes(entry.bytes));
-        choose.setTextColor(TEXT_WHITE);
-        choose.setChecked(selectedBackgrounds.contains(entry.name));
-        choose.setLayoutParams(new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-        choose.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+        boolean allSelected = !names.isEmpty() && selectedImages.containsAll(names);
+        row.addView(columnCheckBox(allSelected, new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton button, boolean checked) {
                 if (checked) {
-                    selectedBackgrounds.add(entry.name);
+                    selectedImages.addAll(names);
                 } else {
-                    selectedBackgrounds.remove(entry.name);
+                    selectedImages.clear();
                 }
-                rebuildBackgroundSection();
+                rebuildImageSection();
             }
-        });
-        row.addView(choose);
+        }));
 
-        Button rename = new Button(this);
-        rename.setText(R.string.settings_rename);
-        rename.setOnClickListener(new View.OnClickListener() {
+        boolean allBackground = allIn(names, roles.background);
+        row.addView(columnCheckBox(allBackground, new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                assignAll(names, checked ? ImageRoles.BACKGROUND : ImageRoles.NONE,
+                        ImageRoles.BACKGROUND);
+            }
+        }));
+
+        boolean allText = allIn(names, roles.text);
+        row.addView(columnCheckBox(allText, new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                assignAll(names, checked ? ImageRoles.TEXT : ImageRoles.NONE, ImageRoles.TEXT);
+            }
+        }));
+
+        TextView label = new TextView(this);
+        label.setText(R.string.settings_select_all);
+        label.setTextColor(TEXT_DIM);
+        label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f);
+        label.setLayoutParams(new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        row.addView(label);
+
+        TextView delete = iconButton(getString(R.string.settings_font_delete),
+                !selectedImages.isEmpty(), new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        deleteSelected();
+                    }
+                });
+        row.addView(delete);
+        return row;
+    }
+
+    private static boolean allIn(List<String> names, List<String> role) {
+        return !names.isEmpty() && role.containsAll(names);
+    }
+
+    /**
+     * Points every image at {@code role} — or, when un-ticking, releases only the images that
+     * held {@code released}, so clearing the background column cannot silently strip the text one.
+     */
+    private void assignAll(List<String> names, int role, int released) {
+        ImageRoles.Lists lists = Settings.roles(this);
+        for (String name : names) {
+            if (role != ImageRoles.NONE || ImageRoles.roleOf(lists, name) == released) {
+                lists = ImageRoles.assign(lists, name, role);
+            }
+        }
+        Settings.saveRoles(this, lists);
+        rebuildImageSection();
+    }
+
+    private void deleteSelected() {
+        FontLibrary store = Settings.images(this);
+        ImageRoles.Lists lists = Settings.roles(this);
+        List<String> arrangement = Settings.backgroundCustomOrder(this);
+        for (String name : new ArrayList<String>(selectedImages)) {
+            store.delete(name);
+            lists = ImageRoles.removed(lists, name);
+            arrangement.remove(name);
+        }
+        Settings.saveRoles(this, lists);
+        Settings.setBackgroundCustomOrder(this, arrangement);
+        selectedImages.clear();
+        rebuildImageSection();
+    }
+
+    /**
+     * One image: selection, its two role boxes, its name (tap it to rename), and its arrows.
+     */
+    private View imageRow(final FontLibrary.Entry entry, ImageRoles.Lists roles,
+            final int position, int count) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(0, dp(2), 0, dp(2));
+
+        row.addView(columnCheckBox(selectedImages.contains(entry.name),
+                new CompoundButton.OnCheckedChangeListener() {
+                    @Override
+                    public void onCheckedChanged(CompoundButton button, boolean checked) {
+                        if (checked) {
+                            selectedImages.add(entry.name);
+                        } else {
+                            selectedImages.remove(entry.name);
+                        }
+                        rebuildImageSection();
+                    }
+                }));
+
+        int role = ImageRoles.roleOf(roles, entry.name);
+        row.addView(columnCheckBox(role == ImageRoles.BACKGROUND,
+                roleListener(entry.name, ImageRoles.BACKGROUND)));
+        row.addView(columnCheckBox(role == ImageRoles.TEXT,
+                roleListener(entry.name, ImageRoles.TEXT)));
+
+        TextView name = new TextView(this);
+        name.setText(entry.name + "  ·  " + FontLibrary.humanBytes(entry.bytes));
+        name.setTextColor(TEXT_WHITE);
+        name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f);
+        name.setSingleLine(true);
+        name.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
+        name.setLayoutParams(new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        name.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 askForNewName(entry.name);
             }
         });
-        row.addView(rename);
+        row.addView(name);
 
-        row.addView(moveButton(R.string.settings_move_up, position, -1, position > 0));
-        row.addView(moveButton(R.string.settings_move_down, position, +1, position < count - 1));
+        row.addView(iconButton("▲", position > 0, moveListener(position, -1)));
+        row.addView(iconButton("▼", position < count - 1, moveListener(position, +1)));
         return row;
+    }
+
+    /** Ticking claims the role; un-ticking releases the image to held. Exclusivity is the core's. */
+    private CompoundButton.OnCheckedChangeListener roleListener(final String name,
+            final int role) {
+        return new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                ImageRoles.Lists lists = Settings.roles(SettingsActivity.this);
+                if (checked) {
+                    lists = ImageRoles.assign(lists, name, role);
+                } else if (ImageRoles.roleOf(lists, name) == role) {
+                    lists = ImageRoles.assign(lists, name, ImageRoles.NONE);
+                }
+                Settings.saveRoles(SettingsActivity.this, lists);
+                rebuildImageSection();
+            }
+        };
+    }
+
+    private View.OnClickListener moveListener(final int position, final int direction) {
+        return new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Settings.setBackgroundCustomOrder(SettingsActivity.this,
+                        SlideOrder.moved(orderedNames(), position, direction));
+                Settings.setBackgroundOrderMode(SettingsActivity.this, SlideOrder.CUSTOM);
+                rebuildImageSection();
+            }
+        };
+    }
+
+    /** A bare checkbox sitting in one of the three fixed columns. */
+    private CheckBox columnCheckBox(boolean checked,
+            CompoundButton.OnCheckedChangeListener listener) {
+        CheckBox box = new CheckBox(this);
+        box.setChecked(checked);
+        box.setLayoutParams(new LinearLayout.LayoutParams(
+                columnWidth(), LinearLayout.LayoutParams.WRAP_CONTENT));
+        // The listener goes on after the state, so a rebuild cannot fire it.
+        box.setOnCheckedChangeListener(listener);
+        return box;
     }
 
     /**
@@ -608,58 +751,38 @@ public class SettingsActivity extends Activity {
                         new android.content.DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(android.content.DialogInterface dialog, int which) {
-                        renameBackground(name, input.getText().toString());
+                        renameImage(name, input.getText().toString());
                     }
                 })
                 .show();
     }
 
-    /** Applies one rename and carries the arrangement, the ticks and the screen along with it. */
-    private void renameBackground(String name, String wanted) {
-        String stored = Settings.backgrounds(this).rename(name, wanted);
+    /** Applies one rename; the role, the arrangement, the ticks and the screen follow the file. */
+    private void renameImage(String name, String wanted) {
+        String stored = Settings.images(this).rename(name, wanted);
         if (stored == null) {
             toast(getString(R.string.settings_rename_taken));
             return;
         }
         if (!stored.equals(name)) {
-            // The user's own arrangement follows the file: same position, new name.
+            Settings.saveRoles(this, ImageRoles.renamed(Settings.roles(this), name, stored));
             List<String> arrangement = Settings.backgroundCustomOrder(this);
             int at = arrangement.indexOf(name);
             if (at >= 0) {
                 arrangement.set(at, stored);
                 Settings.setBackgroundCustomOrder(this, arrangement);
             }
-            if (selectedBackgrounds.remove(name)) {
-                selectedBackgrounds.add(stored);
+            if (selectedImages.remove(name)) {
+                selectedImages.add(stored);
             }
         }
-        rebuildBackgroundSection();
+        rebuildImageSection();
     }
 
-    /**
-     * An arrow that steps one image through the list. The first touch of an arrow adopts whatever
-     * order is on screen as the user's own — from then on the spinner reads "my own order".
-     */
-    private Button moveButton(int label, final int position, final int direction, boolean enabled) {
-        Button button = new Button(this);
-        button.setText(label);
-        button.setEnabled(enabled);
-        button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Settings.setBackgroundCustomOrder(SettingsActivity.this,
-                        SlideOrder.moved(orderedNames(), position, direction));
-                Settings.setBackgroundOrderMode(SettingsActivity.this, SlideOrder.CUSTOM);
-                rebuildBackgroundSection();
-            }
-        });
-        return button;
-    }
-
-    /** The names in the order the screen and the show both use right now. */
+    /** The names in the order the screen and the shows all use right now. */
     private List<String> orderedNames() {
         List<String> names = new ArrayList<String>();
-        for (FontLibrary.Entry entry : Settings.orderedBackgrounds(this)) {
+        for (FontLibrary.Entry entry : Settings.orderedImages(this)) {
             names.add(entry.name);
         }
         return names;
@@ -676,53 +799,6 @@ public class SettingsActivity extends Activity {
     }
 
     /**
-     * The image inside the text: what is set and the ways to change it. One image; the glyphs are
-     * a window onto it, so a second would have nowhere to show.
-     */
-    private void rebuildForegroundSection() {
-        foregroundSection.removeAllViews();
-
-        String name = Settings.foregroundName(this);
-        File file = Settings.foregrounds(this).file(name);
-
-        TextView current = footer(file == null
-                ? getString(R.string.settings_foreground_none)
-                : name + "  ·  " + FontLibrary.humanBytes(file.length()));
-        current.setPadding(0, 0, 0, dp(4));
-        foregroundSection.addView(current);
-
-        LinearLayout buttons = new LinearLayout(this);
-        buttons.setOrientation(LinearLayout.HORIZONTAL);
-
-        Button choose = new Button(this);
-        choose.setText(R.string.settings_background_choose);
-        choose.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                pickImage(REQUEST_PICK_FOREGROUND);
-            }
-        });
-        buttons.addView(choose);
-
-        if (file != null) {
-            Button remove = new Button(this);
-            remove.setText(R.string.settings_background_remove);
-            remove.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Settings.foregrounds(SettingsActivity.this)
-                            .delete(Settings.foregroundName(SettingsActivity.this));
-                    Settings.setForegroundName(SettingsActivity.this, "");
-                    rebuildForegroundSection();
-                }
-            });
-            buttons.addView(remove);
-        }
-        foregroundSection.addView(buttons);
-        foregroundSection.addView(footer(getString(R.string.settings_foreground_kinds)));
-    }
-
-    /**
      * A labelled slider for one orientation's time share, 20 to 90 percent.
      *
      * SeekBar has counted from zero since API 1 and only grew a minimum in API 26, so the
@@ -734,8 +810,8 @@ public class SettingsActivity extends Activity {
         block.setOrientation(LinearLayout.VERTICAL);
         block.setPadding(0, dp(4), 0, 0);
 
-        final int floor = Math.round(com.reteclock.core.ClockOptions.MIN_TIME_FRACTION * 100f);
-        final int ceiling = Math.round(com.reteclock.core.ClockOptions.MAX_TIME_FRACTION * 100f);
+        final int floor = Math.round(ClockOptions.MIN_TIME_FRACTION * 100f);
+        final int ceiling = Math.round(ClockOptions.MAX_TIME_FRACTION * 100f);
 
         final TextView caption = footer(getString(label, Settings.timePercent(this, key)));
         block.addView(caption);
@@ -805,7 +881,7 @@ public class SettingsActivity extends Activity {
         return 1;
     }
 
-    private void pickImage(int requestCode) {
+    private void pickImage() {
         Intent intent;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
@@ -815,61 +891,45 @@ public class SettingsActivity extends Activity {
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("image/*");
         try {
-            startActivityForResult(intent, requestCode);
+            startActivityForResult(intent, REQUEST_PICK_IMAGE);
         } catch (ActivityNotFoundException e) {
             toast(getString(R.string.settings_font_no_picker));
         }
     }
 
-    /** Adds one image to the slideshow. Nothing is replaced; the show just gains a slide. */
-    private void importBackground(Uri uri) {
-        String stored = importImage(uri, Settings.backgrounds(this));
-        if (stored != null) {
-            rebuildBackgroundSection();
-        }
-    }
-
-    /** Sets the text-fill image; the old one goes only once the new one has decoded. */
-    private void importForeground(Uri uri) {
-        FontLibrary store = Settings.foregrounds(this);
-        String stored = importImage(uri, store);
-        if (stored == null) {
-            return;
-        }
-        String old = Settings.foregroundName(this);
-        if (!old.isEmpty() && !old.equals(stored)) {
-            store.delete(old);
-        }
-        Settings.setForegroundName(this, stored);
-        rebuildForegroundSection();
-    }
-
     /**
-     * Reads, stores and decode-checks one picked image; returns its stored name, or null after a
-     * toast. Whether the file is an image this device can draw is something only decoding can
-     * say, so it is asked now, while the file can still be thrown away.
+     * Adds one image to the pool. A new arrival starts as a background — the common wish, and one
+     * tick away from anything else; a re-import of a file already in the pool keeps whatever role
+     * it has.
      */
-    private String importImage(Uri uri, FontLibrary store) {
+    private void importImage(Uri uri) {
+        FontLibrary store = Settings.images(this);
         byte[] content;
         try {
             content = readAll(uri, BackgroundImage.MAX_IMAGE_BYTES);
         } catch (IOException e) {
             toast(getString(R.string.settings_font_failed));
-            return null;
+            return;
         }
         String stored;
         try {
             stored = store.add(displayName(uri), content);
         } catch (IOException e) {
             toast(getString(R.string.settings_font_failed));
-            return null;
+            return;
         }
+        // Whether the file is an image this device can draw is something only decoding can say,
+        // so it is asked now, while the file can still be thrown away.
         if (BackgroundImage.load(store.file(stored)) == null) {
             store.delete(stored);
             toast(getString(R.string.settings_background_rejected));
-            return null;
+            return;
         }
-        return stored;
+        ImageRoles.Lists lists = Settings.roles(this);
+        if (ImageRoles.roleOf(lists, stored) == ImageRoles.NONE) {
+            Settings.saveRoles(this, ImageRoles.assign(lists, stored, ImageRoles.BACKGROUND));
+        }
+        rebuildImageSection();
     }
 
     /**
@@ -881,11 +941,10 @@ public class SettingsActivity extends Activity {
         Intent intent;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-            intent.addCategory(Intent.CATEGORY_OPENABLE);
         } else {
             intent = new Intent(Intent.ACTION_GET_CONTENT);
-            intent.addCategory(Intent.CATEGORY_OPENABLE);
         }
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
         try {
             startActivityForResult(intent, REQUEST_PICK_FONT);
@@ -902,10 +961,8 @@ public class SettingsActivity extends Activity {
         }
         if (requestCode == REQUEST_PICK_FONT) {
             importFont(data.getData());
-        } else if (requestCode == REQUEST_PICK_BACKGROUND) {
-            importBackground(data.getData());
-        } else if (requestCode == REQUEST_PICK_FOREGROUND) {
-            importForeground(data.getData());
+        } else if (requestCode == REQUEST_PICK_IMAGE) {
+            importImage(data.getData());
         }
     }
 
@@ -1019,21 +1076,54 @@ public class SettingsActivity extends Activity {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 
+    // ---- The era-appropriate design system: cards, one accent, compact controls. ----
+
     private TextView title(String text) {
         TextView view = new TextView(this);
         view.setText(text);
         view.setTextColor(TEXT_WHITE);
-        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f);
-        view.setPadding(0, 0, 0, dp(16));
+        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f);
+        view.setPadding(dp(4), 0, 0, dp(12));
         return view;
     }
 
-    private TextView heading(String text) {
+    /**
+     * One card: a rounded panel on the black, its section name in the accent at the top.
+     *
+     * GradientDrawable has drawn rounded corners since API 1, which is all a card is.
+     */
+    private LinearLayout card(String name) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        GradientDrawable face = new GradientDrawable();
+        face.setColor(CARD);
+        face.setCornerRadius(dp(10));
+        face.setStroke(1, CARD_STROKE);
+        card.setBackgroundDrawable(face);
+        int pad = dp(14);
+        card.setPadding(pad, dp(12), pad, dp(12));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        params.bottomMargin = dp(10);
+        card.setLayoutParams(params);
+
+        TextView heading = new TextView(this);
+        heading.setText(name.toUpperCase(java.util.Locale.US));
+        heading.setTextColor(ACCENT);
+        heading.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f);
+        heading.setTypeface(Typeface.DEFAULT_BOLD);
+        heading.setPadding(0, 0, 0, dp(6));
+        card.addView(heading);
+        return card;
+    }
+
+    /** A quieter heading inside a card, for its second thought. */
+    private TextView subheading(String text) {
         TextView view = new TextView(this);
         view.setText(text);
         view.setTextColor(TEXT_DIM);
-        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f);
-        view.setPadding(0, dp(20), 0, dp(4));
+        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f);
+        view.setPadding(0, dp(12), 0, dp(2));
         return view;
     }
 
@@ -1043,7 +1133,88 @@ public class SettingsActivity extends Activity {
         view.setTextColor(TEXT_DIM);
         view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f);
         view.setGravity(Gravity.LEFT);
+        view.setPadding(0, dp(2), 0, dp(2));
         return view;
+    }
+
+    /** A hairline between rows. */
+    private View divider() {
+        View line = new View(this);
+        line.setBackgroundColor(DIVIDER);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 1);
+        params.topMargin = dp(6);
+        params.bottomMargin = dp(6);
+        line.setLayoutParams(params);
+        return line;
+    }
+
+    /** The rounded face a pressable control wears, with the accent showing through a press. */
+    private StateListDrawable pressable(int restingColor) {
+        GradientDrawable pressed = new GradientDrawable();
+        pressed.setColor(PRESSED);
+        pressed.setCornerRadius(dp(8));
+        GradientDrawable resting = new GradientDrawable();
+        resting.setColor(restingColor);
+        resting.setCornerRadius(dp(8));
+        StateListDrawable states = new StateListDrawable();
+        states.addState(new int[] {android.R.attr.state_pressed}, pressed);
+        states.addState(new int[] {}, resting);
+        return states;
+    }
+
+    /**
+     * A compact square-ish button for one glyph or one word — a stock Button insists on being
+     * wide enough to crowd a 320dp row off the screen.
+     */
+    private TextView iconButton(String glyph, boolean enabled, View.OnClickListener onClick) {
+        TextView button = new TextView(this);
+        button.setText(glyph);
+        button.setTextColor(enabled ? TEXT_WHITE : 0xFF555555);
+        button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f);
+        button.setGravity(Gravity.CENTER);
+        button.setPadding(dp(8), dp(6), dp(8), dp(6));
+        button.setBackgroundDrawable(pressable(BUTTON_FACE));
+        button.setClickable(enabled);
+        button.setEnabled(enabled);
+        if (enabled) {
+            button.setOnClickListener(onClick);
+        }
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        params.leftMargin = dp(4);
+        button.setLayoutParams(params);
+        return button;
+    }
+
+    /** A full-width action in the accent, for the one thing a card invites you to do. */
+    private TextView actionButton(String label, View.OnClickListener onClick) {
+        TextView button = new TextView(this);
+        button.setText(label);
+        button.setTextColor(ACCENT);
+        button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f);
+        button.setTypeface(Typeface.DEFAULT_BOLD);
+        button.setGravity(Gravity.CENTER);
+        button.setPadding(0, dp(10), 0, dp(10));
+        GradientDrawable resting = new GradientDrawable();
+        resting.setColor(0x00000000);
+        resting.setCornerRadius(dp(8));
+        resting.setStroke(1, 0x664DB6AC);
+        GradientDrawable pressed = new GradientDrawable();
+        pressed.setColor(PRESSED);
+        pressed.setCornerRadius(dp(8));
+        StateListDrawable states = new StateListDrawable();
+        states.addState(new int[] {android.R.attr.state_pressed}, pressed);
+        states.addState(new int[] {}, resting);
+        button.setBackgroundDrawable(states);
+        button.setClickable(true);
+        button.setOnClickListener(onClick);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        params.topMargin = dp(8);
+        params.bottomMargin = dp(4);
+        button.setLayoutParams(params);
+        return button;
     }
 
     private View spacer() {

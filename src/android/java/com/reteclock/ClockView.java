@@ -77,7 +77,11 @@ public class ClockView extends View {
     /** When the running fade began; any time at least FADE_MS ago means no fade is running. */
     private long fadeStart = Long.MIN_VALUE / 2L;
 
-    /** The image the glyphs are filled with, or null for plain white text. */
+    /** The text-fill show's files, in pool order; empty for plain white text. */
+    private final java.util.List<java.io.File> textSlides = new java.util.ArrayList<java.io.File>();
+    /** The timing of the text-fill show, or null until the first draw begins it. */
+    private Slideshow textShow;
+    /** The image the glyphs are filled with right now, or null for plain white text. */
     private BackgroundImage foreground;
     /** What the text paint actually samples: the still itself, or the animation's current frame. */
     private BitmapShader foregroundShader;
@@ -146,13 +150,11 @@ public class ClockView extends View {
      * draw, which is the first moment there is a frame time to start it at.
      */
     private void loadImages(Context context) {
+        com.reteclock.core.ImageRoles.Lists roles = Settings.roles(context);
         slides.clear();
-        for (com.reteclock.core.FontLibrary.Entry entry : Settings.orderedBackgrounds(context)) {
-            java.io.File file = Settings.backgrounds(context).file(entry.name);
-            if (file != null) {
-                slides.add(file);
-            }
-        }
+        slides.addAll(Settings.filesFor(context, roles.background));
+        textSlides.clear();
+        textSlides.addAll(Settings.filesFor(context, roles.text));
         stillMs = Settings.backgroundStillSeconds(context) * 1000L;
         backgroundFit = Settings.backgroundFit(context);
         fadeEnabled = Settings.backgroundFade(context);
@@ -163,13 +165,19 @@ public class ClockView extends View {
         snapshot = null;
         fadeStart = Long.MIN_VALUE / 2L;
 
-        foreground = BackgroundImage.load(Settings.foregroundFile(context));
+        textShow = null;
+        foreground = null;
+        dropForegroundShader();
+        updateLayerType();
+    }
+
+    /** Forgets everything derived from the current text-fill image. */
+    private void dropForegroundShader() {
         foregroundShader = null;
         foregroundFrame = null;
         foregroundFrameCanvas = null;
         foregroundForW = 0;
         foregroundForH = 0;
-        updateLayerType();
     }
 
     /** Whether anything on screen is an animation right now, which is what decides the layer. */
@@ -286,8 +294,19 @@ public class ClockView extends View {
             }
         }
 
+        // The text-fill show runs on the same clockwork as the background's: an animated image
+        // plays through once, a still holds for the chosen time, a show of one loops. No fade —
+        // a shader has no alpha of its own to thin.
+        if (!textSlides.isEmpty()) {
+            if (textShow == null) {
+                textShow = new Slideshow(textSlides.size());
+                advanceText(0, elapsed);
+            } else if (textShow.due(elapsed)) {
+                advanceText(textShow.next(), elapsed);
+            }
+        }
         if (foreground != null) {
-            updateForegroundShader(w, h, elapsed);
+            updateForegroundShader(w, h, textShow == null ? 0L : textShow.frameMs(elapsed));
         }
         paint.setShader(foreground != null ? foregroundShader : null);
 
@@ -460,19 +479,42 @@ public class ClockView extends View {
     }
 
     /**
+     * Moves the text-fill show to this image, decoding it now, skipping what will not decode —
+     * the same walk the background does. Nothing decodes: white text until the next turn.
+     */
+    private void advanceText(int index, long nowMs) {
+        for (int tried = 0; tried < textSlides.size(); tried++) {
+            int at = (index + tried) % textSlides.size();
+            BackgroundImage decoded = BackgroundImage.load(textSlides.get(at));
+            if (decoded != null) {
+                foreground = decoded;
+                dropForegroundShader();
+                textShow.begin(at,
+                        Slideshow.slideDurationMs(decoded.durationMs(), stillMs), nowMs);
+                updateLayerType();
+                return;
+            }
+        }
+        foreground = null;
+        dropForegroundShader();
+        textShow.begin(index, stillMs, nowMs);
+        updateLayerType();
+    }
+
+    /**
      * Keeps the shader the glyphs are filled with current.
      *
      * A still image needs work only when the screen size changes: one shader, its matrix mapping
      * the image over the whole screen, cover-cropped and centred. An animated one is rendered
-     * into an offscreen bitmap every frame — Movie decides the frame from the elapsed time modulo
-     * its duration, so the GIF loops — and the shader samples that bitmap. The shader object is
+     * into an offscreen bitmap every frame — at the show's frame time, so a GIF plays through
+     * once per turn and a show of one loops — and the shader samples that bitmap. The shader object is
      * reused: the view is on a software layer whenever the foreground animates, so the paint
      * reads the bitmap's pixels live rather than from a stale texture.
      *
      * The shader is in the canvas's coordinates at draw time, so the burn-in shift moves the
      * image with the glyphs and the picture does not swim inside the text at each step.
      */
-    private void updateForegroundShader(int w, int h, long elapsed) {
+    private void updateForegroundShader(int w, int h, long frameMs) {
         boolean resized = w != foregroundForW || h != foregroundForH;
         if (foreground.animated()) {
             if (foregroundFrame == null) {
@@ -491,8 +533,7 @@ public class ClockView extends View {
                         Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
             }
             foregroundFrame.eraseColor(Color.TRANSPARENT);
-            foreground.draw(foregroundFrameCanvas,
-                    elapsed % foreground.durationMs(), imagePaint);
+            foreground.draw(foregroundFrameCanvas, frameMs, imagePaint);
         } else if (foregroundShader == null) {
             foregroundShader = new BitmapShader(foreground.still(),
                     Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);

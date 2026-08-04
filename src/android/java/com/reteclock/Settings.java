@@ -10,6 +10,7 @@ import com.reteclock.core.ClockLayout;
 import com.reteclock.core.ClockOptions;
 import com.reteclock.core.FontLibrary;
 import com.reteclock.core.ImageFit;
+import com.reteclock.core.ImageRoles;
 import com.reteclock.core.SlideOrder;
 
 /** The stored settings, and the bridge to the pure-Java {@link ClockOptions}. */
@@ -37,12 +38,17 @@ public final class Settings {
     /** How long a still background image shows before the slideshow moves on. */
     public static final int DEFAULT_STILL_SECONDS = 10;
 
+    public static final String KEY_POOL_BACKGROUND = "pool_background";
+    public static final String KEY_POOL_TEXT = "pool_text";
+    public static final String KEY_POOL_MIGRATED = "pool_migrated";
+
     /** Where imported fonts live, inside the app's own storage: no permission needed to read it. */
     private static final String FONT_DIR = "fonts";
-    /** Where the background images live, next to the fonts and stored the same way. */
-    private static final String BACKGROUND_DIR = "background";
-    /** Where the image that fills the text lives. */
-    private static final String FOREGROUND_DIR = "foreground";
+    /** Where every image lives — one pool; the two role lists say which serves where. */
+    private static final String POOL_DIR = "images";
+    /** The pre-0.5 homes of the images, read once by the migration and then left empty. */
+    private static final String OLD_BACKGROUND_DIR = "background";
+    private static final String OLD_FOREGROUND_DIR = "foreground";
 
     private Settings() {
     }
@@ -81,34 +87,118 @@ public final class Settings {
     }
 
     /**
-     * The store holding the background images. The font library is a plain file store with safe
-     * names, which is exactly what images need too; only the directory differs. Everything in it
-     * is the slideshow, in name order — there is no separate list of what is chosen.
+     * The one pool every image lives in. The font library is a plain file store with safe names,
+     * which is exactly what images need too; only the directory differs. The two role lists —
+     * {@link #roles} — say which image serves as a background and which fills the text;
+     * everything else is held.
      */
-    public static FontLibrary backgrounds(Context context) {
-        return new FontLibrary(new File(context.getFilesDir(), BACKGROUND_DIR));
-    }
-
-    /** The store holding the image that fills the text, one at most. */
-    public static FontLibrary foregrounds(Context context) {
-        return new FontLibrary(new File(context.getFilesDir(), FOREGROUND_DIR));
-    }
-
-    /** The stored name of the text-fill image, or "" for plain white text. */
-    public static String foregroundName(Context context) {
-        return prefs(context).getString(KEY_FOREGROUND, "");
-    }
-
-    public static void setForegroundName(Context context, String name) {
-        prefs(context).edit().putString(KEY_FOREGROUND, name == null ? "" : name).commit();
+    public static FontLibrary images(Context context) {
+        migratePool(context);
+        return new FontLibrary(new File(context.getFilesDir(), POOL_DIR));
     }
 
     /**
-     * The text-fill image file, or null when none is set — or when the setting names a file that
-     * has since gone away, so a lost image means white text rather than a crash.
+     * Moves the pre-0.5 background and text images into the pool, once, keeping their roles.
+     *
+     * The files are renamed in, not copied, so their stored dates survive; a name that collides
+     * across the two old directories steps aside, and the user's arrangement follows the new
+     * name. Nothing here runs again once the flag is set.
      */
-    public static File foregroundFile(Context context) {
-        return foregrounds(context).file(foregroundName(context));
+    private static void migratePool(Context context) {
+        if (prefs(context).getBoolean(KEY_POOL_MIGRATED, false)) {
+            return;
+        }
+        FontLibrary pool = new FontLibrary(new File(context.getFilesDir(), POOL_DIR));
+        java.util.List<String> background = new java.util.ArrayList<String>();
+        java.util.List<String> text = new java.util.ArrayList<String>();
+        java.util.List<String> arrangement = backgroundCustomOrder(context);
+
+        File oldBackground = new File(context.getFilesDir(), OLD_BACKGROUND_DIR);
+        for (FontLibrary.Entry entry : new FontLibrary(oldBackground).list()) {
+            try {
+                String stored = pool.absorb(new File(oldBackground, entry.name));
+                if (stored != null) {
+                    background.add(stored);
+                    int at = arrangement.indexOf(entry.name);
+                    if (at >= 0 && !stored.equals(entry.name)) {
+                        arrangement.set(at, stored);
+                    }
+                }
+            } catch (java.io.IOException e) {
+                // A file that cannot move stays behind; better a lost slide than a crash.
+            }
+        }
+        File oldForeground = new File(context.getFilesDir(), OLD_FOREGROUND_DIR);
+        for (FontLibrary.Entry entry : new FontLibrary(oldForeground).list()) {
+            try {
+                String stored = pool.absorb(new File(oldForeground, entry.name));
+                if (stored != null) {
+                    text.add(stored);
+                }
+            } catch (java.io.IOException e) {
+            }
+        }
+        oldBackground.delete();
+        oldForeground.delete();
+
+        saveRoles(context, new ImageRoles.Lists(background, text));
+        setBackgroundCustomOrder(context, arrangement);
+        prefs(context).edit().putBoolean(KEY_POOL_MIGRATED, true)
+                .remove(KEY_FOREGROUND).commit();
+    }
+
+    /** The two role lists: who is a background, who fills the text; the rest of the pool is held. */
+    public static ImageRoles.Lists roles(Context context) {
+        return new ImageRoles.Lists(names(context, KEY_POOL_BACKGROUND),
+                names(context, KEY_POOL_TEXT));
+    }
+
+    public static void saveRoles(Context context, ImageRoles.Lists lists) {
+        prefs(context).edit()
+                .putString(KEY_POOL_BACKGROUND, joined(lists.background))
+                .putString(KEY_POOL_TEXT, joined(lists.text))
+                .commit();
+    }
+
+    private static java.util.List<String> names(Context context, String key) {
+        String stored = prefs(context).getString(key, "");
+        java.util.List<String> out = new java.util.ArrayList<String>();
+        for (String name : stored.split("\n")) {
+            if (!name.isEmpty()) {
+                out.add(name);
+            }
+        }
+        return out;
+    }
+
+    private static String joined(java.util.List<String> names) {
+        StringBuilder out = new StringBuilder();
+        for (String name : names) {
+            if (out.length() > 0) {
+                out.append('\n');
+            }
+            out.append(name);
+        }
+        return out.toString();
+    }
+
+    /** The pool in the order the settings screen shows and the shows play. */
+    public static java.util.List<FontLibrary.Entry> orderedImages(Context context) {
+        return SlideOrder.apply(images(context).list(),
+                backgroundOrderMode(context), backgroundCustomOrder(context));
+    }
+
+    /** The files serving one role, in pool order. */
+    public static java.util.List<File> filesFor(Context context, java.util.List<String> role) {
+        FontLibrary pool = images(context);
+        java.util.List<File> out = new java.util.ArrayList<File>();
+        for (FontLibrary.Entry entry : ImageRoles.filter(orderedImages(context), role)) {
+            File file = pool.file(entry.name);
+            if (file != null) {
+                out.add(file);
+            }
+        }
+        return out;
     }
 
     /** How long a still background shows before the slideshow moves on. */
@@ -153,15 +243,6 @@ public final class Settings {
             joined.append(name);
         }
         prefs(context).edit().putString(KEY_BACKGROUND_ORDER, joined.toString()).commit();
-    }
-
-    /**
-     * The background images in the order they show and list — the one place both the slideshow
-     * and the settings screen read, so they cannot disagree.
-     */
-    public static java.util.List<FontLibrary.Entry> orderedBackgrounds(Context context) {
-        return SlideOrder.apply(backgrounds(context).list(),
-                backgroundOrderMode(context), backgroundCustomOrder(context));
     }
 
     /** Whether one background cross-fades into the next, or just becomes it. */

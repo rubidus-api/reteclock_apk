@@ -128,6 +128,62 @@ public final class FontLibrary {
     }
 
     /**
+     * Moves an outside file into the library — migration, not import: the bytes are already on
+     * this filesystem, so they are renamed in rather than copied, which also keeps the stored
+     * date. Collisions follow {@code add}'s rules: the same bytes are recognised and reused (the
+     * source is then deleted), a different file steps to the next free name. Returns the stored
+     * name, or null when the move fails.
+     */
+    public String absorb(File source) throws IOException {
+        if (source == null || !source.isFile()) {
+            return null;
+        }
+        if (!dir.isDirectory() && !dir.mkdirs()) {
+            throw new IOException("cannot create " + dir);
+        }
+        byte[] content = readAll(source);
+        if (content == null) {
+            return null;
+        }
+        String name = available(sanitise(source.getName()), content);
+        File target = new File(dir, name);
+        if (target.isFile()) {
+            // Already held, byte for byte; the source is now just a duplicate.
+            return source.delete() || !source.exists() ? name : name;
+        }
+        if (!source.renameTo(target)) {
+            return null;
+        }
+        return name;
+    }
+
+    private static byte[] readAll(File file) {
+        try {
+            long length = file.length();
+            if (length <= 0 || length > Integer.MAX_VALUE) {
+                return null;
+            }
+            byte[] bytes = new byte[(int) length];
+            java.io.FileInputStream in = new java.io.FileInputStream(file);
+            try {
+                int offset = 0;
+                while (offset < bytes.length) {
+                    int read = in.read(bytes, offset, bytes.length - offset);
+                    if (read < 0) {
+                        return null;
+                    }
+                    offset += read;
+                }
+            } finally {
+                in.close();
+            }
+            return bytes;
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    /**
      * Renames one stored file, and returns the name it now has — or null when the source does not
      * exist, the sanitised target is already another file's name, or the filesystem refuses. The
      * new name goes through the same sanitiser an import does, so a rename cannot reach outside
