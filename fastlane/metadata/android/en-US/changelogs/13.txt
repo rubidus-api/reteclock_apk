@@ -1,0 +1,7 @@
+* Images behind the clock. Several take turns: an animated GIF plays through
+  once, a still holds for a chosen time, one cross-fades into the next, and six
+  fit modes cover every shape. Sort them by name or date, rename them, arrange
+  them by hand, or select many and delete them together.
+* An image inside the text: the digits become a window onto a picture, and an
+  animated GIF loops in there.
+* Two sliders set how much room the time takes, one per orientation.

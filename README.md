@@ -8,21 +8,19 @@ it draws so an OLED panel does not burn in.
 
 ## Download
 
-**[⬇ Download reteclock-0.3.5.apk](https://github.com/rubidus-api/reteclock_apk/releases/latest/download/reteclock-0.3.5.apk)** — 69 KB, installs on Android 2.3 and newer.
+**[⬇ Download reteclock-0.4.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/latest/download/reteclock-0.4.0.apk)** — 87 KB, installs on Android 2.3 and newer.
 
 Open the file on the phone to install it. On Android 4.4, enable Settings > Security > Unknown
 sources first. All releases: [Releases](https://github.com/rubidus-api/reteclock_apk/releases).
 
-An F-Droid listing is in preparation. See [`docs/fdroid/README.md`](docs/fdroid/README.md). The
-F-Droid build is a [reproducible build](https://f-droid.org/docs/Reproducible_Builds): F-Droid
-compiles the app from source on its own server, checks the result against the APK on this page, and
-ships this exact file. Both carry the same signature, so you can move between them without
-uninstalling.
+reteclock is also **[on F-Droid](https://f-droid.org/packages/com.reteclock/)**, as a
+[reproducible build](https://f-droid.org/docs/Reproducible_Builds): F-Droid compiles the app from
+source on its own server, checks the result against the APK on this page, and ships this exact
+file. Both carry the same signature, so you can move between them without uninstalling.
 
 ## Status
 
-Working APK, version 0.3.4. Reference platform: Android 4.4 KitKat (API 19).
-Reference platform: Android 4.4 KitKat (API 19).
+Working APK, version 0.4.0. Reference platform: Android 4.4 KitKat (API 19).
 
 ## Supported Android versions
 
@@ -79,6 +77,10 @@ year is italic and the seconds are underlined — and the app worked out every s
 
 <img src="docs/screenshots/fonts.png" alt="Portrait clock with a different user font on the hour, the minute and the date line, an italic year and underlined seconds" width="210">
 
+You can also put your own pictures behind the clock — several take turns, animated GIFs play —
+fill the digits themselves with a picture, and decide how much of the screen the time takes.
+See Settings below.
+
 ## Compatibility
 
 - `minSdkVersion 9` (Android 2.3) through current Android; built and verified against the
@@ -114,6 +116,20 @@ In the order they appear on the screen:
   **U**nderline. The hour and the minute start bold; you can turn that off. Sizes stay worked out
   by the app. Deleting a font that a field is using drops that field back to the system font. A
   font file holds one weight and one slant, so bold and italic are synthesised.
+- **Room for the time** — two sliders, one per orientation: how much of the width the hour and
+  minute take in landscape, how much of the height in portrait. Everything sizes itself to fill
+  its share, and stops when it would not fit.
+- **Background images** — add pictures the same no-permission way the fonts arrive, and they take
+  turns behind the clock: an animated GIF plays through once, a still holds for a time you choose
+  (5 seconds to 5 minutes), and one cross-fades into the next unless you turn the fade off. The
+  fit is yours too: fill cropping to keep the shape, show it all, stretch, match the width, match
+  the height, or original size. Sort the list by name or by the date each file was added, either
+  way round, arrange it by hand with the arrows, rename any image (name them `001 …`, `002 …` and
+  the A-to-Z sort is your order), and tick any of them — or all — to delete together. Importing a
+  file the library already holds is recognised and not stored twice; a different file under a
+  taken name steps aside to `name-2` like a desktop file manager.
+- **Image inside the text** — one picture, and the digits become a window onto it. An animated
+  GIF plays and loops in there.
 - **Start when the charger is connected** — on or off.
 
 ## How it starts
