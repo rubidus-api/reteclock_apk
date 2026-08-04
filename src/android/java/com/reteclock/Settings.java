@@ -34,6 +34,8 @@ public final class Settings {
     public static final String KEY_FOREGROUND = "foreground";
     public static final String KEY_TIME_PERCENT_WIDE = "time_percent_wide";
     public static final String KEY_TIME_PERCENT_TALL = "time_percent_tall";
+    public static final String KEY_TEXT_COLOR = "text_color";
+    public static final String KEY_BACKGROUND_COLOR = "background_color";
 
     /** How long a still background image shows before the slideshow moves on. */
     public static final int DEFAULT_STILL_SECONDS = 10;
@@ -376,6 +378,18 @@ public final class Settings {
 
     public static void setTimePercent(Context context, String key, int percent) {
         prefs(context).edit().putInt(key, percent).commit();
+    }
+
+    /** The colour a settings key holds; ClockColors resolves the pair before drawing. */
+    public static int color(Context context, String key) {
+        int fallback = KEY_TEXT_COLOR.equals(key)
+                ? com.reteclock.core.ClockColors.DEFAULT_TEXT
+                : com.reteclock.core.ClockColors.DEFAULT_BACKGROUND;
+        return prefs(context).getInt(key, fallback);
+    }
+
+    public static void setColor(Context context, String key, int color) {
+        prefs(context).edit().putInt(key, color).commit();
     }
 
     /** The display options the clock draws with. */

@@ -93,6 +93,11 @@ public class ClockView extends View {
     private int foregroundForW;
     private int foregroundForH;
 
+    /** What the glyphs are painted in when no image fills them; never equal to the background. */
+    private int textColor = com.reteclock.core.ClockColors.DEFAULT_TEXT;
+    /** What shows where no image does: the empty clock, letterbox bars, the fade's floor. */
+    private int backgroundColor = com.reteclock.core.ClockColors.DEFAULT_BACKGROUND;
+
     private ClockOptions options;
     private ClockLayout layout;
     /**
@@ -126,10 +131,22 @@ public class ClockView extends View {
         options = Settings.options(context);
         loadTypeface(context);
         loadImages(context);
-        setBackgroundColor(Color.BLACK);
-        paint.setColor(Color.WHITE);
+        loadColors(context);
         // Parts are positioned by their left edge, since a line can be several of them.
         paint.setTextAlign(Paint.Align.LEFT);
+    }
+
+    /**
+     * Reads the two colours. The settings screen refuses an equal pair; ClockColors is the second
+     * line of defence, flipping the text to whatever stays visible.
+     */
+    private void loadColors(Context context) {
+        backgroundColor = com.reteclock.core.ClockColors.opaque(
+                Settings.color(context, Settings.KEY_BACKGROUND_COLOR));
+        textColor = com.reteclock.core.ClockColors.resolveText(
+                Settings.color(context, Settings.KEY_TEXT_COLOR), backgroundColor);
+        setBackgroundColor(backgroundColor);
+        paint.setColor(textColor);
     }
 
     /** Re-reads the options, e.g. after the user comes back from the settings screen. */
@@ -137,6 +154,7 @@ public class ClockView extends View {
         options = Settings.options(getContext());
         loadTypeface(getContext());
         loadImages(getContext());
+        loadColors(getContext());
         layout = null;
         plan = null;
         invalidate();
@@ -424,7 +442,7 @@ public class ClockView extends View {
                 return;
             }
         }
-        slideBitmap.eraseColor(Color.BLACK);
+        slideBitmap.eraseColor(backgroundColor);
         drawFitted(new Canvas(slideBitmap), decoded, 0L);
         slide = null;
     }
@@ -445,7 +463,7 @@ public class ClockView extends View {
                 return false;
             }
         }
-        snapshot.eraseColor(Color.BLACK);
+        snapshot.eraseColor(backgroundColor);
         Canvas canvas = new Canvas(snapshot);
         if (slide != null) {
             drawFitted(canvas, slide, slideshow.frameMs(nowMs));

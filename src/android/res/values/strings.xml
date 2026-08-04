@@ -6,6 +6,11 @@
     <string name="settings_date_format">Date format</string>
     <string name="settings_date_name">Jul 12</string>
     <string name="settings_date_numeric">07-12</string>
+    <string name="settings_colors">Colours</string>
+    <string name="settings_text_color">Text colour</string>
+    <string name="settings_background_color">Background colour</string>
+    <string name="settings_color_same">The text and the background cannot be the same colour.</string>
+    <string name="settings_color_note">The background colour shows wherever no image does.</string>
     <string name="settings_ratio">Room for the time</string>
     <string name="settings_ratio_wide">Landscape — the time’s share of the width: %1$d%%</string>
     <string name="settings_ratio_tall">Portrait — the time’s share of the height: %1$d%%</string>

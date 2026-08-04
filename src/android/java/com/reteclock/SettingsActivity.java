@@ -129,6 +129,19 @@ public class SettingsActivity extends Activity {
     private LinearLayout fieldSection;
     /** Rebuilt in place whenever the image pool or the roles change. */
     private LinearLayout imageSection;
+    /** The two colour rows, rebuilt whenever a colour is picked so the swatches follow. */
+    private LinearLayout colorSection;
+
+    /**
+     * The colours on offer: greys and blacks first, then one ring of era-friendly hues. A grid
+     * of swatches is the whole picker — an RGB dial would out-grow both the screen and the need.
+     */
+    private static final int[] PALETTE = {
+        0xFFFFFFFF, 0xFFE0E0E0, 0xFF9E9E9E, 0xFF616161, 0xFF000000,
+        0xFFEF5350, 0xFFFF8A65, 0xFFFFB300, 0xFFFFF176, 0xFFAED581,
+        0xFF66BB6A, 0xFF4DB6AC, 0xFF4DD0E1, 0xFF64B5F6, 0xFF7986CB,
+        0xFF9575CD, 0xFFF06292, 0xFF8D6E63, 0xFF37474F, 0xFF263238,
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -183,6 +196,12 @@ public class SettingsActivity extends Activity {
             }
         });
         clock.addView(dateStyle);
+
+        clock.addView(subheading(getString(R.string.settings_colors)));
+        colorSection = new LinearLayout(this);
+        colorSection.setOrientation(LinearLayout.VERTICAL);
+        clock.addView(colorSection);
+        clock.addView(footer(getString(R.string.settings_color_note)));
 
         clock.addView(subheading(getString(R.string.settings_ratio)));
         clock.addView(ratioRow(R.string.settings_ratio_wide, Settings.KEY_TIME_PERCENT_WIDE));
@@ -241,6 +260,7 @@ public class SettingsActivity extends Activity {
         rebuildFontSection();
         rebuildFieldSection();
         rebuildImageSection();
+        rebuildColorSection();
 
         ScrollView scroll = new ScrollView(this);
         scroll.setBackgroundColor(Color.BLACK);
@@ -796,6 +816,102 @@ public class SettingsActivity extends Activity {
             }
         }
         return 0;
+    }
+
+    /** The two colour rows: a name, and a swatch that opens the palette. */
+    private void rebuildColorSection() {
+        colorSection.removeAllViews();
+        colorSection.addView(colorRow(R.string.settings_text_color, Settings.KEY_TEXT_COLOR,
+                Settings.KEY_BACKGROUND_COLOR));
+        colorSection.addView(colorRow(R.string.settings_background_color,
+                Settings.KEY_BACKGROUND_COLOR, Settings.KEY_TEXT_COLOR));
+    }
+
+    private View colorRow(int label, final String key, final String otherKey) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(0, dp(4), 0, dp(4));
+
+        TextView name = new TextView(this);
+        name.setText(label);
+        name.setTextColor(TEXT_WHITE);
+        name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f);
+        name.setLayoutParams(new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        row.addView(name);
+
+        View swatch = swatch(Settings.color(this, key), dp(30));
+        swatch.setClickable(true);
+        swatch.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                pickColor(key, otherKey);
+            }
+        });
+        row.addView(swatch);
+        return row;
+    }
+
+    /** One rounded square of colour, with a hairline so white reads on the card too. */
+    private View swatch(int color, int size) {
+        View view = new View(this);
+        GradientDrawable face = new GradientDrawable();
+        face.setColor(color | 0xFF000000);
+        face.setCornerRadius(dp(6));
+        face.setStroke(1, 0xFF555555);
+        view.setBackgroundDrawable(face);
+        view.setLayoutParams(new LinearLayout.LayoutParams(size, size));
+        return view;
+    }
+
+    /**
+     * The palette, four rows of five. Picking the colour the other setting already wears is
+     * refused with a word — a clock in its own background colour is no clock — and the dialog
+     * stays open for a second thought.
+     */
+    private void pickColor(final String key, final String otherKey) {
+        LinearLayout grid = new LinearLayout(this);
+        grid.setOrientation(LinearLayout.VERTICAL);
+        int pad = dp(16);
+        grid.setPadding(pad, pad, pad, pad);
+
+        final android.app.AlertDialog dialog = new android.app.AlertDialog.Builder(this)
+                .setTitle(key.equals(Settings.KEY_TEXT_COLOR)
+                        ? R.string.settings_text_color : R.string.settings_background_color)
+                .setView(grid)
+                .setNegativeButton(android.R.string.cancel, null)
+                .create();
+
+        LinearLayout line = null;
+        for (int i = 0; i < PALETTE.length; i++) {
+            if (i % 5 == 0) {
+                line = new LinearLayout(this);
+                line.setOrientation(LinearLayout.HORIZONTAL);
+                grid.addView(line);
+            }
+            final int color = PALETTE[i];
+            View swatch = swatch(color, dp(44));
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(44), dp(44));
+            params.setMargins(dp(4), dp(4), dp(4), dp(4));
+            swatch.setLayoutParams(params);
+            swatch.setClickable(true);
+            swatch.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (com.reteclock.core.ClockColors.same(color,
+                            Settings.color(SettingsActivity.this, otherKey))) {
+                        toast(getString(R.string.settings_color_same));
+                        return;
+                    }
+                    Settings.setColor(SettingsActivity.this, key, color);
+                    dialog.dismiss();
+                    rebuildColorSection();
+                }
+            });
+            line.addView(swatch);
+        }
+        dialog.show();
     }
 
     /**
