@@ -8,19 +8,38 @@ it draws so an OLED panel does not burn in.
 
 ## Download
 
+**[⬇ Get it on F-Droid](https://f-droid.org/packages/com.reteclock/)** — recommended.
+
 **[⬇ Download reteclock-0.6.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/latest/download/reteclock-0.6.0.apk)** — 91 KB, installs on Android 2.3 and newer.
 
 Open the file on the phone to install it. On Android 4.4, enable Settings > Security > Unknown
 sources first. All releases: [Releases](https://github.com/rubidus-api/reteclock_apk/releases).
 
-reteclock is also **[on F-Droid](https://f-droid.org/packages/com.reteclock/)**, as a
-[reproducible build](https://f-droid.org/docs/Reproducible_Builds): F-Droid compiles the app from
-source on its own server, checks the result against the APK on this page, and ships this exact
-file. Both carry the same signature, so you can move between them without uninstalling.
+### Why F-Droid is the safer place to get it
+
+Downloading an APK from anywhere means trusting whoever built it. There is nothing in a compiled
+APK that shows it was made from the source you can read here, and nothing that shows the account
+that uploaded it was not taken over.
+
+F-Droid removes that trust from the equation. The listing is a
+[reproducible build](https://f-droid.org/docs/Reproducible_Builds): F-Droid checks out this
+repository on its own server, compiles it there, and compares the bytes against the APK published
+above. It publishes only if they match. So the file F-Droid gives you is one that an independent
+party has confirmed comes from the source in front of you — not just one that someone with push
+access to this repository uploaded. Their client checks the signature on every update too.
+
+Both places serve the exact same signed file, so you can move between the two without uninstalling.
+If you have any doubt about the download here, use F-Droid.
+
+The one cost is time: F-Droid rebuilds and republishes on its own schedule, so their copy is
+sometimes a release or two behind this page. Waiting for it is the trade you make for having
+someone else check the build.
+
+Details of the recipe and how it is verified: [`docs/fdroid/README.md`](docs/fdroid/README.md).
 
 ## Status
 
-Working APK, version 0.6.0. Reference platform: Android 4.4 KitKat (API 19).
+Published on F-Droid. Latest release 0.6.0. Reference platform: Android 4.4 KitKat (API 19).
 
 ## Supported Android versions
 
