@@ -1,5 +1,7 @@
 # reteclock
 
+**English** · [한국어](README.ko.md)
+
 A full-screen digital clock and dock screensaver for Android, built for old devices first.
 
 Plug the phone into a charger, put it on a stand, and it shows the time in large digits with the
@@ -66,17 +68,6 @@ show the time.
 
 So reteclock asks for nothing: no Play Store, no Google account, no network, no permissions beyond
 keeping the screen awake. Copy the APK to the phone, open it, and the phone has a job again.
-
-## The name
-
-**rete** is Latin for *net*, and *-clock* is just a clock.
-
-The intended pronunciation is the Latin one: **RAY-teh** (two syllables, `rē-te`; the first vowel is
-the long *e* of *they*, and the final *e* is pronounced, never silent).
-
-If you would rather say it the way English usually treats this word, that is fine too. English
-borrowed *rete* as an anatomical term and pronounces it **REE-tee**, so "REE-tee-clock" is a
-perfectly good reading. Say it however you like; the clock does not mind.
 
 ## What it looks like
 
@@ -171,6 +162,9 @@ Java, Android framework only. Built with the Android SDK command-line tools (`aa
 
 ## Build
 
+When this checkout is inside the ai-share workspace, `scripts/build.sh` automatically uses the shared
+JDK and Android SDK in the sibling `usr/` directory. Outside that workspace, set the tool locations:
+
 ```sh
 export JAVA_HOME=/path/to/jdk-21              # only --release insists on this exact major version
 export ANDROID_SDK_ROOT=/path/to/android-sdk   # build-tools 35.0.0 + platforms;android-19
@@ -194,3 +188,14 @@ and test scaffolding are kept out of it on purpose.
 ## License
 
 MIT. See `LICENSE`.
+
+## The name
+
+**rete** is Latin for *net*, and *-clock* is just a clock.
+
+The intended pronunciation is the Latin one: **RAY-teh** (two syllables, `rē-te`; the first vowel is
+the long *e* of *they*, and the final *e* is pronounced, never silent).
+
+If you would rather say it the way English usually treats this word, that is fine too. English
+borrowed *rete* as an anatomical term and pronounces it **REE-tee**, so "REE-tee-clock" is a
+perfectly good reading. Say it however you like; the clock does not mind.

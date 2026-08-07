@@ -10,6 +10,7 @@
 
 !/.gitignore
 !/README.md
+!/README.ko.md
 !/LICENSE
 
 # Sources and resources needed to compile the APK.

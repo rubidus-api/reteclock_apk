@@ -25,6 +25,13 @@ else
     ROOT=$(cd "$(dirname "$0")/.." && pwd)
 fi
 
+# Use the workspace shared JDK/Android SDK/cache by default when available.
+if [ -f "$ROOT/../usr/gradle-env.sh" ]; then
+    AI_SHARE_USR="$ROOT/../usr"
+    export AI_SHARE_USR
+    . "$AI_SHARE_USR/gradle-env.sh"
+fi
+
 if [ -f "$ROOT/scripts/env.local.sh" ]; then
     . "$ROOT/scripts/env.local.sh"
 fi
