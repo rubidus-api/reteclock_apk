@@ -1,0 +1,3 @@
+* The image list now shows what each prepared picture takes on disk - "ready
+  1.2 MB" under its name, or "played live" for one that has no prepared file -
+  and the total for all of them under the list.

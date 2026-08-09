@@ -532,6 +532,14 @@ public class SettingsActivity extends Activity {
         total.setPadding(0, dp(6), 0, dp(4));
         imageSection.addView(total);
 
+        long prepared = PreparedImages.preparedBytes(this);
+        if (prepared > 0) {
+            TextView preparedTotal = footer(getString(R.string.settings_prepared_total,
+                    FontLibrary.humanBytes(prepared)));
+            preparedTotal.setPadding(0, 0, 0, dp(4));
+            imageSection.addView(preparedTotal);
+        }
+
         if (!entries.isEmpty()) {
             TextView slideLabel = footer(getString(R.string.settings_slide_time));
             imageSection.addView(slideLabel);
@@ -734,25 +742,60 @@ public class SettingsActivity extends Activity {
         row.addView(columnCheckBox(role == ImageRoles.TEXT,
                 roleListener(entry.name, ImageRoles.TEXT)));
 
+        // Two lines in one column: the name with the file's own size, and under it what its
+        // prepared file costs. On one line the second half was simply ellipsized away.
+        LinearLayout column = new LinearLayout(this);
+        column.setOrientation(LinearLayout.VERTICAL);
+        column.setLayoutParams(new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
         TextView name = new TextView(this);
         name.setText(entry.name + "  ·  " + FontLibrary.humanBytes(entry.bytes));
         name.setTextColor(TEXT_WHITE);
         name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f);
         name.setSingleLine(true);
         name.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
-        name.setLayoutParams(new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-        name.setOnClickListener(new View.OnClickListener() {
+        column.addView(name);
+
+        String note = preparedNote(entry.name, role);
+        if (!note.isEmpty()) {
+            TextView prepared = new TextView(this);
+            prepared.setText(note);
+            prepared.setTextColor(TEXT_DIM);
+            prepared.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f);
+            prepared.setSingleLine(true);
+            column.addView(prepared);
+        }
+
+        column.setClickable(true);
+        column.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 askForNewName(entry.name);
             }
         });
-        row.addView(name);
+        row.addView(column);
 
         row.addView(iconButton("▲", position > 0, moveListener(position, -1)));
         row.addView(iconButton("▼", position < count - 1, moveListener(position, +1)));
         return row;
+    }
+
+    /**
+     * What one row says about its prepared file: how much disk it takes, or that there is none.
+     *
+     * Only for the images a show actually uses — a held image is not prepared, and saying so on
+     * every row would be noise. "Played live" is the honest word for the rest: a picture with
+     * transparency is never baked, and one imported a moment ago has not been yet.
+     */
+    private String preparedNote(String imageName, int role) {
+        if (role == ImageRoles.NONE) {
+            return "";
+        }
+        long bytes = PreparedImages.preparedBytes(this, imageName, PreparedImages.screenEdge(this));
+        return bytes > 0
+                ? getString(R.string.settings_image_ready, FontLibrary.humanBytes(bytes))
+                : getString(R.string.settings_image_live);
     }
 
     /** Ticking claims the role; un-ticking releases the image to held. Exclusivity is the core's. */
@@ -1399,6 +1442,9 @@ public class SettingsActivity extends Activity {
                 Toast.makeText(SettingsActivity.this,
                         getString(R.string.settings_images_prepared, baked),
                         Toast.LENGTH_SHORT).show();
+                // The rows were drawn before those files existed; now they can say what they cost.
+                // Rebuilding asks for another bake, which finds nothing to do and stops there.
+                rebuildImageSection();
             }
         });
     }

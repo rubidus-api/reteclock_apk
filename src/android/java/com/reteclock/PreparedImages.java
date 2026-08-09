@@ -73,6 +73,30 @@ final class PreparedImages {
         return Math.max(metrics.widthPixels, metrics.heightPixels);
     }
 
+    /** How much disk one image's prepared file takes, or zero when it has none. */
+    static long preparedBytes(Context context, String imageName, int screenEdge) {
+        File pack = packFor(context, imageName, screenEdge);
+        return pack.isFile() ? pack.length() : 0L;
+    }
+
+    /**
+     * What all the prepared files take together.
+     *
+     * Frames are raw, so this is real disk and worth showing: it is the price paid for a clock that
+     * never decodes while it draws, and the user should be able to see it.
+     */
+    static long preparedBytes(Context context) {
+        File[] files = dir(context).listFiles();
+        if (files == null) {
+            return 0L;
+        }
+        long total = 0L;
+        for (File file : files) {
+            total += file.length();
+        }
+        return total;
+    }
+
     /**
      * Makes sure every image in the pool has a current prepared file, and that nothing else is
      * left in the directory. Slow — it decodes everything that has changed — so it belongs on a

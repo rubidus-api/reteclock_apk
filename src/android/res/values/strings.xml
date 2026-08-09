@@ -73,6 +73,9 @@
     <string name="settings_bold">B</string>
     <string name="settings_italic">I</string>
     <string name="settings_underline">U</string>
+    <string name="settings_image_ready">ready %1$s</string>
+    <string name="settings_image_live">played live</string>
+    <string name="settings_prepared_total">Prepared for playing: %1$s. These hold frames ready to draw, so the clock never decodes a picture while it runs.</string>
     <string name="settings_images_prepared">Prepared %1$d image(s) for playing</string>
     <string name="settings_screensaver">Screensaver</string>
     <string name="settings_screensaver_on">reteclock is your screensaver.</string>
