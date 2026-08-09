@@ -1,0 +1,10 @@
+* Animated backgrounds now play on old phones. Images are prepared once, in the
+  settings screen, into frames the size your screen shows and in the format it
+  wants, so the clock never decodes anything while it is drawing.
+* A GIF too large to play is no longer shown as a single frame: it is made
+  smaller and played.
+* Each frame is drawn into a small buffer and put on screen by the graphics
+  hardware, instead of dragging the whole screen onto the slow drawing path.
+* Setting reteclock as your screensaver is now one button, under Dock: it says
+  whether it already is, and opens Android's own screensaver screen - which
+  hides somewhere different on every version.

@@ -73,6 +73,7 @@
     <string name="settings_bold">B</string>
     <string name="settings_italic">I</string>
     <string name="settings_underline">U</string>
+    <string name="settings_images_prepared">Prepared %1$d image(s) for playing</string>
     <string name="settings_screensaver">Screensaver</string>
     <string name="settings_screensaver_on">reteclock is your screensaver.</string>
     <string name="settings_screensaver_off">reteclock is not your screensaver yet.</string>

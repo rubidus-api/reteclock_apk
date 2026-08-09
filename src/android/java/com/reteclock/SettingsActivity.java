@@ -132,6 +132,10 @@ public class SettingsActivity extends Activity {
     private LinearLayout fieldSection;
     /** Rebuilt in place whenever the image pool or the roles change. */
     private LinearLayout imageSection;
+    /** The worker that bakes the images, and whether another pass was asked for while it ran. */
+    private final Object bakeLock = new Object();
+    private Thread baker;
+    private boolean bakeAgain;
     /** The two colour rows, rebuilt whenever a colour is picked so the swatches follow. */
     private LinearLayout colorSection;
 
@@ -474,6 +478,8 @@ public class SettingsActivity extends Activity {
      */
     private void rebuildImageSection() {
         imageSection.removeAllViews();
+        // Whatever just changed — an import, a deletion, a rename — the baked files follow it.
+        prepareImages();
 
         final FontLibrary store = Settings.images(this);
         final List<FontLibrary.Entry> entries = Settings.orderedImages(this);
@@ -1341,6 +1347,60 @@ public class SettingsActivity extends Activity {
         params.leftMargin = dp(4);
         button.setLayoutParams(params);
         return button;
+    }
+
+    /**
+     * Bakes every image into the form the clock plays, on a worker thread.
+     *
+     * The settings screen is where the waiting belongs: it can afford a second of work, and the
+     * clock cannot. One worker at a time; a request that arrives while one is running is remembered
+     * and served when it finishes, so a run of quick changes ends in one final pass rather than a
+     * queue of them.
+     */
+    private void prepareImages() {
+        synchronized (bakeLock) {
+            if (baker != null) {
+                bakeAgain = true;
+                return;
+            }
+            baker = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    int baked = 0;
+                    while (true) {
+                        baked += PreparedImages.prepareAll(SettingsActivity.this);
+                        synchronized (bakeLock) {
+                            if (!bakeAgain) {
+                                baker = null;
+                                break;
+                            }
+                            bakeAgain = false;
+                        }
+                    }
+                    announcePrepared(baked);
+                }
+            }, "reteclock-prepare");
+            baker.setPriority(Thread.MIN_PRIORITY);
+            baker.start();
+        }
+    }
+
+    /** Says what was prepared, and only when there was something — silence is the usual case. */
+    private void announcePrepared(final int baked) {
+        if (baked <= 0 || isFinishing()) {
+            return;
+        }
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (isFinishing()) {
+                    return;
+                }
+                Toast.makeText(SettingsActivity.this,
+                        getString(R.string.settings_images_prepared, baked),
+                        Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     /**

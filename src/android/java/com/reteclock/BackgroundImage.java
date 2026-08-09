@@ -36,10 +36,39 @@ final class BackgroundImage {
 
     private final Movie movie;
     private final Bitmap bitmap;
+    /** The baked file, when there is one; then neither of the two above is used. */
+    private final PreparedImage prepared;
+    /**
+     * Where a live animation's frame is rendered before it goes on screen.
+     *
+     * Drawing a Movie straight onto the screen would force the whole view onto a software layer —
+     * every pixel of it rasterised by the processor, every frame — and the frame would be scaled up
+     * to the screen in software on the way. Into a small bitmap instead, and the hardware does the
+     * enlarging when that bitmap is drawn. On the phones this app is for that is the difference
+     * between an animation and a still.
+     */
+    private Bitmap frameBuffer;
+    private Canvas frameCanvas;
+    private float frameScale = 1f;
 
-    private BackgroundImage(Movie movie, Bitmap bitmap) {
+    private BackgroundImage(Movie movie, Bitmap bitmap, PreparedImage prepared) {
         this.movie = movie;
         this.bitmap = bitmap;
+        this.prepared = prepared;
+    }
+
+    /**
+     * The picture for one slide: the baked file if it is there, and the file itself if it is not.
+     *
+     * Baking happens in the settings screen, so the clock never waits for it; an image imported a
+     * moment ago, or one carrying transparency, simply takes the live path.
+     */
+    static BackgroundImage open(File source, File pack) {
+        PreparedImage ready = PreparedImage.open(pack);
+        if (ready != null) {
+            return new BackgroundImage(null, null, ready);
+        }
+        return load(source);
     }
 
     /**
@@ -63,34 +92,58 @@ final class BackgroundImage {
             if (movie != null && movie.duration() > 0
                     && com.reteclock.core.ImageLimits.playable(
                             bytes.length, movie.width(), movie.height())) {
-                return new BackgroundImage(movie, null);
+                return new BackgroundImage(movie, null, null);
             }
         }
         Bitmap still = decodeStill(bytes);
-        return still == null ? null : new BackgroundImage(null, still);
+        return still == null ? null : new BackgroundImage(null, still, null);
     }
 
-    /** Whether the picture moves, which is what decides the frame rate and the layer type. */
+    /** Whether the picture moves, which is what decides the frame rate. */
     boolean animated() {
-        return movie != null;
+        return prepared != null ? prepared.animated() : movie != null;
     }
 
     /** How long one play-through lasts, or 0 for a still — which is what Slideshow expects. */
     int durationMs() {
+        if (prepared != null) {
+            return prepared.durationMs();
+        }
         return movie != null ? movie.duration() : 0;
     }
 
-    /** The still picture, for wrapping in a shader; null when this is an animation. */
+    /**
+     * The picture for wrapping in a shader: the still itself, or the frame a prepared still holds.
+     * Null when this is an animation, whose frames the caller asks for one at a time.
+     */
     Bitmap still() {
+        if (prepared != null) {
+            return prepared.animated() ? null : prepared.frame(0L);
+        }
         return bitmap;
     }
 
     int width() {
+        if (prepared != null) {
+            return prepared.width();
+        }
         return movie != null ? movie.width() : bitmap.getWidth();
     }
 
     int height() {
+        if (prepared != null) {
+            return prepared.height();
+        }
         return movie != null ? movie.height() : bitmap.getHeight();
+    }
+
+    /** Lets go of whatever the picture was holding open; the slideshow calls this on the way out. */
+    void release() {
+        if (prepared != null) {
+            prepared.release();
+        }
+        frameBuffer = null;
+        frameCanvas = null;
     }
 
     /**
@@ -100,14 +153,71 @@ final class BackgroundImage {
      * looping image passes the elapsed time modulo the duration.
      */
     void draw(Canvas canvas, long frameMs, Paint paint) {
-        if (movie != null) {
-            int duration = movie.duration();
-            int at = (int) Math.min(Math.max(frameMs, 0L), duration - 1L);
-            movie.setTime(at);
-            movie.draw(canvas, 0f, 0f);
-        } else {
-            canvas.drawBitmap(bitmap, 0f, 0f, paint);
+        if (prepared != null) {
+            Bitmap frame = prepared.frame(frameMs);
+            if (frame != null) {
+                canvas.drawBitmap(frame, 0f, 0f, paint);
+            }
+            return;
         }
+        if (movie == null) {
+            canvas.drawBitmap(bitmap, 0f, 0f, paint);
+            return;
+        }
+        int duration = movie.duration();
+        int at = (int) Math.min(Math.max(frameMs, 0L), duration - 1L);
+        movie.setTime(at);
+        if (frameBuffer == null) {
+            // No room for the buffer: draw straight onto whatever canvas this is. On a hardware
+            // canvas a Movie draws nothing, which is why the view keeps its software-layer
+            // fallback for exactly this case.
+            movie.draw(canvas, 0f, 0f);
+            return;
+        }
+        frameBuffer.eraseColor(0xFF000000);
+        movie.draw(frameCanvas, 0f, 0f, paint);
+        canvas.save();
+        canvas.scale(1f / frameScale, 1f / frameScale);
+        canvas.drawBitmap(frameBuffer, 0f, 0f, paint);
+        canvas.restore();
+    }
+
+    /**
+     * Makes the offscreen buffer a live animation is rendered into — the cheap path — and says
+     * whether it could be had. Called once, when the slide comes on screen, because the answer
+     * decides whether the view needs a software layer, which is settled before any drawing.
+     *
+     * The buffer is at the movie's own size or smaller: a picture larger than the screen is
+     * rendered smaller, since the screen cannot show the extra pixels and every one of them would
+     * be paid for on every frame.
+     */
+    boolean prepareFrames(int viewWidth, int viewHeight) {
+        if (prepared != null || movie == null) {
+            return true;
+        }
+        if (frameBuffer != null) {
+            return true;
+        }
+        int width = movie.width();
+        int height = movie.height();
+        frameScale = com.reteclock.core.ImageLimits.frameScale(width, height,
+                Math.max(viewWidth, 1), Math.max(viewHeight, 1));
+        int bufferWidth = Math.max(1, Math.round(width * frameScale));
+        int bufferHeight = Math.max(1, Math.round(height * frameScale));
+        try {
+            frameBuffer = Bitmap.createBitmap(bufferWidth, bufferHeight, Bitmap.Config.RGB_565);
+        } catch (OutOfMemoryError e) {
+            frameBuffer = null;
+            return false;
+        }
+        frameCanvas = new Canvas(frameBuffer);
+        frameCanvas.scale(frameScale, frameScale);
+        return true;
+    }
+
+    /** Whether this picture must be drawn on a software canvas — only a live Movie without a buffer. */
+    boolean needsSoftwareCanvas() {
+        return prepared == null && movie != null && frameBuffer == null;
     }
 
     /** GIF87a or GIF89a, by the only part of the name that matters. */

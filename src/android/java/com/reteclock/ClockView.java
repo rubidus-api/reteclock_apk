@@ -134,6 +134,8 @@ public class ClockView extends View {
     private boolean foregroundDrawn;
     /** The frame of the background animation drawn last, so freezing it keeps that frame. */
     private long lastFrameMs;
+    /** The screen this device's prepared files were baked for; one pack serves both orientations. */
+    private int preparedEdge;
 
     private final Runnable tick = new Runnable() {
         @Override
@@ -204,6 +206,9 @@ public class ClockView extends View {
      * draw, which is the first moment there is a frame time to start it at.
      */
     private void loadImages(Context context) {
+        preparedEdge = PreparedImages.screenEdge(context);
+        releaseSlide();
+        releaseForeground();
         slides.clear();
         textSlides.clear();
         if (!safeMode) {
@@ -215,7 +220,6 @@ public class ClockView extends View {
         backgroundFit = Settings.backgroundFit(context);
         fadeEnabled = Settings.backgroundFade(context);
         slideshow = null;
-        slide = null;
         slideBitmap = null;
         slideVisible = false;
         snapshot = null;
@@ -225,6 +229,14 @@ public class ClockView extends View {
         foreground = null;
         dropForegroundShader();
         updateLayerType();
+    }
+
+    /** Lets go of the text-fill image, closing whatever file it had open. */
+    private void releaseForeground() {
+        if (foreground != null) {
+            foreground.release();
+            foreground = null;
+        }
     }
 
     /** Forgets everything derived from the current text-fill image. */
@@ -248,11 +260,16 @@ public class ClockView extends View {
     }
 
     /**
-     * Whether the drawing still needs a software canvas: a {@link android.graphics.Movie} drawn
-     * straight onto the screen, or a shader bitmap being rewritten under a live paint.
+     * Whether the drawing still needs a software canvas.
+     *
+     * Hardly ever, now. A background animation renders its frame into a small offscreen bitmap and
+     * that bitmap is blitted, so the view stays hardware-drawn; only a live Movie that could not
+     * get a buffer has to fall back to drawing itself onto the canvas, which a Movie can only do in
+     * software. The animated text fill keeps the layer for a different reason: its shader samples a
+     * bitmap rewritten every frame, and a hardware texture cache would be free to ignore that.
      */
     private boolean needsSoftwareLayer() {
-        return (slide != null && slide.animated())
+        return (slide != null && slide.needsSoftwareCanvas())
                 || (foreground != null && foreground.animated() && !heavy);
     }
 
@@ -295,10 +312,18 @@ public class ClockView extends View {
         handler.post(tick);
     }
 
-    /** Stops redrawing so a background clock costs nothing. */
+    /** Stops redrawing so a background clock costs nothing, and closes what it had open. */
     public void stop() {
         running = false;
         handler.removeCallbacks(tick);
+        // A paused clock has no business holding a file open. Coming back re-reads the settings
+        // and opens whatever the show needs again.
+        releaseSlide();
+        releaseForeground();
+        dropForegroundShader();
+        slideshow = null;
+        textShow = null;
+        slideVisible = false;
     }
 
     @Override
@@ -499,9 +524,10 @@ public class ClockView extends View {
         }
         boolean fade = fadeEnabled && slideVisible && captureSnapshot(nowMs);
         slideVisible = false;
+        releaseSlide();
         for (int tried = 0; tried < slides.size(); tried++) {
             int at = (index + tried) % slides.size();
-            BackgroundImage decoded = BackgroundImage.load(slides.get(at));
+            BackgroundImage decoded = openSlide(slides.get(at));
             if (decoded != null) {
                 show(decoded);
                 slideDurationMs = Slideshow.slideDurationMs(decoded.durationMs(), stillMs);
@@ -523,6 +549,19 @@ public class ClockView extends View {
     }
 
     /**
+     * One slide, opened from what the settings screen prepared for it if that is there.
+     *
+     * The prepared file holds frames already the right size and already in the screen's pixel
+     * format, so playing it needs no decoding at all — which is what makes an animation affordable
+     * on an old phone. Anything not yet prepared, or that could not be, falls back to decoding the
+     * original here.
+     */
+    private BackgroundImage openSlide(java.io.File source) {
+        java.io.File pack = PreparedImages.packFor(getContext(), source.getName(), preparedEdge);
+        return BackgroundImage.open(source, pack);
+    }
+
+    /**
      * A turned screen invalidates everything pre-rendered at the old size: the fade is cut short
      * — its snapshot shows the old orientation — and a still slide is decoded again and fitted to
      * the new one. An animation just fits itself at the next draw.
@@ -535,7 +574,7 @@ public class ClockView extends View {
         }
         if (slideshow != null && slideVisible && slide == null && slideBitmap != null
                 && (slideBitmap.getWidth() != w || slideBitmap.getHeight() != h)) {
-            BackgroundImage decoded = BackgroundImage.load(slides.get(slideshow.index()));
+            BackgroundImage decoded = openSlide(slides.get(slideshow.index()));
             if (decoded == null) {
                 slideVisible = false;
             } else {
@@ -557,6 +596,9 @@ public class ClockView extends View {
         // Once the animations have been stood down, a moving slide arrives as its first frame:
         // the still path below renders it once and never asks this device for another frame.
         if (decoded.animated() && !heavy) {
+            // Settled here, before anything is drawn, because whether the offscreen buffer could
+            // be had is what decides whether the view needs a software layer.
+            decoded.prepareFrames(getWidth(), getHeight());
             slide = decoded;
             return;
         }
@@ -575,7 +617,19 @@ public class ClockView extends View {
         }
         slideBitmap.eraseColor(backgroundColor);
         drawFitted(new Canvas(slideBitmap), decoded, 0L);
+        // Rendered into the screen bitmap, the picture itself is no longer needed: what it holds —
+        // a decode, or an open prepared file — goes now rather than at the garbage collector's
+        // convenience.
+        decoded.release();
         slide = null;
+    }
+
+    /** Lets go of the slide on screen, closing whatever file it had open. */
+    private void releaseSlide() {
+        if (slide != null) {
+            slide.release();
+            slide = null;
+        }
     }
 
     /**
@@ -634,8 +688,9 @@ public class ClockView extends View {
     private void advanceText(int index, long nowMs) {
         for (int tried = 0; tried < textSlides.size(); tried++) {
             int at = (index + tried) % textSlides.size();
-            BackgroundImage decoded = BackgroundImage.load(textSlides.get(at));
+            BackgroundImage decoded = openSlide(textSlides.get(at));
             if (decoded != null) {
+                releaseForeground();
                 foreground = decoded;
                 dropForegroundShader();
                 textShow.begin(at,
@@ -644,7 +699,7 @@ public class ClockView extends View {
                 return;
             }
         }
-        foreground = null;
+        releaseForeground();
         dropForegroundShader();
         textShow.begin(index, stillMs, nowMs);
         updateLayerType();
@@ -689,7 +744,14 @@ public class ClockView extends View {
                 foregroundDrawn = true;
             }
         } else if (foregroundShader == null) {
-            foregroundShader = new BitmapShader(foreground.still(),
+            Bitmap source = foreground.still();
+            if (source == null) {
+                // A prepared file whose frame could not be read: plain text, not a crash.
+                foreground = null;
+                updateLayerType();
+                return;
+            }
+            foregroundShader = new BitmapShader(source,
                     Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
         }
         if (resized) {
@@ -733,16 +795,30 @@ public class ClockView extends View {
         if (safeMode) {
             return;
         }
+        // One Typeface per font file, not per field. Six fields usually name the same font, and
+        // createFromFile parses the file every time it is called — six parses of one file, on a
+        // phone where that file may be several megabytes, at every start and every return from the
+        // settings. The faces are immutable, so sharing one between fields is free.
+        java.util.Map<String, Typeface> byFile = new java.util.HashMap<String, Typeface>();
         for (String role : Settings.FONT_ROLES) {
             java.io.File file = Settings.fontFileFor(context, role);
             if (file == null) {
                 continue;
             }
-            try {
-                userFonts.put(role, Typeface.createFromFile(file));
-            } catch (RuntimeException e) {
-                // A file that stops loading leaves that field on the system face rather than
-                // taking the whole clock down.
+            String key = file.getPath();
+            Typeface face = byFile.get(key);
+            if (face == null && !byFile.containsKey(key)) {
+                try {
+                    face = Typeface.createFromFile(file);
+                } catch (RuntimeException e) {
+                    // A file that stops loading leaves that field on the system face rather than
+                    // taking the whole clock down.
+                    face = null;
+                }
+                byFile.put(key, face);
+            }
+            if (face != null) {
+                userFonts.put(role, face);
             }
         }
     }
