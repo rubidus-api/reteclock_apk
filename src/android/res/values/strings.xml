@@ -73,6 +73,12 @@
     <string name="settings_bold">B</string>
     <string name="settings_italic">I</string>
     <string name="settings_underline">U</string>
+    <string name="settings_screensaver">Screensaver</string>
+    <string name="settings_screensaver_on">reteclock is your screensaver.</string>
+    <string name="settings_screensaver_off">reteclock is not your screensaver yet.</string>
+    <string name="settings_screensaver_open">Set as screensaver…</string>
+    <string name="settings_screensaver_note">Opens Android\'s own screensaver settings — it hides in a different place on every version. Pick reteclock there, and choose when it should come on (while charging, or in a dock).</string>
+    <string name="settings_screensaver_no_screen">This phone has no screensaver settings screen.</string>
     <string name="hint_long_press">Press and hold the clock for settings</string>
     <string name="hint_safe_mode">Started without images or imported fonts: the last run stopped answering. Press and hold for settings.</string>
     <string name="settings_card_start">Start</string>

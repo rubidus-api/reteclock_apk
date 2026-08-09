@@ -288,6 +288,7 @@ public class SettingsActivity extends Activity {
             }
         });
         dock.addView(charging);
+        addScreensaverRow(dock);
         root.addView(dock);
 
         TextView about = footer(getString(R.string.settings_about,
@@ -1340,6 +1341,80 @@ public class SettingsActivity extends Activity {
         params.leftMargin = dp(4);
         button.setLayoutParams(params);
         return button;
+    }
+
+    /**
+     * The screensaver row: whether this app is the chosen one, and a button that opens the system
+     * screen where it is chosen.
+     *
+     * Finding that screen by hand is the awkward part — it has lived under Display, under Security,
+     * and under its own name, depending on the version and the manufacturer — so the button goes
+     * straight there. Android 4.2 is where screensavers begin; below that the row is not shown at
+     * all rather than shown as something that cannot work.
+     */
+    private void addScreensaverRow(LinearLayout dock) {
+        if (Build.VERSION.SDK_INT < 17) {
+            return;
+        }
+        dock.addView(divider());
+        dock.addView(subheading(getString(R.string.settings_screensaver)));
+        TextView state = footer(getString(isScreensaver()
+                ? R.string.settings_screensaver_on
+                : R.string.settings_screensaver_off));
+        if (isScreensaver()) {
+            state.setTextColor(ACCENT);
+        }
+        dock.addView(state);
+        dock.addView(actionButton(getString(R.string.settings_screensaver_open),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        openScreensaverSettings();
+                    }
+                }));
+        dock.addView(footer(getString(R.string.settings_screensaver_note)));
+    }
+
+    /** Whether the system's screensaver setting names this app. */
+    private boolean isScreensaver() {
+        try {
+            String stored = android.provider.Settings.Secure.getString(
+                    getContentResolver(), "screensaver_components");
+            return com.reteclock.core.ScreensaverState.isChosen(stored,
+                    new android.content.ComponentName(this, ClockDreamService.class)
+                            .flattenToString());
+        } catch (RuntimeException e) {
+            // The key is not part of the public API; a platform that does not keep it there simply
+            // leaves the row saying nothing is known, which is better than a crash.
+            return false;
+        }
+    }
+
+    /**
+     * Opens the system's screensaver settings, or the nearest screen that leads there.
+     *
+     * The dedicated screen is not present everywhere — some builds only have Display — so each
+     * candidate is offered to the package manager and the first that resolves is used.
+     */
+    private void openScreensaverSettings() {
+        String[] candidates = {
+            "android.settings.DREAM_SETTINGS",
+            "android.settings.DISPLAY_SETTINGS",
+            "android.settings.SETTINGS",
+        };
+        for (String action : candidates) {
+            Intent intent = new Intent(action);
+            if (intent.resolveActivity(getPackageManager()) == null) {
+                continue;
+            }
+            try {
+                startActivity(intent);
+                return;
+            } catch (ActivityNotFoundException e) {
+                // Resolved a moment ago and gone now: try the next one.
+            }
+        }
+        Toast.makeText(this, R.string.settings_screensaver_no_screen, Toast.LENGTH_LONG).show();
     }
 
     /**
