@@ -54,6 +54,9 @@ public class SettingsActivity extends Activity {
     private static final int TEXT_DIM = 0xFF9E9E9E;
     /** One accent, used sparingly: section names, action buttons, the pressed state. */
     private static final int ACCENT = 0xFF4DB6AC;
+
+    /** For the one line that reports something went wrong; nothing else on the page is this colour. */
+    private static final int WARNING = 0xFFFFB300;
     private static final int CARD = 0xFF161616;
     private static final int CARD_STROKE = 0xFF262626;
     private static final int DIVIDER = 0xFF272727;
@@ -149,6 +152,10 @@ public class SettingsActivity extends Activity {
         // The page carries its own title; the window frame repeating it is clutter.
         requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
 
+        if (bounceToClock()) {
+            return;
+        }
+
         // Getting here is proof the long-press hint has done its job.
         Settings.setHintSeen(this);
 
@@ -158,6 +165,38 @@ public class SettingsActivity extends Activity {
         root.setPadding(pad, dp(16), pad, dp(16));
 
         root.addView(title(getString(R.string.settings_title)));
+
+        // ---- Start ----
+        // First card on the page, because this is where the home-screen button now lands: the way
+        // to the clock, and the way back out of a picture that made the clock unusable.
+        LinearLayout start = card(getString(R.string.settings_card_start));
+        if (Settings.safeNotice(this) || Settings.runUnfinished(this)) {
+            TextView warning = footer(getString(R.string.settings_safe_notice));
+            warning.setTextColor(WARNING);
+            start.addView(warning);
+            // Said once. The mark itself is cleared by the next healthy run of the clock.
+            Settings.setSafeNotice(this, false);
+        }
+        start.addView(actionButton(getString(R.string.settings_start_clock),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        startActivity(new Intent(SettingsActivity.this, ClockActivity.class));
+                    }
+                }));
+        final CheckBox direct = new CheckBox(this);
+        direct.setText(R.string.settings_direct_start);
+        direct.setTextColor(TEXT_WHITE);
+        direct.setChecked(Settings.directStart(this));
+        direct.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                Settings.setDirectStart(SettingsActivity.this, checked);
+            }
+        });
+        start.addView(direct);
+        start.addView(footer(getString(R.string.settings_direct_start_note)));
+        root.addView(start);
 
         // ---- Clock ----
         LinearLayout clock = card(getString(R.string.settings_card_clock));
@@ -1301,6 +1340,27 @@ public class SettingsActivity extends Activity {
         params.leftMargin = dp(4);
         button.setLayoutParams(params);
         return button;
+    }
+
+    /**
+     * Sends a home-screen launch straight on to the clock, when that is what the user asked for.
+     *
+     * The home-screen button opens this screen by default. It is the only door back into the app
+     * when a picture or a font has made the full-screen clock unusable — there are no buttons on a
+     * clock face, and a clock that has stopped answering will not take a long press. Whoever wants
+     * the old habit back turns the switch on; a run that never came back overrules it, because that
+     * is precisely the case the door exists for.
+     */
+    private boolean bounceToClock() {
+        Intent intent = getIntent();
+        boolean fromHomeScreen = intent != null
+                && intent.hasCategory(Intent.CATEGORY_LAUNCHER);
+        if (!fromHomeScreen || !Settings.directStart(this) || Settings.runUnfinished(this)) {
+            return false;
+        }
+        startActivity(new Intent(this, ClockActivity.class));
+        finish();
+        return true;
     }
 
     /** A full-width action in the accent, for the one thing a card invites you to do. */

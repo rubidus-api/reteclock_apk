@@ -33,10 +33,9 @@
             android:label="@string/app_name"
             android:launchMode="singleTop"
             android:theme="@style/ClockTheme">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+            <!-- The dock still goes straight to the clock. The home-screen button does not: it
+                 opens the settings, which is the only way back in when an imported image or font
+                 has made the full-screen clock unusable. -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -46,9 +45,14 @@
 
         <activity
             android:name=".SettingsActivity"
-            android:exported="false"
-            android:label="@string/settings_title"
-            android:theme="@android:style/Theme.Black" />
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@android:style/Theme.Black">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
 
         <service
             android:name=".ClockDreamService"

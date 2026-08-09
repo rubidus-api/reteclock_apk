@@ -23,6 +23,22 @@ public class ClockActivity extends Activity {
     public static final String EXTRA_DOCK = "com.reteclock.DOCK";
 
     private ClockView view;
+    /** This run leaves the imported images and fonts alone; the run before it never came back. */
+    private boolean safeMode;
+    private final android.os.Handler handler = new android.os.Handler();
+
+    /**
+     * Clears the mark this run left, once it has lasted long enough to be worth trusting.
+     *
+     * Late enough that the pictures have been decoded and drawn many times over: whatever is going
+     * to hang the clock has had its chance by then, and a run that gets here really was healthy.
+     */
+    private final Runnable reportHealthy = new Runnable() {
+        @Override
+        public void run() {
+            Settings.setRunUnfinished(ClockActivity.this, false);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,7 +53,13 @@ public class ClockActivity extends Activity {
         }
         getWindow().addFlags(flags);
 
-        view = new ClockView(this);
+        // Read the mark before this run writes its own: it belongs to the run before this one.
+        safeMode = com.reteclock.core.SafeStart.safeMode(Settings.runUnfinished(this));
+        if (safeMode) {
+            Settings.setSafeNotice(this, true);
+        }
+
+        view = new ClockView(this, safeMode);
         view.setLongClickable(true);
         view.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
@@ -61,6 +83,12 @@ public class ClockActivity extends Activity {
     private void maybeHintAtSettings() {
         boolean startedByCharger =
                 getIntent() != null && getIntent().getBooleanExtra(EXTRA_DOCK, false);
+        // A safe run says so whatever started it: the user needs to know why their picture is gone
+        // and where to go about it, and that outranks a quiet bedside.
+        if (safeMode) {
+            Toast.makeText(this, R.string.hint_safe_mode, Toast.LENGTH_LONG).show();
+            return;
+        }
         if (startedByCharger || Settings.hintSeen(this)) {
             return;
         }
@@ -81,11 +109,19 @@ public class ClockActivity extends Activity {
         // The user may have just changed the options in the settings screen.
         view.reloadOptions();
         view.start();
+        // The mark this run leaves if it never comes back.
+        Settings.setRunUnfinished(this, true);
+        handler.removeCallbacks(reportHealthy);
+        handler.postDelayed(reportHealthy, com.reteclock.core.SafeStart.HEALTHY_MS);
     }
 
     @Override
     protected void onPause() {
         view.stop();
+        // Being put aside is proof the clock was answering, so the mark comes off here too — the
+        // long press into the settings is exactly the case a hung clock never reaches.
+        handler.removeCallbacks(reportHealthy);
+        Settings.setRunUnfinished(this, false);
         super.onPause();
     }
 

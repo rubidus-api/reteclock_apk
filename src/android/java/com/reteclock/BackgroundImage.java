@@ -58,8 +58,11 @@ final class BackgroundImage {
         if (isGif(bytes)) {
             Movie movie = decodeMovie(bytes);
             // A one-frame GIF has no duration; Movie would play nothing, so draw it as a still.
+            // A GIF beyond what this device can redraw twenty-five times a second is a still too:
+            // BitmapFactory below decodes its first frame, downsampled, and the clock keeps up.
             if (movie != null && movie.duration() > 0
-                    && movie.width() > 0 && movie.height() > 0) {
+                    && com.reteclock.core.ImageLimits.playable(
+                            bytes.length, movie.width(), movie.height())) {
                 return new BackgroundImage(movie, null);
             }
         }

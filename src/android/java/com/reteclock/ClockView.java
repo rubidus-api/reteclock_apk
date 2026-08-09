@@ -17,7 +17,9 @@ import com.reteclock.core.BurnInShift;
 import com.reteclock.core.ClockLayout;
 import com.reteclock.core.ClockOptions;
 import com.reteclock.core.ClockText;
+import com.reteclock.core.FrameBudget;
 import com.reteclock.core.ImageFit;
+import com.reteclock.core.SafeStart;
 import com.reteclock.core.Slideshow;
 
 /**
@@ -62,6 +64,11 @@ public class ClockView extends View {
     private BackgroundImage slide;
     /** A still slide, already fitted to the screen: drawing it is one unscaled blit. */
     private Bitmap slideBitmap;
+    /**
+     * How long the slide on screen is up for, kept so a show of one image can start it again
+     * without reading and decoding the same file every time round.
+     */
+    private long slideDurationMs;
     /** Whether the current slide decoded to something drawable. */
     private boolean slideVisible;
     /** How long a still slide holds, from the settings. */
@@ -109,6 +116,25 @@ public class ClockView extends View {
     private ClockLayout.Plan plan;
     private boolean running;
 
+    /**
+     * A run that leaves the imported images and fonts alone, because the run before this one never
+     * became healthy. Set by whoever creates the view; see {@link SafeStart}.
+     */
+    private final boolean safeMode;
+    /** When this run of the clock began, for the grace period the images wait out. */
+    private long startedAtMs = Long.MIN_VALUE / 2L;
+    /** What the moving pictures are costing, and whether this device can afford them. */
+    private final FrameBudget frameBudget = new FrameBudget();
+    /**
+     * Whether the animations have been stood down for this run. The pictures stay, frozen at the
+     * frame they reached; what stops is the redrawing that was eating the whole UI thread.
+     */
+    private boolean heavy;
+    /** Whether the frozen text-fill frame has been rendered, so it is not rendered again. */
+    private boolean foregroundDrawn;
+    /** The frame of the background animation drawn last, so freezing it keeps that frame. */
+    private long lastFrameMs;
+
     private final Runnable tick = new Runnable() {
         @Override
         public void run() {
@@ -127,7 +153,17 @@ public class ClockView extends View {
     };
 
     public ClockView(Context context) {
+        this(context, false);
+    }
+
+    /**
+     * A view that, in safe mode, draws the clock and nothing else: no background pictures, no image
+     * inside the glyphs, no imported font. That is the state the settings can always be reached
+     * from, and it is what the next start uses when the last one never became healthy.
+     */
+    public ClockView(Context context, boolean safeMode) {
         super(context);
+        this.safeMode = safeMode;
         options = Settings.options(context);
         loadTypeface(context);
         loadImages(context);
@@ -168,11 +204,13 @@ public class ClockView extends View {
      * draw, which is the first moment there is a frame time to start it at.
      */
     private void loadImages(Context context) {
-        com.reteclock.core.ImageRoles.Lists roles = Settings.roles(context);
         slides.clear();
-        slides.addAll(Settings.filesFor(context, roles.background));
         textSlides.clear();
-        textSlides.addAll(Settings.filesFor(context, roles.text));
+        if (!safeMode) {
+            com.reteclock.core.ImageRoles.Lists roles = Settings.roles(context);
+            slides.addAll(Settings.filesFor(context, roles.background));
+            textSlides.addAll(Settings.filesFor(context, roles.text));
+        }
         stillMs = Settings.backgroundStillSeconds(context) * 1000L;
         backgroundFit = Settings.backgroundFit(context);
         fadeEnabled = Settings.backgroundFade(context);
@@ -194,14 +232,28 @@ public class ClockView extends View {
         foregroundShader = null;
         foregroundFrame = null;
         foregroundFrameCanvas = null;
+        foregroundDrawn = false;
         foregroundForW = 0;
         foregroundForH = 0;
     }
 
-    /** Whether anything on screen is an animation right now, which is what decides the layer. */
+    /**
+     * Whether anything on screen is still being redrawn as an animation, which is what asks for
+     * frames in milliseconds. Once the animations have been stood down nothing is: the pictures
+     * are there, they simply do not move, and the clock goes back to one redraw a second.
+     */
     private boolean animating() {
+        return !heavy && ((slide != null && slide.animated())
+                || (foreground != null && foreground.animated()));
+    }
+
+    /**
+     * Whether the drawing still needs a software canvas: a {@link android.graphics.Movie} drawn
+     * straight onto the screen, or a shader bitmap being rewritten under a live paint.
+     */
+    private boolean needsSoftwareLayer() {
         return (slide != null && slide.animated())
-                || (foreground != null && foreground.animated());
+                || (foreground != null && foreground.animated() && !heavy);
     }
 
     /** Whether a cross-fade is mid-flight. */
@@ -224,7 +276,7 @@ public class ClockView extends View {
      */
     private void updateLayerType() {
         if (android.os.Build.VERSION.SDK_INT >= 11) {
-            int wanted = animating() ? LAYER_TYPE_SOFTWARE : LAYER_TYPE_NONE;
+            int wanted = needsSoftwareLayer() ? LAYER_TYPE_SOFTWARE : LAYER_TYPE_NONE;
             if (getLayerType() != wanted) {
                 setLayerType(wanted, null);
             }
@@ -237,6 +289,9 @@ public class ClockView extends View {
             return;
         }
         running = true;
+        // The grace period runs from here, so coming back from the settings always buys another
+        // window in which the clock is certain to answer a long press.
+        startedAtMs = SystemClock.elapsedRealtime();
         handler.post(tick);
     }
 
@@ -289,11 +344,20 @@ public class ClockView extends View {
 
         int maxShift = BurnInShift.maxShiftPx(w, h);
         long elapsed = SystemClock.elapsedRealtime();
+        // Timed only while something moves: on a still clock this would be one syscall a second
+        // spent measuring a frame nobody is worried about.
+        boolean timed = animating();
+        long began = timed ? elapsed : 0L;
+
+        // Every start draws the bare clock first. Decoding an image is the one thing here that can
+        // take longer than the eye allows, so the grace period is a window in which the clock is
+        // certain to answer a long press — whatever the pictures turn out to cost afterwards.
+        boolean imagesReady = SafeStart.imagesReady(elapsed - startedAtMs);
 
         // The background sits under everything and does not follow the burn-in shift: a shifted
         // full-screen image would expose a black edge every cycle, and an image is not the kind of
         // fixed bright shape the shift exists to smear.
-        if (!slides.isEmpty()) {
+        if (imagesReady && !slides.isEmpty()) {
             if (slideshow == null) {
                 slideshow = new Slideshow(slides.size());
                 advanceTo(0, elapsed);
@@ -301,7 +365,8 @@ public class ClockView extends View {
                 advanceTo(slideshow.next(), elapsed);
             }
             if (slide != null) {
-                drawFitted(canvas, slide, slideshow.frameMs(elapsed));
+                lastFrameMs = slideshow.frameMs(elapsed);
+                drawFitted(canvas, slide, lastFrameMs);
             } else if (slideVisible && slideBitmap != null) {
                 canvas.drawBitmap(slideBitmap, 0f, 0f, imagePaint);
             }
@@ -315,7 +380,7 @@ public class ClockView extends View {
         // The text-fill show runs on the same clockwork as the background's: an animated image
         // plays through once, a still holds for the chosen time, a show of one loops. No fade —
         // a shader has no alpha of its own to thin.
-        if (!textSlides.isEmpty()) {
+        if (imagesReady && !textSlides.isEmpty()) {
             if (textShow == null) {
                 textShow = new Slideshow(textSlides.size());
                 advanceText(0, elapsed);
@@ -354,6 +419,61 @@ public class ClockView extends View {
         canvas.restore();
         // The shader must not leak into measurement or into a later draw without a foreground.
         paint.setShader(null);
+
+        if (timed) {
+            frameBudget.sample(SystemClock.elapsedRealtime() - began);
+            if (frameBudget.overloaded()) {
+                standDownAnimation();
+            }
+        }
+    }
+
+    /**
+     * Stops moving the pictures, because moving them costs more than this device can pay.
+     *
+     * The background is frozen at the frame it reached — rendered once into the screen-sized
+     * bitmap a still slide would have used — and the text fill keeps whatever frame it is showing.
+     * Nothing disappears; the clock simply goes back to one redraw a second, which is what it takes
+     * for a long press to be delivered and for the settings to be reachable.
+     */
+    private void standDownAnimation() {
+        if (heavy) {
+            return;
+        }
+        heavy = true;
+        if (slide != null && slide.animated()) {
+            freezeSlide();
+        }
+        // The layer is swapped after this draw finishes rather than inside it: the canvas being
+        // drawn on right now belongs to the very layer that is going away.
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                updateLayerType();
+            }
+        });
+    }
+
+    /**
+     * Renders the moving background's current frame into the screen bitmap and lets the animation
+     * go. If the bitmap cannot be had, the animation is kept and drawn once a second instead —
+     * slow, but still the picture the user chose.
+     */
+    private void freezeSlide() {
+        int w = getWidth();
+        int h = getHeight();
+        if (w <= 0 || h <= 0) {
+            return;
+        }
+        if (slideBitmap == null || slideBitmap.getWidth() != w || slideBitmap.getHeight() != h) {
+            slideBitmap = screenBitmap(w, h);
+            if (slideBitmap == null) {
+                return;
+            }
+        }
+        slideBitmap.eraseColor(backgroundColor);
+        drawFitted(new Canvas(slideBitmap), slide, lastFrameMs);
+        slide = null;
     }
 
     /**
@@ -369,6 +489,14 @@ public class ClockView extends View {
      * gentler exit than vanishing.
      */
     private void advanceTo(int index, long nowMs) {
+        // A show of one image comes back to the image it is already showing. Reading the file and
+        // decoding it again for that is pure waste — and on a slow phone with a GIF it was worse
+        // than waste: a multi-megabyte decode on the UI thread every play-through, which is what
+        // made the clock stop answering. Start the same slide again instead.
+        if (slideVisible && index == slideshow.index() && (slide != null || slideBitmap != null)) {
+            slideshow.begin(index, slideDurationMs, nowMs);
+            return;
+        }
         boolean fade = fadeEnabled && slideVisible && captureSnapshot(nowMs);
         slideVisible = false;
         for (int tried = 0; tried < slides.size(); tried++) {
@@ -376,8 +504,8 @@ public class ClockView extends View {
             BackgroundImage decoded = BackgroundImage.load(slides.get(at));
             if (decoded != null) {
                 show(decoded);
-                slideshow.begin(at,
-                        Slideshow.slideDurationMs(decoded.durationMs(), stillMs), nowMs);
+                slideDurationMs = Slideshow.slideDurationMs(decoded.durationMs(), stillMs);
+                slideshow.begin(at, slideDurationMs, nowMs);
                 if (fade) {
                     fadeStart = nowMs;
                 }
@@ -386,6 +514,7 @@ public class ClockView extends View {
             }
         }
         slide = null;
+        slideDurationMs = Math.max(stillMs, Slideshow.MIN_SLIDE_MS);
         slideshow.begin(index, stillMs, nowMs);
         if (fade) {
             fadeStart = nowMs;
@@ -425,7 +554,9 @@ public class ClockView extends View {
      */
     private void show(BackgroundImage decoded) {
         slideVisible = true;
-        if (decoded.animated()) {
+        // Once the animations have been stood down, a moving slide arrives as its first frame:
+        // the still path below renders it once and never asks this device for another frame.
+        if (decoded.animated() && !heavy) {
             slide = decoded;
             return;
         }
@@ -549,9 +680,14 @@ public class ClockView extends View {
                 foregroundFrameCanvas = new Canvas(foregroundFrame);
                 foregroundShader = new BitmapShader(foregroundFrame,
                         Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+                foregroundDrawn = false;
             }
-            foregroundFrame.eraseColor(Color.TRANSPARENT);
-            foreground.draw(foregroundFrameCanvas, frameMs, imagePaint);
+            // Stood down, the fill keeps the frame it has: one render, then left alone.
+            if (!heavy || !foregroundDrawn) {
+                foregroundFrame.eraseColor(Color.TRANSPARENT);
+                foreground.draw(foregroundFrameCanvas, frameMs, imagePaint);
+                foregroundDrawn = true;
+            }
         } else if (foregroundShader == null) {
             foregroundShader = new BitmapShader(foreground.still(),
                     Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
@@ -592,6 +728,11 @@ public class ClockView extends View {
         }
 
         userFonts.clear();
+        // A font file can hang or crash the clock as readily as a picture can, so a safe run draws
+        // with the system faces and leaves the imported ones untouched until the user says so.
+        if (safeMode) {
+            return;
+        }
         for (String role : Settings.FONT_ROLES) {
             java.io.File file = Settings.fontFileFor(context, role);
             if (file == null) {

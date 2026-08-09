@@ -27,9 +27,11 @@ Every release is listed on the
 1. **Install it.** In F-Droid, search for *reteclock* and tap Install. If you downloaded the APK
    instead, open the file on the phone and confirm. On Android 4.4 and similar versions you may
    first have to allow installs from unknown sources, under Settings > Security.
-2. **Open it** from the app list. The clock appears immediately — there is no setup to do.
-3. **Press and hold the clock** whenever you want the settings: colours, fonts, what is shown, and
-   how large the time should be.
+2. **Open it** from the app list. The settings open first, with **Start the clock** at the top —
+   there is nothing you have to set. If you would rather the button went straight to the clock,
+   there is a switch for that on the same card.
+3. **Press and hold the clock** whenever you want the settings again: colours, fonts, what is shown,
+   and how large the time should be.
 4. **Leave it on a stand, plugged in.** If you turn on *Start when the charger is connected*, the
    clock will come up by itself every time you plug the phone in.
 
@@ -115,9 +117,14 @@ running, so you never have to guess.
 
 ## Settings
 
-**Press and hold the clock** to open the settings. The clock says so once when you first open it,
-and stops mentioning it after you have been there — and it never mentions it when the charger
-started the clock, so it stays quiet on a bedside stand.
+**The home-screen button opens the settings**, and so does **pressing and holding the clock**. The
+clock says so once when you first open it, and stops mentioning it after you have been there — and
+it never mentions it when the charger started the clock, so it stays quiet on a bedside stand.
+
+The button opens this screen rather than the clock on purpose. A full-screen clock has no controls
+on its face, so if a picture or a font you added ever makes it unusable, this is the way back in.
+And if the clock does stop answering, the next start leaves your images and fonts out and says so,
+so you can undo whatever caused it.
 
 <img src="docs/screenshots/settings.png" alt="Settings: show seconds, date format, and the font library listing each font's size and the total" width="240"> <img src="docs/screenshots/fields.png" alt="Settings, further down: each field on two lines — its name with bold, italic and underline, then its font — and the accepted file kinds" width="240">
 

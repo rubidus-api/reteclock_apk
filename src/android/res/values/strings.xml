@@ -74,5 +74,11 @@
     <string name="settings_italic">I</string>
     <string name="settings_underline">U</string>
     <string name="hint_long_press">Press and hold the clock for settings</string>
+    <string name="hint_safe_mode">Started without images or imported fonts: the last run stopped answering. Press and hold for settings.</string>
+    <string name="settings_card_start">Start</string>
+    <string name="settings_start_clock">Start the clock</string>
+    <string name="settings_direct_start">Home-screen button opens the clock directly</string>
+    <string name="settings_direct_start_note">Off, the button opens this screen — the way back in when an image or a font has made the clock unusable. A run that stopped answering opens this screen either way.</string>
+    <string name="settings_safe_notice">The last run stopped answering, so the clock started without images or imported fonts. A large animated GIF is the usual reason: remove it below, or untick BG, and start the clock again.</string>
     <string name="settings_about">reteclock %1$s\nRuns on Android 2.3 (API 9) and newer. Built for Android 4.4.\nThis device: Android %2$s</string>
 </resources>

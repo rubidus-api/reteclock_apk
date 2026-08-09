@@ -36,6 +36,9 @@ public final class Settings {
     public static final String KEY_TIME_PERCENT_TALL = "time_percent_tall";
     public static final String KEY_TEXT_COLOR = "text_color";
     public static final String KEY_BACKGROUND_COLOR = "background_color";
+    public static final String KEY_RUN_UNFINISHED = "run_unfinished";
+    public static final String KEY_SAFE_NOTICE = "safe_notice";
+    public static final String KEY_DIRECT_START = "direct_start";
 
     /** How long a still background image shows before the slideshow moves on. */
     public static final int DEFAULT_STILL_SECONDS = 10;
@@ -277,6 +280,46 @@ public final class Settings {
 
     public static void setHintSeen(Context context) {
         prefs(context).edit().putBoolean(KEY_HINT_SEEN, true).commit();
+    }
+
+    /**
+     * The mark a running clock leaves behind.
+     *
+     * Written when the clock starts and cleared once it has drawn happily for a while — or as soon
+     * as it is put aside, which is proof enough that it was answering. A start that finds the mark
+     * still there knows the run before it never got that far: killed, or hung on something it was
+     * asked to draw. See {@link com.reteclock.core.SafeStart}.
+     */
+    public static boolean runUnfinished(Context context) {
+        return prefs(context).getBoolean(KEY_RUN_UNFINISHED, false);
+    }
+
+    public static void setRunUnfinished(Context context, boolean unfinished) {
+        prefs(context).edit().putBoolean(KEY_RUN_UNFINISHED, unfinished).commit();
+    }
+
+    /** Whether a safe run has happened that the settings screen has not yet reported. */
+    public static boolean safeNotice(Context context) {
+        return prefs(context).getBoolean(KEY_SAFE_NOTICE, false);
+    }
+
+    public static void setSafeNotice(Context context, boolean pending) {
+        prefs(context).edit().putBoolean(KEY_SAFE_NOTICE, pending).commit();
+    }
+
+    /**
+     * Whether the home-screen button opens the clock straight away.
+     *
+     * Off by default: the button opens the settings, with the clock one press away. That is the way
+     * back in when an imported picture or font has made the clock unusable — the one thing a
+     * full-screen clock with no buttons cannot otherwise offer.
+     */
+    public static boolean directStart(Context context) {
+        return prefs(context).getBoolean(KEY_DIRECT_START, false);
+    }
+
+    public static void setDirectStart(Context context, boolean direct) {
+        prefs(context).edit().putBoolean(KEY_DIRECT_START, direct).commit();
     }
 
     /** The fields that can each carry their own font, in the order the settings screen lists them. */
