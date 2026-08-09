@@ -1,0 +1,11 @@
+* Fixed: an animated GIF as a background could freeze the clock the moment it
+  started. A show of one image no longer decodes the file again every time it
+  loops, and a GIF too large to play is shown as its first frame.
+* The home-screen button now opens the settings, with a button there to start
+  the clock — the one door nothing you import can shut. A switch gives the
+  direct start back.
+* If the clock ever stops answering, the next start leaves your images and
+  imported fonts out and tells you why.
+* Every start shows the bare clock for a few seconds before any image, so a
+  long press always gets through; and a moving picture that costs more than the
+  phone can afford freezes where it is while the clock keeps ticking.
