@@ -90,33 +90,53 @@ public final class ClockLayout {
         public final float textSize;
         /** Width the text must fit into, in pixels. */
         public final float maxWidth;
+        /**
+         * Lines that must end up the same size as each other, or null for a line that answers only
+         * to itself. Sizing is per line — a line too wide for its box is shrunk — so without this a
+         * column meant to be level would come apart the moment one of its lines needed shrinking.
+         */
+        final String sizeGroup;
 
         Slot(String role, float centerX, float centerY, float textSize, float maxWidth) {
-            this(role, singlePart(role), centerX, centerY, textSize, maxWidth);
+            this(role, singlePart(role), centerX, centerY, textSize, maxWidth, null);
+        }
+
+        Slot(String role, float centerX, float centerY, float textSize, float maxWidth,
+                String sizeGroup) {
+            this(role, singlePart(role), centerX, centerY, textSize, maxWidth, sizeGroup);
         }
 
         Slot(String role, List<Part> parts, float centerX, float centerY, float textSize,
                 float maxWidth) {
+            this(role, parts, centerX, centerY, textSize, maxWidth, null);
+        }
+
+        Slot(String role, List<Part> parts, float centerX, float centerY, float textSize,
+                float maxWidth, String sizeGroup) {
             this.role = role;
             this.parts = parts;
             this.centerX = centerX;
             this.centerY = centerY;
             this.textSize = textSize;
             this.maxWidth = maxWidth;
+            this.sizeGroup = sizeGroup;
         }
     }
 
     /**
-     * The side column's line proportions, relative to each other: seconds, weekday, month-day,
-     * year, and the gap between lines. Only the ratios matter — the block is scaled as a whole to
-     * fill the height its share of the screen offers, so a bigger side region means bigger lines,
-     * up to exactly that height and no further.
+     * The side column's line proportions, relative to each other, and the gap between the lines.
+     *
+     * Every line is the same: seconds, weekday, month and day, year. They used to be four different
+     * sizes in a fixed hierarchy — 0.13, 0.15, 0.13, 0.11 — which read as an accident rather than a
+     * decision, and the owner asked for one size. Only the ratio to the gap matters now: the block
+     * is scaled as a whole to fill the height its share of the screen offers, so a wider side
+     * region means bigger lines, up to exactly that height and no further.
      */
-    private static final float SIDE_SECOND = 0.13f;
-    private static final float SIDE_WEEKDAY = 0.15f;
-    private static final float SIDE_MONTH_DAY = 0.13f;
-    private static final float SIDE_YEAR = 0.11f;
+    private static final float SIDE_LINE = 0.13f;
     private static final float SIDE_LINE_GAP = 0.05f;
+
+    /** The name under which the four side lines agree to be one size. */
+    private static final String SIDE_GROUP = "side";
 
     /** The date and small lines' split of what the tall time leaves, 0.075 : 0.050 as always. */
     private static final float TALL_DATE_SHARE = 0.6f;
@@ -288,6 +308,12 @@ public final class ClockLayout {
      */
     public Plan plan(Metrics metrics) {
         Plan plan = new Plan();
+        // Measured once per line, at the line's unshrunk size; the widths scale with the size, so
+        // a line that has to shrink needs no second measuring pass.
+        java.util.Map<String, float[]> widests = new java.util.HashMap<String, float[]>();
+        java.util.Map<String, float[]> gaps = new java.util.HashMap<String, float[]>();
+        java.util.Map<String, Float> fitted = new java.util.HashMap<String, Float>();
+
         for (Slot slot : slots) {
             int count = slot.parts.size();
             float[] widest = new float[count];
@@ -304,18 +330,39 @@ public final class ClockLayout {
                         : metrics.width(ROLE_GAP, space, slot.textSize);
                 total += widest[i] + gap[i];
             }
+            widests.put(slot.role, widest);
+            gaps.put(slot.role, gap);
+            fitted.put(slot.role, shrinkToFit(slot.textSize, total, slot.maxWidth));
+        }
 
-            float size = shrinkToFit(slot.textSize, total, slot.maxWidth);
-            if (size != slot.textSize && slot.textSize > 0f) {
-                // Widths scale with the size, so the measured worst case scales with it too. That
-                // saves measuring every candidate twice for a line that had to shrink.
-                float scale = size / slot.textSize;
-                total = 0f;
-                for (int i = 0; i < count; i++) {
-                    widest[i] *= scale;
-                    gap[i] *= scale;
-                    total += widest[i] + gap[i];
-                }
+        // Lines that belong to a group take the smallest size any of them could manage, so a
+        // column meant to be level stays level even when one of its lines had to give way.
+        java.util.Map<String, Float> groupSize = new java.util.HashMap<String, Float>();
+        for (Slot slot : slots) {
+            if (slot.sizeGroup == null) {
+                continue;
+            }
+            Float smallest = groupSize.get(slot.sizeGroup);
+            float mine = fitted.get(slot.role);
+            if (smallest == null || mine < smallest) {
+                groupSize.put(slot.sizeGroup, mine);
+            }
+        }
+
+        for (Slot slot : slots) {
+            float size = slot.sizeGroup == null
+                    ? fitted.get(slot.role)
+                    : groupSize.get(slot.sizeGroup);
+            float[] widest = widests.get(slot.role).clone();
+            float[] gap = gaps.get(slot.role).clone();
+            int count = slot.parts.size();
+
+            float total = 0f;
+            float scale = slot.textSize > 0f ? size / slot.textSize : 1f;
+            for (int i = 0; i < count; i++) {
+                widest[i] *= scale;
+                gap[i] *= scale;
+                total += widest[i] + gap[i];
             }
             plan.sizes.put(slot.role, size);
 
@@ -376,14 +423,14 @@ public final class ClockLayout {
         List<Float> sizes = new ArrayList<Float>(4);
         if (options.showSeconds) {
             roles.add(ROLE_SECOND);
-            sizes.add(SIDE_SECOND);
+            sizes.add(SIDE_LINE);
         }
         roles.add(ROLE_WEEKDAY);
-        sizes.add(SIDE_WEEKDAY);
+        sizes.add(SIDE_LINE);
         roles.add(ROLE_MONTH_DAY);
-        sizes.add(SIDE_MONTH_DAY);
+        sizes.add(SIDE_LINE);
         roles.add(ROLE_YEAR);
-        sizes.add(SIDE_YEAR);
+        sizes.add(SIDE_LINE);
 
         // The block is scaled, proportions intact, to exactly the height between the paddings:
         // the lines are as big as their region allows and no bigger. A line still too wide for
@@ -397,7 +444,8 @@ public final class ClockLayout {
         float cursor = pad;
         for (int i = 0; i < sizes.size(); i++) {
             float size = sizes.get(i) * scale;
-            out.add(new Slot(roles.get(i), sideCenterX, cursor + size / 2f, size, sideBoxWidth));
+            out.add(new Slot(roles.get(i), sideCenterX, cursor + size / 2f, size, sideBoxWidth,
+                    SIDE_GROUP));
             cursor += size + lineGap;
         }
         return new ClockLayout(true, out, options);

@@ -1,0 +1,3 @@
+* In landscape, the four lines beside the time - seconds, weekday, date and
+  year - are now all the same size, instead of four sizes in a fixed hierarchy.
+  They stay level even when one of them has to shrink to fit the column.
