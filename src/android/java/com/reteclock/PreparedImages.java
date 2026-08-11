@@ -32,10 +32,12 @@ import java.util.Set;
  * made smaller. Its frames are sampled, identical ones folded together, and the whole thing scaled
  * until it fits a disk budget.
  *
- * Pictures that carry transparency are left alone, because the pack's pixels have no alpha channel
- * and the colour showing through is a setting the user can change afterwards. Those keep the live
- * path, which — now that a frame is drawn into a small offscreen bitmap rather than scaled onto the
- * screen in software — is no longer the thing that stalled the clock.
+ * Transparency is kept where it is real. Nearly every animated GIF in the world *declares* a
+ * transparent colour — that is how encoders store "this pixel did not change since the last frame" —
+ * but `Movie` composes the frames, so the picture that reaches the screen is usually solid. Judging
+ * by the declaration alone excluded almost every real animation from being prepared, which is
+ * exactly the bug this class was written to prevent. So the composed frames are looked at instead,
+ * and only a picture with holes in what it actually draws is stored with an alpha channel.
  */
 final class PreparedImages {
 
@@ -45,11 +47,24 @@ final class PreparedImages {
     /** How much disk one animation may take. Frames are raw, so this is also its whole cost. */
     private static final long BUDGET_BYTES = 8L * 1024 * 1024;
 
+    /**
+     * The largest a prepared frame is ever made, whatever the screen.
+     *
+     * A background lives behind big digits and an animation is read from disk frame by frame, so
+     * past this there is nothing to gain and a great deal to pay: on a tablet, screen-sized frames
+     * left room for two of them inside the budget, and the animation came out cut short.
+     */
+    private static final int MAX_FRAME_EDGE = 960;
+
     /** How often the animation is sampled while baking. Faster than any GIF worth the name. */
     private static final int STEP_MS = 40;
 
     /** A guard against a broken duration turning into an endless bake. */
     private static final int MAX_FRAMES = 512;
+
+    /** How large the throwaway frame used to look for holes is, and how many moments it looks at. */
+    private static final int PROBE_EDGE = 96;
+    private static final int PROBE_SAMPLES = 6;
 
     private PreparedImages() {
     }
@@ -95,6 +110,49 @@ final class PreparedImages {
             total += file.length();
         }
         return total;
+    }
+
+    /**
+     * What is inside one prepared file — how many frames, at what size — read from its header
+     * alone, without opening the picture. Null when there is no prepared file.
+     *
+     * The settings screen shows this, because it is the answer to "why does my animation look
+     * wrong": a picture reduced to two frames, or to a quarter of its size, says so here.
+     */
+    static String describe(File pack) {
+        if (pack == null || !pack.isFile()) {
+            return null;
+        }
+        java.io.RandomAccessFile file = null;
+        try {
+            file = new java.io.RandomAccessFile(pack, "r");
+            byte[] fixed = new byte[FramePack.fixedHeaderBytes()];
+            file.readFully(fixed);
+            int count = ((fixed[20] & 0xFF) << 24) | ((fixed[21] & 0xFF) << 16)
+                    | ((fixed[22] & 0xFF) << 8) | (fixed[23] & 0xFF);
+            if (count <= 0 || count > 4096) {
+                return null;
+            }
+            byte[] header = new byte[FramePack.headerBytes(count)];
+            System.arraycopy(fixed, 0, header, 0, fixed.length);
+            file.readFully(header, fixed.length, header.length - fixed.length);
+            FramePack parsed = FramePack.parse(header);
+            if (parsed == null) {
+                return null;
+            }
+            return parsed.frameCount() + "f " + parsed.width() + "\u00d7" + parsed.height();
+        } catch (IOException e) {
+            return null;
+        } catch (RuntimeException e) {
+            return null;
+        } finally {
+            if (file != null) {
+                try {
+                    file.close();
+                } catch (IOException e) {
+                }
+            }
+        }
     }
 
     /**
@@ -156,16 +214,10 @@ final class PreparedImages {
             if (bytes == null) {
                 return false;
             }
-            if (isTransparent(bytes)) {
-                // Transparency has no home in the pack's pixels; the live path keeps it honest.
-                pack.delete();
-                return false;
-            }
-            made = BackgroundImage.isGif(bytes)
-                    ? bakeAnimation(bytes, temp, screenEdge)
-                    : false;
+            int edge = Math.min(screenEdge, MAX_FRAME_EDGE);
+            made = BackgroundImage.isGif(bytes) ? bakeAnimation(bytes, temp, edge) : false;
             if (!made) {
-                made = bakeStill(bytes, temp, screenEdge);
+                made = bakeStill(bytes, temp, edge);
             }
             if (!made) {
                 return false;
@@ -201,14 +253,20 @@ final class PreparedImages {
         }
         float toScreen = ImageLimits.frameScale(movie.width(), movie.height(),
                 screenEdge, screenEdge);
-        Walk walk = walk(movie, temp, toScreen);
+        // A first look decides the pixel format, since it decides how much a frame costs. It is
+        // done small and thrown away: what it answers is only "does the composed picture have
+        // holes", and a hole survives being made smaller.
+        int format = composedFormat(movie, bytes);
+
+        Walk walk = walk(movie, temp, toScreen, format);
         if (walk == null) {
             return false;
         }
         if (!walk.wholeThing) {
             float toBudget = FramePack.planScale(Math.round(movie.width() * toScreen),
-                    Math.round(movie.height() * toScreen), walk.frames.size(), BUDGET_BYTES);
-            walk = walk(movie, temp, toScreen * toBudget);
+                    Math.round(movie.height() * toScreen), walk.frames.size(), format,
+                    BUDGET_BYTES);
+            walk = walk(movie, temp, toScreen * toBudget, format);
             if (walk == null) {
                 return false;
             }
@@ -219,7 +277,65 @@ final class PreparedImages {
         // Whatever the sampling reached, the last frame holds to the end of the animation.
         walk.frames.set(walk.frames.size() - 1,
                 Math.max(movie.duration(), walk.frames.get(walk.frames.size() - 1)));
-        return finish(temp, walk.width, walk.height, walk.frames);
+        return finish(temp, walk.width, walk.height, format, walk.frames);
+    }
+
+    /**
+     * Whether the animation, once its frames are composed, actually has holes.
+     *
+     * Almost every animated GIF declares a transparent colour: that is how an encoder says "this
+     * pixel is unchanged since the last frame". `Movie` composes those frames, so what reaches the
+     * screen is usually solid, and treating the declaration as transparency kept nearly every real
+     * animation out of the prepared files altogether. This looks at the composed result instead —
+     * at a small size, over a handful of moments spread through the animation.
+     */
+    private static int composedFormat(Movie movie, byte[] bytes) {
+        // Two cheap ways of being told there might be holes: the platform's own answer, and the
+        // file's declaration. Either is enough to look properly; neither is trusted on its own —
+        // the declaration is nearly always there, and a platform that answered wrongly the other
+        // way would fill the holes in without a word.
+        boolean maybe = !movie.isOpaque() || com.reteclock.core.GifInfo.hasTransparency(bytes);
+        return maybe && probeAlpha(movie) ? FramePack.WITH_ALPHA : FramePack.OPAQUE;
+    }
+
+    /** Renders a few composed frames small and looks for a pixel that is not fully opaque. */
+    private static boolean probeAlpha(Movie movie) {
+        int duration = Math.max(movie.duration(), 1);
+        float scale = ImageLimits.frameScale(movie.width(), movie.height(), PROBE_EDGE, PROBE_EDGE);
+        int width = Math.max(1, Math.round(movie.width() * scale));
+        int height = Math.max(1, Math.round(movie.height() * scale));
+        Bitmap frame = null;
+        try {
+            frame = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(frame);
+            canvas.scale((float) width / movie.width(), (float) height / movie.height());
+            Paint paint = new Paint(Paint.FILTER_BITMAP_FLAG);
+            int[] row = new int[width];
+            for (int i = 0; i < PROBE_SAMPLES; i++) {
+                int at = (int) ((long) duration * i / PROBE_SAMPLES);
+                frame.eraseColor(0x00000000);
+                movie.setTime(at);
+                movie.draw(canvas, 0f, 0f, paint);
+                for (int y = 0; y < height; y++) {
+                    frame.getPixels(row, 0, width, 0, y, width, 1);
+                    for (int x = 0; x < width; x++) {
+                        if ((row[x] >>> 24) != 0xFF) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        } catch (RuntimeException e) {
+            // Unsure: keeping the alpha channel costs resolution but never looks wrong.
+            return true;
+        } catch (OutOfMemoryError e) {
+            return true;
+        } finally {
+            if (frame != null) {
+                frame.recycle();
+            }
+        }
     }
 
     /** What one pass over an animation produced. */
@@ -244,19 +360,21 @@ final class PreparedImages {
      * for half a second becomes one frame lasting half a second — smaller on disk, and one read
      * rather than twelve when it plays.
      */
-    private static Walk walk(Movie movie, File temp, float scale) {
+    private static Walk walk(Movie movie, File temp, float scale, int format) {
         int duration = movie.duration();
         int width = Math.max(1, Math.round(movie.width() * scale));
         int height = Math.max(1, Math.round(movie.height() * scale));
-        long frameBytes = (long) width * height * FramePack.BYTES_PER_PIXEL;
+        long frameBytes = (long) width * height * FramePack.bytesPerPixel(format);
         int room = (int) Math.max(1, Math.min(MAX_FRAMES, BUDGET_BYTES / frameBytes));
+        boolean alpha = format == FramePack.WITH_ALPHA;
 
         Bitmap frame = null;
         OutputStream data = null;
         java.util.ArrayList<Integer> ends = new java.util.ArrayList<Integer>();
         boolean wholeThing = true;
         try {
-            frame = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+            frame = Bitmap.createBitmap(width, height,
+                    alpha ? Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565);
             Canvas canvas = new Canvas(frame);
             canvas.scale((float) width / movie.width(), (float) height / movie.height());
             Paint paint = new Paint(Paint.FILTER_BITMAP_FLAG);
@@ -265,7 +383,9 @@ final class PreparedImages {
             data = new BufferedOutputStream(new FileOutputStream(temp), 32 * 1024);
 
             for (int at = 0; at < duration; at += STEP_MS) {
-                frame.eraseColor(0xFF000000);
+                // An opaque pack has nothing behind it, so black is as good a floor as any; one
+                // that keeps its holes must start from nothing at all.
+                frame.eraseColor(alpha ? 0x00000000 : 0xFF000000);
                 movie.setTime(at);
                 movie.draw(canvas, 0f, 0f, paint);
                 buffer.rewind();
@@ -304,14 +424,16 @@ final class PreparedImages {
 
     /** A still is a pack of one frame: decoded once, at the size the screen can show, and no more. */
     private static boolean bakeStill(byte[] bytes, File temp, int screenEdge) {
-        Bitmap still = decodeStill(bytes, screenEdge);
+        boolean alpha = hasAlpha(bytes);
+        Bitmap still = decodeStill(bytes, screenEdge, alpha);
         if (still == null) {
             return false;
         }
+        int format = alpha ? FramePack.WITH_ALPHA : FramePack.OPAQUE;
         OutputStream data = null;
         try {
-            ByteBuffer buffer = ByteBuffer.allocate(
-                    still.getWidth() * still.getHeight() * FramePack.BYTES_PER_PIXEL);
+            ByteBuffer buffer = ByteBuffer.allocate(still.getWidth() * still.getHeight()
+                    * FramePack.bytesPerPixel(format));
             still.copyPixelsToBuffer(buffer);
             data = new BufferedOutputStream(new FileOutputStream(temp), 32 * 1024);
             data.write(buffer.array());
@@ -327,7 +449,7 @@ final class PreparedImages {
         }
         java.util.ArrayList<Integer> ends = new java.util.ArrayList<Integer>();
         ends.add(1);
-        boolean ok = finish(temp, still.getWidth(), still.getHeight(), ends);
+        boolean ok = finish(temp, still.getWidth(), still.getHeight(), format, ends);
         still.recycle();
         return ok;
     }
@@ -337,7 +459,7 @@ final class PreparedImages {
      * the frame times were known — they are only known once the walk is over — so the finished file
      * is the header followed by that data.
      */
-    private static boolean finish(File temp, int width, int height,
+    private static boolean finish(File temp, int width, int height, int format,
             java.util.List<Integer> ends) {
         int[] array = new int[ends.size()];
         for (int i = 0; i < array.length; i++) {
@@ -351,7 +473,7 @@ final class PreparedImages {
         java.io.InputStream in = null;
         try {
             out = new BufferedOutputStream(new FileOutputStream(temp), 32 * 1024);
-            out.write(FramePack.header(width, height, array));
+            out.write(FramePack.header(width, height, format, array));
             in = new java.io.BufferedInputStream(new java.io.FileInputStream(body), 32 * 1024);
             byte[] chunk = new byte[32 * 1024];
             int read;
@@ -372,20 +494,6 @@ final class PreparedImages {
             }
             body.delete();
         }
-    }
-
-    /**
-     * Whether the picture carries transparency, which the pack cannot hold.
-     *
-     * A GIF is asked in its own bytes, because the platform decoder will not say: on Android 4.4 a
-     * transparent GIF comes back from BitmapFactory composited onto black, reporting no alpha, and
-     * baking it would quietly fill the holes in. Everything else is asked the ordinary way.
-     */
-    private static boolean isTransparent(byte[] bytes) {
-        if (com.reteclock.core.GifInfo.isGif(bytes)) {
-            return com.reteclock.core.GifInfo.hasTransparency(bytes);
-        }
-        return hasAlpha(bytes);
     }
 
     /** Whether a decoded picture has an alpha channel, for the formats that report one. */
@@ -418,7 +526,7 @@ final class PreparedImages {
     }
 
     /** The still decode, downsampled so its longer edge is no larger than the screen's. */
-    private static Bitmap decodeStill(byte[] bytes, int screenEdge) {
+    private static Bitmap decodeStill(byte[] bytes, int screenEdge, boolean alpha) {
         try {
             BitmapFactory.Options bounds = new BitmapFactory.Options();
             bounds.inJustDecodeBounds = true;
@@ -428,17 +536,18 @@ final class PreparedImages {
             }
             BitmapFactory.Options options = new BitmapFactory.Options();
             options.inSampleSize = 1;
-            options.inPreferredConfig = Bitmap.Config.RGB_565;
+            options.inPreferredConfig = alpha ? Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565;
             int edge = Math.max(bounds.outWidth, bounds.outHeight);
             while (edge / options.inSampleSize > screenEdge) {
                 options.inSampleSize *= 2;
             }
             Bitmap decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, options);
-            if (decoded == null || decoded.getConfig() == Bitmap.Config.RGB_565) {
+            Bitmap.Config wanted = alpha ? Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565;
+            if (decoded == null || decoded.getConfig() == wanted) {
                 return decoded;
             }
             // A decoder that ignored the hint: copy into the format the pack stores.
-            Bitmap converted = decoded.copy(Bitmap.Config.RGB_565, false);
+            Bitmap converted = decoded.copy(wanted, false);
             decoded.recycle();
             return converted;
         } catch (RuntimeException e) {

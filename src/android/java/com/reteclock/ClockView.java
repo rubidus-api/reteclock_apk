@@ -17,7 +17,7 @@ import com.reteclock.core.BurnInShift;
 import com.reteclock.core.ClockLayout;
 import com.reteclock.core.ClockOptions;
 import com.reteclock.core.ClockText;
-import com.reteclock.core.FrameBudget;
+import com.reteclock.core.FramePacer;
 import com.reteclock.core.ImageFit;
 import com.reteclock.core.SafeStart;
 import com.reteclock.core.Slideshow;
@@ -40,6 +40,9 @@ public class ClockView extends View {
 
     /** How often an animated background redraws. GIFs rarely carry more frames than this. */
     private static final long ANIMATION_FRAME_MS = 40L;
+
+    /** For the few lines this class says out loud; `adb logcat -s reteclock` is the whole story. */
+    private static final String LOG = "reteclock";
 
     private static final Typeface SYSTEM_REGULAR = Typeface.create("sans-serif-light", Typeface.NORMAL);
     private static final Typeface SYSTEM_BOLD = Typeface.create("sans-serif", Typeface.BOLD);
@@ -123,15 +126,19 @@ public class ClockView extends View {
     private final boolean safeMode;
     /** When this run of the clock began, for the grace period the images wait out. */
     private long startedAtMs = Long.MIN_VALUE / 2L;
-    /** What the moving pictures are costing, and whether this device can afford them. */
-    private final FrameBudget frameBudget = new FrameBudget();
+    /** What the moving pictures are costing, and therefore how often to ask for the next frame. */
+    private final FramePacer pacer = new FramePacer();
     /**
-     * Whether the animations have been stood down for this run. The pictures stay, frozen at the
-     * frame they reached; what stops is the redrawing that was eating the whole UI thread.
+     * Whether the animations have been given up on for this run — only when even the slowest pace
+     * cannot be met. The pictures stay, frozen at the frame they reached; what stops is the
+     * redrawing. Short of that, a costly picture is slowed down rather than stopped.
      */
     private boolean heavy;
-    /** Whether the frozen text-fill frame has been rendered, so it is not rendered again. */
+    /** Whether the text fill has a frame yet, and which moment it holds if it was frozen. */
     private boolean foregroundDrawn;
+    private long lastForegroundMs;
+    /** The bitmap the shader was made over, so a new picture gets a new shader. */
+    private Bitmap foregroundShaderSource;
     /** The frame of the background animation drawn last, so freezing it keeps that frame. */
     private long lastFrameMs;
     /** The screen this device's prepared files were baked for; one pack serves both orientations. */
@@ -148,7 +155,7 @@ public class ClockView extends View {
             // second. The once-a-second tick also advances the slideshow, to within a second —
             // close enough for slides that hold for many.
             long delay = fastFrames(SystemClock.elapsedRealtime())
-                    ? ANIMATION_FRAME_MS
+                    ? pacer.delayMs()
                     : ClockText.millisToNextSecond(System.currentTimeMillis());
             handler.postDelayed(this, delay);
         }
@@ -242,6 +249,7 @@ public class ClockView extends View {
     /** Forgets everything derived from the current text-fill image. */
     private void dropForegroundShader() {
         foregroundShader = null;
+        foregroundShaderSource = null;
         foregroundFrame = null;
         foregroundFrameCanvas = null;
         foregroundDrawn = false;
@@ -262,15 +270,22 @@ public class ClockView extends View {
     /**
      * Whether the drawing still needs a software canvas.
      *
-     * Hardly ever, now. A background animation renders its frame into a small offscreen bitmap and
-     * that bitmap is blitted, so the view stays hardware-drawn; only a live Movie that could not
-     * get a buffer has to fall back to drawing itself onto the canvas, which a Movie can only do in
-     * software. The animated text fill keeps the layer for a different reason: its shader samples a
-     * bitmap rewritten every frame, and a hardware texture cache would be free to ignore that.
+     * Hardly ever, now. Both the background and the text fill render their frames into small
+     * offscreen bitmaps that are then blitted or sampled, so the view stays hardware-drawn; only a
+     * live Movie that could not get a buffer has to draw itself onto the canvas, which a Movie can
+     * only do in software.
+     *
+     * The text fill used to hold the whole view on a software layer to be sure its shader re-read
+     * the bitmap it samples. That cost every pixel of the screen, every frame, on the processor —
+     * on a tablet it was the single most expensive thing the app did. The shader now samples a
+     * bitmap whose contents change, which Android tracks by generation id and re-uploads; the
+     * screenshots on API 19 show the fill moving without the layer.
      */
     private boolean needsSoftwareLayer() {
-        return (slide != null && slide.needsSoftwareCanvas())
-                || (foreground != null && foreground.animated() && !heavy);
+        // The text fill is never a reason: whatever draws it is handed a canvas over a bitmap of
+        // ours, which a Movie is perfectly happy with. Only a background Movie left without a
+        // buffer ends up drawing onto the screen's own canvas, and only that needs the layer.
+        return slide != null && slide.needsSoftwareCanvas();
     }
 
     /** Whether a cross-fade is mid-flight. */
@@ -446,15 +461,15 @@ public class ClockView extends View {
         paint.setShader(null);
 
         if (timed) {
-            frameBudget.sample(SystemClock.elapsedRealtime() - began);
-            if (frameBudget.overloaded()) {
+            pacer.sample(SystemClock.elapsedRealtime() - began);
+            if (pacer.givenUp()) {
                 standDownAnimation();
             }
         }
     }
 
     /**
-     * Stops moving the pictures, because moving them costs more than this device can pay.
+     * Stops moving the pictures, because even the slowest pace costs more than this device can pay.
      *
      * The background is frozen at the frame it reached — rendered once into the screen-sized
      * bitmap a still slide would have used — and the text fill keeps whatever frame it is showing.
@@ -466,6 +481,10 @@ public class ClockView extends View {
             return;
         }
         heavy = true;
+        // Said out loud, because from the outside a stood-down animation and one that never
+        // started look identical, and that cost two rounds of guessing to tell apart.
+        android.util.Log.i(LOG, "animation stood down: frames cost more than "
+                + FramePacer.HOPELESS_MS + "ms each");
         if (slide != null && slide.animated()) {
             freezeSlide();
         }
@@ -519,6 +538,8 @@ public class ClockView extends View {
         // than waste: a multi-megabyte decode on the UI thread every play-through, which is what
         // made the clock stop answering. Start the same slide again instead.
         if (slideVisible && index == slideshow.index() && (slide != null || slideBitmap != null)) {
+            android.util.Log.d(LOG, "background show restarts slide " + index
+                    + " for " + slideDurationMs + "ms, pace " + pacer.delayMs() + "ms");
             slideshow.begin(index, slideDurationMs, nowMs);
             return;
         }
@@ -690,7 +711,13 @@ public class ClockView extends View {
             int at = (index + tried) % textSlides.size();
             BackgroundImage decoded = openSlide(textSlides.get(at));
             if (decoded != null) {
+                android.util.Log.d(LOG, "text fill takes slide " + at
+                        + ", animated=" + decoded.animated()
+                        + ", prepared frames=" + decoded.preparedFrames());
                 releaseForeground();
+                // Its own buffer, settled before anything is drawn — the same offscreen path the
+                // background takes, so a live Movie in the glyphs costs no more than in the sky.
+                decoded.prepareFrames(getWidth(), getHeight());
                 foreground = decoded;
                 dropForegroundShader();
                 textShow.begin(at,
@@ -721,27 +748,30 @@ public class ClockView extends View {
     private void updateForegroundShader(int w, int h, long frameMs) {
         boolean resized = w != foregroundForW || h != foregroundForH;
         if (foreground.animated()) {
-            if (foregroundFrame == null) {
-                try {
-                    foregroundFrame = Bitmap.createBitmap(foreground.width(), foreground.height(),
-                            Bitmap.Config.ARGB_8888);
-                } catch (OutOfMemoryError e) {
-                    // A frame too big for this device's heap means white text, not a dead clock.
+            // Stood down, the fill keeps the frame it has: one render, then left alone.
+            long at = heavy && foregroundDrawn ? lastForegroundMs : frameMs;
+            Bitmap source = foreground.frameBitmap(at);
+            if (source == null) {
+                // No buffer to render into: fall back to a frame of our own, which is also the
+                // only case where the view still needs a software layer.
+                source = ownForegroundFrame(frameMs);
+                if (source == null) {
                     foreground = null;
                     foregroundShader = null;
                     updateLayerType();
                     return;
                 }
-                foregroundFrameCanvas = new Canvas(foregroundFrame);
-                foregroundShader = new BitmapShader(foregroundFrame,
-                        Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
-                foregroundDrawn = false;
             }
-            // Stood down, the fill keeps the frame it has: one render, then left alone.
-            if (!heavy || !foregroundDrawn) {
-                foregroundFrame.eraseColor(Color.TRANSPARENT);
-                foreground.draw(foregroundFrameCanvas, frameMs, imagePaint);
-                foregroundDrawn = true;
+            lastForegroundMs = at;
+            foregroundDrawn = true;
+            if (foregroundShader == null || source != foregroundShaderSource) {
+                // One shader over the bitmap the picture keeps refilling. Its contents change
+                // under the shader, which Android tracks and re-uploads; what must not change is
+                // the bitmap object, or the shader would be sampling last slide's picture.
+                foregroundShaderSource = source;
+                foregroundShader = new BitmapShader(source,
+                        Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+                resized = true;
             }
         } else if (foregroundShader == null) {
             Bitmap source = foreground.still();
@@ -751,6 +781,7 @@ public class ClockView extends View {
                 updateLayerType();
                 return;
             }
+            foregroundShaderSource = source;
             foregroundShader = new BitmapShader(source,
                     Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
         }
@@ -767,6 +798,26 @@ public class ClockView extends View {
         }
     }
 
+    /**
+     * The last resort for an animated fill: a bitmap of our own for the picture to be drawn into.
+     * Only a live Movie that could not make its own buffer gets here, and that is the one case the
+     * software layer still exists for.
+     */
+    private Bitmap ownForegroundFrame(long frameMs) {
+        if (foregroundFrame == null) {
+            try {
+                foregroundFrame = Bitmap.createBitmap(foreground.width(), foreground.height(),
+                        Bitmap.Config.ARGB_8888);
+            } catch (OutOfMemoryError e) {
+                // A frame too big for this device's heap means white text, not a dead clock.
+                return null;
+            }
+            foregroundFrameCanvas = new Canvas(foregroundFrame);
+        }
+        foregroundFrame.eraseColor(Color.TRANSPARENT);
+        foreground.draw(foregroundFrameCanvas, frameMs, imagePaint);
+        return foregroundFrame;
+    }
 
     /**
      * Reads the chosen font. A file that is not a usable font leaves the system faces in place

@@ -1,0 +1,10 @@
+* Animated GIFs are prepared again, so they actually play. Nearly every GIF
+  marks unchanged pixels as transparent - that is how they are compressed - and
+  0.8 read that as a see-through picture and refused to prepare it, so most
+  animations fell back to the slow path and barely moved.
+* The image inside the digits no longer drags the whole screen onto the slow
+  drawing path. On a tablet that was the most expensive thing the app did.
+* A picture that costs more than full speed allows is now slowed down instead of
+  stopped, so it keeps moving on an old device rather than freezing.
+* Each prepared image says how many frames it holds and at what size, next to
+  what it takes on disk.

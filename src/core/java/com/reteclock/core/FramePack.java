@@ -9,18 +9,21 @@ package com.reteclock.core;
  * and scaling it to the screen in software twenty-five times a second, which a 2012 phone cannot
  * do while also answering a touch.
  *
- * Pixels are RGB_565: half the memory and half the bus traffic of ARGB, and a GIF has at most 256
- * colours to lose. Frames are stored at whatever size fits the budget — the hardware stretches them
- * to the screen when they are drawn, so a background never needs more pixels than the screen has.
+ * Pixels are RGB_565 where the picture is opaque — half the memory and half the bus traffic of
+ * ARGB, and a GIF has at most 256 colours to lose — and ARGB_8888 where it genuinely has holes, so
+ * the background colour the user chose still shows through them. Frames are stored at whatever size
+ * fits the budget; the hardware stretches them to the screen when they are drawn, so a background
+ * never needs more pixels than the screen has.
  *
  * <pre>
  *   0  'R' 'C' 'F' 'P'
- *   4  version (1)
- *   8  width
- *  12  height
- *  16  frameCount
- *  20  frameCount cumulative end times, in milliseconds
- *      frameCount frames of width*height*2 bytes
+ *   4  version (2)
+ *   8  pixel format (0 opaque / 1 with alpha)
+ *  12  width
+ *  16  height
+ *  20  frameCount
+ *  24  frameCount cumulative end times, in milliseconds
+ *      frameCount frames of width*height*bytesPerPixel
  * </pre>
  *
  * All integers are big-endian. This class is the arithmetic only — the reading and writing of
@@ -28,33 +31,43 @@ package com.reteclock.core;
  */
 public final class FramePack {
 
-    /** Two bytes a pixel, RGB_565. */
-    public static final int BYTES_PER_PIXEL = 2;
+    /** Pixels with no alpha channel: RGB_565, two bytes each. */
+    public static final int OPAQUE = 0;
+    /** Pixels that keep their holes: ARGB_8888, four bytes each. */
+    public static final int WITH_ALPHA = 1;
 
-    private static final int VERSION = 1;
-    private static final int FIXED_HEADER = 20;
+    private static final int VERSION = 2;
+    private static final int FIXED_HEADER = 24;
 
+    private final int format;
     private final int width;
     private final int height;
     private final int[] frameEnds;
 
-    private FramePack(int width, int height, int[] frameEnds) {
+    private FramePack(int format, int width, int height, int[] frameEnds) {
+        this.format = format;
         this.width = width;
         this.height = height;
         this.frameEnds = frameEnds;
     }
 
-    /** The header for a pack of these dimensions and these cumulative frame end times. */
-    public static byte[] header(int width, int height, int[] frameEnds) {
+    /** How many bytes one pixel takes in this format. */
+    public static int bytesPerPixel(int format) {
+        return format == WITH_ALPHA ? 4 : 2;
+    }
+
+    /** The header for a pack of this format and size, with these cumulative frame end times. */
+    public static byte[] header(int width, int height, int format, int[] frameEnds) {
         byte[] out = new byte[FIXED_HEADER + 4 * frameEnds.length];
         out[0] = 'R';
         out[1] = 'C';
         out[2] = 'F';
         out[3] = 'P';
         putInt(out, 4, VERSION);
-        putInt(out, 8, width);
-        putInt(out, 12, height);
-        putInt(out, 16, frameEnds.length);
+        putInt(out, 8, format);
+        putInt(out, 12, width);
+        putInt(out, 16, height);
+        putInt(out, 20, frameEnds.length);
         for (int i = 0; i < frameEnds.length; i++) {
             putInt(out, FIXED_HEADER + 4 * i, frameEnds[i]);
         }
@@ -75,10 +88,14 @@ public final class FramePack {
         if (getInt(bytes, 4) != VERSION) {
             return null;
         }
-        int width = getInt(bytes, 8);
-        int height = getInt(bytes, 12);
-        int count = getInt(bytes, 16);
+        int format = getInt(bytes, 8);
+        int width = getInt(bytes, 12);
+        int height = getInt(bytes, 16);
+        int count = getInt(bytes, 20);
         if (width <= 0 || height <= 0 || count <= 0) {
+            return null;
+        }
+        if (format != OPAQUE && format != WITH_ALPHA) {
             return null;
         }
         if (bytes.length < FIXED_HEADER + 4 * count) {
@@ -93,7 +110,7 @@ public final class FramePack {
             }
             previous = ends[i];
         }
-        return new FramePack(width, height, ends);
+        return new FramePack(format, width, height, ends);
     }
 
     /** How many bytes to read before the first frame's pixels begin. */
@@ -104,6 +121,11 @@ public final class FramePack {
     /** The fixed part of the header — enough to learn how long the whole header is. */
     public static int fixedHeaderBytes() {
         return FIXED_HEADER;
+    }
+
+    /** {@link #OPAQUE} or {@link #WITH_ALPHA}. */
+    public int format() {
+        return format;
     }
 
     public int width() {
@@ -133,7 +155,7 @@ public final class FramePack {
 
     /** One frame's pixels, in bytes. */
     public int frameBytes() {
-        return width * height * BYTES_PER_PIXEL;
+        return width * height * bytesPerPixel(format);
     }
 
     /** Where one frame's pixels begin in the file. */
@@ -165,26 +187,27 @@ public final class FramePack {
      * that for free when the frame is drawn. Otherwise the area is scaled down to fit and then
      * nudged until the rounded dimensions really do fit, so the caller can trust the answer.
      */
-    public static float planScale(int width, int height, int frames, long budgetBytes) {
+    public static float planScale(int width, int height, int frames, int format,
+            long budgetBytes) {
         if (width <= 0 || height <= 0 || frames <= 0 || budgetBytes <= 0) {
             return 1f;
         }
-        long needed = (long) width * (long) height * BYTES_PER_PIXEL * (long) frames;
+        long needed = (long) width * (long) height * bytesPerPixel(format) * (long) frames;
         if (needed <= budgetBytes) {
             return 1f;
         }
         float scale = (float) Math.sqrt((double) budgetBytes / (double) needed);
         // Rounding can push a hair over the budget; step down until it does not.
-        while (scale > 0.001f && bytesAt(width, height, frames, scale) > budgetBytes) {
+        while (scale > 0.001f && bytesAt(width, height, frames, format, scale) > budgetBytes) {
             scale *= 0.95f;
         }
         return Math.max(scale, 0.001f);
     }
 
-    private static long bytesAt(int width, int height, int frames, float scale) {
+    private static long bytesAt(int width, int height, int frames, int format, float scale) {
         long w = Math.max(1, Math.round(width * scale));
         long h = Math.max(1, Math.round(height * scale));
-        return w * h * BYTES_PER_PIXEL * frames;
+        return w * h * bytesPerPixel(format) * frames;
     }
 
     private static void putInt(byte[] out, int at, int value) {

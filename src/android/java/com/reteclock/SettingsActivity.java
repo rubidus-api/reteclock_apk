@@ -792,10 +792,16 @@ public class SettingsActivity extends Activity {
         if (role == ImageRoles.NONE) {
             return "";
         }
-        long bytes = PreparedImages.preparedBytes(this, imageName, PreparedImages.screenEdge(this));
-        return bytes > 0
-                ? getString(R.string.settings_image_ready, FontLibrary.humanBytes(bytes))
-                : getString(R.string.settings_image_live);
+        int edge = PreparedImages.screenEdge(this);
+        long bytes = PreparedImages.preparedBytes(this, imageName, edge);
+        if (bytes <= 0) {
+            return getString(R.string.settings_image_live);
+        }
+        String inside = PreparedImages.describe(PreparedImages.packFor(this, imageName, edge));
+        String size = FontLibrary.humanBytes(bytes);
+        return inside == null
+                ? getString(R.string.settings_image_ready, size)
+                : getString(R.string.settings_image_ready_detail, size, inside);
     }
 
     /** Ticking claims the role; un-ticking releases the image to held. Exclusivity is the core's. */

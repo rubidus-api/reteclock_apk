@@ -215,9 +215,40 @@ final class BackgroundImage {
         return true;
     }
 
-    /** Whether this picture must be drawn on a software canvas — only a live Movie without a buffer. */
+    /**
+     * Whether this picture must be drawn on a software canvas — only a live Movie that could not
+     * get an offscreen buffer, which is the one case where the Movie draws onto the canvas itself.
+     */
     boolean needsSoftwareCanvas() {
         return prepared == null && movie != null && frameBuffer == null;
+    }
+
+    /**
+     * The bitmap holding this moment's frame, for a caller that wants to sample it rather than
+     * have it drawn — the text fill, whose glyphs are a window onto the picture.
+     *
+     * The same bitmap object comes back every time and its contents change, so a shader made over
+     * it once stays correct. Null when there is no frame to be had, and for a still, which has
+     * {@link #still()} instead.
+     */
+    Bitmap frameBitmap(long frameMs) {
+        if (prepared != null) {
+            return prepared.frame(frameMs);
+        }
+        if (movie == null || frameBuffer == null) {
+            return null;
+        }
+        int duration = movie.duration();
+        int at = (int) Math.min(Math.max(frameMs, 0L), duration - 1L);
+        movie.setTime(at);
+        frameBuffer.eraseColor(0x00000000);
+        movie.draw(frameCanvas, 0f, 0f, null);
+        return frameBuffer;
+    }
+
+    /** How many frames a prepared picture holds; zero when it was not prepared. */
+    int preparedFrames() {
+        return prepared != null ? prepared.frameCount() : 0;
     }
 
     /** GIF87a or GIF89a, by the only part of the name that matters. */

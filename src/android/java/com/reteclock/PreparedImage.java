@@ -59,7 +59,9 @@ final class PreparedImage {
                 return null;
             }
             Bitmap frame = Bitmap.createBitmap(pack.width(), pack.height(),
-                    Bitmap.Config.RGB_565);
+                    pack.format() == FramePack.WITH_ALPHA
+                            ? Bitmap.Config.ARGB_8888
+                            : Bitmap.Config.RGB_565);
             return new PreparedImage(pack, file, frame);
         } catch (IOException e) {
             close(file);
@@ -75,8 +77,8 @@ final class PreparedImage {
 
     /** The frame count out of the fixed part of the header, without trusting the rest of it yet. */
     private static int readCount(byte[] fixed) {
-        return ((fixed[16] & 0xFF) << 24) | ((fixed[17] & 0xFF) << 16)
-                | ((fixed[18] & 0xFF) << 8) | (fixed[19] & 0xFF);
+        return ((fixed[20] & 0xFF) << 24) | ((fixed[21] & 0xFF) << 16)
+                | ((fixed[22] & 0xFF) << 8) | (fixed[23] & 0xFF);
     }
 
     boolean animated() {
@@ -94,6 +96,11 @@ final class PreparedImage {
 
     int height() {
         return pack.height();
+    }
+
+    /** How many frames it holds, and how large they are — what the settings screen reports. */
+    int frameCount() {
+        return pack.frameCount();
     }
 
     /**
