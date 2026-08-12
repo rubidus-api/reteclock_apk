@@ -36,4 +36,32 @@ public final class TimeReadout {
         }
         return out.append(value);
     }
+
+    /**
+     * The same time without the hundredths, and without the hour unless there is one.
+     *
+     * Three readouts share the width of the bar, and only the middle one — the one that is moving —
+     * is worth reading to a hundredth of a second. Writing the other two in full made all three
+     * small enough to be useless; written briefly, all three grow.
+     */
+    public static String brief(long ms) {
+        long safe = ms < 0L ? 0L : ms;
+        long seconds = safe / 1000L;
+        long hours = seconds / 3600L;
+        long minutes = (seconds / 60L) % 60L;
+        long rest = seconds % 60L;
+        StringBuilder out = new StringBuilder();
+        if (hours > 0L) {
+            out.append(hours).append(':');
+            if (minutes < 10L) {
+                out.append('0');
+            }
+        }
+        out.append(minutes).append(':');
+        if (rest < 10L) {
+            out.append('0');
+        }
+        out.append(rest);
+        return out.toString();
+    }
 }

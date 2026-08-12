@@ -1,7 +1,10 @@
 package com.reteclock;
 
 import android.content.Context;
+import android.content.Intent;
 import android.speech.tts.TextToSpeech;
+
+import com.reteclock.core.VoiceState;
 
 /**
  * The interval's message, spoken.
@@ -11,6 +14,11 @@ import android.speech.tts.TextToSpeech;
  * and nothing else; and because initialising takes a moment, a message asked for before the engine
  * is ready waits for it — but only briefly, since a message for an interval that has already ended
  * would be spoken over the next one.
+ *
+ * Three ways for an old phone to have no speech, and the awkward one is an engine with no voice
+ * data: it starts, it accepts the text, and nothing is said. The language is therefore checked as
+ * well as the initialisation, and what is learned is written down so the settings screen can tell
+ * the user rather than leaving them to wonder. See {@link VoiceState}.
  */
 final class TimerVoice {
 
@@ -53,6 +61,16 @@ final class TimerVoice {
                 public void onInit(int status) {
                     if (status != TextToSpeech.SUCCESS) {
                         broken = true;
+                        Settings.rememberVoice(context, VoiceState.INIT_FAILED,
+                                VoiceState.LANG_UNKNOWN);
+                        return;
+                    }
+                    // An engine can start and still have nothing to say it with; asking the
+                    // language is the only way to tell that apart from working speech.
+                    int language = language();
+                    Settings.rememberVoice(context, VoiceState.INIT_OK, language);
+                    if (language != VoiceState.LANG_OK) {
+                        broken = true;
                         return;
                     }
                     ready = true;
@@ -66,6 +84,36 @@ final class TimerVoice {
             });
         } catch (RuntimeException e) {
             broken = true;
+        }
+    }
+
+    /** What the engine says about the language it would speak in. */
+    private int language() {
+        try {
+            int result = engine.setLanguage(java.util.Locale.getDefault());
+            if (result == TextToSpeech.LANG_MISSING_DATA) {
+                return VoiceState.LANG_MISSING;
+            }
+            if (result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                return VoiceState.LANG_UNSUPPORTED;
+            }
+            return VoiceState.LANG_OK;
+        } catch (RuntimeException e) {
+            return VoiceState.LANG_UNSUPPORTED;
+        }
+    }
+
+    /**
+     * Whether any speech engine is installed at all, asked of the package manager so the answer
+     * needs no engine to be started and is available the moment the settings screen opens.
+     */
+    static boolean engineInstalled(Context context) {
+        try {
+            // The action's constant is API 14; the action itself is as old as speech on Android.
+            Intent intent = new Intent("android.intent.action.TTS_SERVICE");
+            return !context.getPackageManager().queryIntentServices(intent, 0).isEmpty();
+        } catch (RuntimeException e) {
+            return false;
         }
     }
 

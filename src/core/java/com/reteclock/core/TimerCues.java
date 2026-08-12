@@ -65,22 +65,47 @@ public final class TimerCues {
         if (run == null || run.isPaused() || toMs <= fromMs) {
             return out;
         }
-        // Unclamped at the bottom so a window opening before the run can catch its first cue, and
-        // clamped at the top so windows after the end have nothing left to find.
+        TimerPreset preset = run.preset();
+        long total = run.totalMs();
+        // Unclamped at the bottom so a window opening before the run can catch its first cue. A
+        // preset that runs once is clamped at its end; one that repeats is not, and its cues are
+        // laid out again for every pass the window touches.
         long from = run.rawElapsedAt(fromMs);
-        long to = Math.min(run.rawElapsedAt(toMs), run.totalMs());
+        long to = run.rawElapsedAt(toMs);
+        if (!preset.loops || total <= 0L) {
+            to = Math.min(to, total);
+        }
         if (to <= from) {
             return out;
         }
 
-        TimerPreset preset = run.preset();
-        // The preset's own beginning, counted in the same way an interval's end is.
-        add(out, from, to, new Cue(START, 0, 0L));
-        if (!preset.intervals.isEmpty() && !preset.intervals.get(0).message.isEmpty()) {
-            add(out, from, to, new Cue(SPEAK, 0, 0L));
+        long firstPass = preset.loops && total > 0L ? Math.max(0L, from / total) : 0L;
+        long lastPass = preset.loops && total > 0L ? to / total : 0L;
+        // A window that somehow spans a great many passes is walked only over its last few: the
+        // cues before those are long gone, and laying out thousands of them helps nobody.
+        firstPass = Math.max(firstPass, lastPass - MAX_PASSES_AT_ONCE);
+
+        for (long pass = firstPass; pass <= lastPass; pass++) {
+            layOut(out, preset, pass * total, from, to);
         }
 
-        long cursor = 0L;
+        sort(out);
+        return out;
+    }
+
+    /** How many passes of a repeating preset one window will lay out before giving up on the rest. */
+    private static final int MAX_PASSES_AT_ONCE = 4;
+
+    /** One pass of the preset, its cues offset to where that pass begins. */
+    private static void layOut(List<Cue> out, TimerPreset preset, long offset, long from,
+            long to) {
+        // The preset's own beginning, counted in the same way an interval's end is.
+        add(out, from, to, new Cue(START, 0, offset));
+        if (!preset.intervals.isEmpty() && !preset.intervals.get(0).message.isEmpty()) {
+            add(out, from, to, new Cue(SPEAK, 0, offset));
+        }
+
+        long cursor = offset;
         for (int i = 0; i < preset.intervals.size(); i++) {
             TimerInterval interval = preset.intervals.get(i);
             long end = cursor + interval.lengthMs;
@@ -105,7 +130,10 @@ public final class TimerCues {
             }
             cursor = end;
         }
+    }
 
+    /** In the order they should be played, and on the same instant the ending comes first. */
+    private static void sort(List<Cue> out) {
         Collections.sort(out, new Comparator<Cue>() {
             @Override
             public int compare(Cue a, Cue b) {
@@ -116,7 +144,6 @@ public final class TimerCues {
                 return a.kind - b.kind;
             }
         });
-        return out;
     }
 
     /**

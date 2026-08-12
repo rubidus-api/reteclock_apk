@@ -113,6 +113,11 @@ public class ClockActivity extends Activity {
      * changes and the strip has to change sides.
      */
     private void layOutScreen() {
+        // The strip is built afresh each time; the one being dropped must stop ticking, or it goes
+        // on sounding its own copy of the run in the background.
+        if (timer != null) {
+            timer.retire();
+        }
         root.removeAllViews();
         if (view.getParent() instanceof android.view.ViewGroup) {
             ((android.view.ViewGroup) view.getParent()).removeView(view);
@@ -138,8 +143,8 @@ public class ClockActivity extends Activity {
             timer.setPreset(chosen);
             // A timer started before the screen was left, or turned, carries on from where it is.
             timer.adopt(com.reteclock.core.TimerMemory.restore(chosen,
-                    Settings.runOrigin(this), Settings.runPausedAt(this),
-                    android.os.SystemClock.elapsedRealtime()));
+                    Settings.runPreset(this), Settings.runOrigin(this),
+                    Settings.runPausedAt(this), android.os.SystemClock.elapsedRealtime()));
 
             int strip = stripThickness(landscape);
             row.addView(timer, landscape
@@ -199,6 +204,8 @@ public class ClockActivity extends Activity {
                 Settings.forgetRun(ClockActivity.this);
             } else {
                 Settings.rememberRun(ClockActivity.this,
+                        com.reteclock.core.TimerMemory.identityOf(timer == null
+                                ? null : timer.preset()),
                         com.reteclock.core.TimerMemory.originOf(run,
                                 android.os.SystemClock.elapsedRealtime()),
                         com.reteclock.core.TimerMemory.pausedAtOf(run));

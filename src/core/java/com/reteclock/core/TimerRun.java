@@ -80,17 +80,40 @@ public final class TimerRun {
         return (isPaused() ? pausedAtMs : nowMs) - originMs;
     }
 
-    /** How far into the whole preset it is; never past the end, never before the beginning. */
+    /**
+     * How far into the preset's current pass it is: never before the beginning, and never past the
+     * end — unless the preset repeats, in which case the end is the beginning again.
+     */
     public long elapsedAt(long nowMs) {
-        long at = (isPaused() ? pausedAtMs : nowMs) - originMs;
+        long at = rawElapsedAt(nowMs);
         if (at < 0L) {
             return 0L;
         }
         long total = totalMs();
+        if (total <= 0L) {
+            return 0L;
+        }
+        if (preset.loops) {
+            return at % total;
+        }
         return at > total ? total : at;
     }
 
+    /** Which time round it is, counting from zero; always zero for a preset that runs once. */
+    public int cycleAt(long nowMs) {
+        long total = totalMs();
+        if (!preset.loops || total <= 0L) {
+            return 0;
+        }
+        long at = rawElapsedAt(nowMs);
+        return at < 0L ? 0 : (int) (at / total);
+    }
+
+    /** A repeating preset is never finished; that is the whole point of it. */
     public boolean finishedAt(long nowMs) {
+        if (preset.loops && totalMs() > 0L) {
+            return false;
+        }
         return elapsedAt(nowMs) >= totalMs();
     }
 

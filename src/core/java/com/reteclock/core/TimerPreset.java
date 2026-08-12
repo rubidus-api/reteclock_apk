@@ -14,7 +14,7 @@ import java.util.List;
  * against the awkward characters a person can actually type.
  *
  * <pre>
- *   preset  := name TAB interval (TAB interval)*
+ *   preset  := name '|' repeat TAB interval (TAB interval)*
  *   interval:= name | length | colour | endColour | message | preAlarm     (fields joined by '|')
  * </pre>
  *
@@ -28,8 +28,15 @@ public final class TimerPreset {
 
     public final String name;
     public final List<TimerInterval> intervals;
+    /** Whether it starts again the moment it ends, forever. */
+    public final boolean loops;
 
     public TimerPreset(String name, List<TimerInterval> intervals) {
+        this(name, intervals, false);
+    }
+
+    public TimerPreset(String name, List<TimerInterval> intervals, boolean loops) {
+        this.loops = loops;
         this.name = name == null ? "" : name;
         this.intervals = Collections.unmodifiableList(
                 new ArrayList<TimerInterval>(intervals == null
@@ -48,16 +55,24 @@ public final class TimerPreset {
 
     /** The same preset under another name. */
     public TimerPreset withName(String newName) {
-        return new TimerPreset(newName, intervals);
+        return new TimerPreset(newName, intervals, loops);
     }
 
     /** The same preset with this list of intervals instead. */
     public TimerPreset withIntervals(List<TimerInterval> newIntervals) {
-        return new TimerPreset(name, newIntervals);
+        return new TimerPreset(name, newIntervals, loops);
+    }
+
+    /** The same preset, told whether to start again when it ends. */
+    public TimerPreset withLoop(boolean newLoops) {
+        return new TimerPreset(name, intervals, newLoops);
     }
 
     public String toText() {
+        // The name's field carries the repeat flag after it, so a preset written before repeating
+        // existed still reads — its name simply has no flag, which means it does not repeat.
         StringBuilder out = new StringBuilder(escape(name));
+        out.append(FIELD).append(loops ? '1' : '0');
         for (TimerInterval interval : intervals) {
             out.append(PART);
             out.append(escape(interval.name)).append(FIELD);
@@ -76,7 +91,9 @@ public final class TimerPreset {
             return null;
         }
         List<String> parts = split(text, PART);
-        String name = unescape(parts.get(0));
+        List<String> head = split(parts.get(0), FIELD);
+        String name = unescape(head.get(0));
+        boolean loops = head.size() > 1 && "1".equals(head.get(1).trim());
         List<TimerInterval> intervals = new ArrayList<TimerInterval>();
         for (int i = 1; i < parts.size(); i++) {
             List<String> fields = split(parts.get(i), FIELD);
@@ -94,7 +111,7 @@ public final class TimerPreset {
         if (intervals.isEmpty() && name.isEmpty()) {
             return null;
         }
-        return new TimerPreset(name, intervals);
+        return new TimerPreset(name, intervals, loops);
     }
 
     private static long number(String text, long fallback) {

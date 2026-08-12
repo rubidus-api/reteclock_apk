@@ -24,6 +24,7 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.reteclock.core.TimeInput;
 import com.reteclock.core.TimerInterval;
 import com.reteclock.core.TimerPreset;
 import com.reteclock.core.TimeReadout;
@@ -44,6 +45,8 @@ public class TimerSettingsActivity extends Activity {
     private static final int TEXT_WHITE = 0xFFF2F2F2;
     private static final int TEXT_DIM = 0xFF9E9E9E;
     private static final int ACCENT = 0xFF4DB6AC;
+    /** For the one line that reports something this device cannot do. */
+    private static final int WARNING = 0xFFFFB300;
     private static final int CARD = 0xFF161616;
     private static final int CARD_STROKE = 0xFF262626;
     private static final int DIVIDER = 0xFF272727;
@@ -104,6 +107,19 @@ public class TimerSettingsActivity extends Activity {
         });
         using.addView(alert);
         using.addView(footer(getString(R.string.timer_alert_note)));
+
+        // Speech is the one thing an old phone may simply not have. Saying so here is the only way
+        // somebody who typed a message learns why it never sounds.
+        int voice = Settings.voiceSummary(this);
+        if (voice == com.reteclock.core.VoiceState.ABSENT
+                || voice == com.reteclock.core.VoiceState.NO_VOICE) {
+            TextView warning = footer(getString(
+                    voice == com.reteclock.core.VoiceState.ABSENT
+                            ? R.string.timer_no_speech
+                            : R.string.timer_no_voice));
+            warning.setTextColor(WARNING);
+            using.addView(warning);
+        }
         root.addView(using);
 
         // ---- The presets ----
@@ -254,6 +270,19 @@ public class TimerSettingsActivity extends Activity {
         block.setOrientation(LinearLayout.VERTICAL);
         block.setPadding(dp(14), 0, 0, dp(6));
 
+        // Whether this preset starts again the moment it ends. It belongs to the preset rather
+        // than to the timer as a whole, so a pomodoro can go round all afternoon while the tea
+        // beside it rings once and stops.
+        block.addView(actionButton(getString(preset.loops
+                        ? R.string.timer_repeat_on : R.string.timer_repeat_off),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        presets.set(presetIndex, preset.withLoop(!preset.loops));
+                        save();
+                    }
+                }));
+
         for (int i = 0; i < preset.intervals.size(); i++) {
             block.addView(intervalRow(presetIndex, i));
         }
@@ -358,14 +387,12 @@ public class TimerSettingsActivity extends Activity {
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        askForText(getString(R.string.timer_interval_length_ask),
-                                String.valueOf(interval.lengthMs / 1000L), true, new OnText() {
-                                    @Override
-                                    public void got(String text) {
-                                        replace(presetIndex, index,
-                                                interval.withLength(seconds(text) * 1000L));
-                                    }
-                                });
+                        askForLength(interval.lengthMs, new OnLength() {
+                            @Override
+                            public void got(long lengthMs) {
+                                replace(presetIndex, index, interval.withLength(lengthMs));
+                            }
+                        });
                     }
                 }));
         bottom.addView(smallButton(getString(R.string.timer_interval_message),
@@ -438,6 +465,81 @@ public class TimerSettingsActivity extends Activity {
 
     private interface OnColor {
         void got(int color);
+    }
+
+    private interface OnLength {
+        void got(long lengthMs);
+    }
+
+    /**
+     * How long, asked for in the units people think in.
+     *
+     * A single box wanting seconds is arithmetic homework — twenty-five minutes is 1500 — and
+     * getting it wrong by a factor of sixty is silent. Four boxes, filled in from what the interval
+     * already is, and anything odd typed into one of them is read leniently rather than refused.
+     */
+    private void askForLength(long current, final OnLength then) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        int pad = dp(10);
+        row.setPadding(pad, pad, pad, 0);
+
+        final EditText hours = numberField(TimeInput.hoursOf(current), R.string.timer_unit_hours);
+        final EditText minutes =
+                numberField(TimeInput.minutesOf(current), R.string.timer_unit_minutes);
+        final EditText seconds =
+                numberField(TimeInput.secondsOf(current), R.string.timer_unit_seconds);
+        final EditText millis = numberField(TimeInput.millisOf(current), R.string.timer_unit_millis);
+        for (EditText field : new EditText[] {hours, minutes, seconds, millis}) {
+            row.addView(labelled(field));
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.timer_interval_length_ask)
+                .setView(row)
+                .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        then.got(TimeInput.msOf(
+                                TimeInput.number(hours.getText().toString(), 0),
+                                TimeInput.number(minutes.getText().toString(), 0),
+                                TimeInput.number(seconds.getText().toString(), 0),
+                                TimeInput.number(millis.getText().toString(), 0)));
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    /** One numeric box of the length dialog, carrying the unit it stands for. */
+    private EditText numberField(int value, int unit) {
+        EditText field = new EditText(this);
+        field.setText(String.valueOf(value));
+        field.setInputType(InputType.TYPE_CLASS_NUMBER);
+        field.setSingleLine(true);
+        field.setGravity(Gravity.CENTER);
+        field.setTag(getString(unit));
+        field.setSelectAllOnFocus(true);
+        return field;
+    }
+
+    /** The box with its unit written under it, so nobody has to guess which is which. */
+    private View labelled(EditText field) {
+        LinearLayout column = new LinearLayout(this);
+        column.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        params.rightMargin = dp(4);
+        column.setLayoutParams(params);
+        column.addView(field);
+
+        TextView unit = new TextView(this);
+        unit.setText(String.valueOf(field.getTag()));
+        unit.setTextColor(TEXT_DIM);
+        unit.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f);
+        unit.setGravity(Gravity.CENTER);
+        column.addView(unit);
+        return column;
     }
 
     private void askForText(String title, String current, boolean numeric, final OnText then) {

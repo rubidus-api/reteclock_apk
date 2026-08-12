@@ -3,28 +3,36 @@ package com.reteclock.core;
 /**
  * Where everything in the timer strip sits.
  *
- * The strip is one shape used twice: in landscape it runs up the left of the screen with its
- * controls at the bottom; in portrait it runs across the top with its controls at the right.
+ * The strip is one shape used twice: in landscape it runs up the left of the screen, in portrait
+ * across the top. Everything is measured along a single axis — {@code along} — whose zero is where
+ * the bar starts filling: the bottom of the screen in landscape, the left in portrait. The view
+ * maps that to y counting upwards, or to x counting rightwards.
  *
- * Rather than write that twice, everything is measured along a single axis — {@code along} — whose
- * zero is where the bar starts filling: the bottom of the screen in landscape, the left in
- * portrait. The view maps that to y counting upwards, or to x counting rightwards. The arithmetic
- * cannot then drift between the two orientations, because there is only one of it.
- *
- * The hourglass is the outermost control in both: lowest in landscape, rightmost in portrait, with
- * stop, pause and play following it inwards. All values are pixels within the strip.
+ * **Both orientations read the same way**, which is what the owner asked for after seeing them
+ * side by side: from the near end, the bar, then play, pause, stop and the hourglass. So there is
+ * no orientation branch here at all — one set of numbers, mapped twice, which is also why they
+ * cannot drift apart. All values are pixels within the strip.
  */
 public final class TimerBar {
 
-    /** Hourglass, stop, pause, play — in the order they are laid out from the near end. */
-    public static final int CONTROL_HOURGLASS = 0;
-    public static final int CONTROL_STOP = 1;
-    public static final int CONTROL_PAUSE = 2;
-    public static final int CONTROL_PLAY = 3;
+    /**
+     * Play, pause, stop, hourglass — in the order they are laid out beyond the bar, play nearest
+     * to it and the hourglass at the far end.
+     */
+    public static final int CONTROL_PLAY = 0;
+    public static final int CONTROL_PAUSE = 1;
+    public static final int CONTROL_STOP = 2;
+    public static final int CONTROL_HOURGLASS = 3;
     private static final int CONTROLS = 4;
 
-    /** How much of the strip's breadth the bar itself occupies; the rest is where text sits. */
-    private static final float BAR_SHARE = 0.34f;
+    /**
+     * How much of the strip's breadth the bar occupies.
+     *
+     * Most of it, because the readouts are written *inside* the bar rather than beside it. Text in
+     * a lane alongside was the first arrangement, and it was forever either touching the bar or
+     * running off the end of the strip; inside, it cannot do either.
+     */
+    private static final float BAR_SHARE = 0.66f;
     /**
      * How much of the strip's *length* the four controls may take between them.
      *
@@ -35,6 +43,11 @@ public final class TimerBar {
     private static final float CONTROLS_SHARE = 0.32f;
     /** Keeps the moving readout from hanging off either end. */
     private static final float RIDING_INSET = 0.06f;
+    /** How wide a digit is, as a fraction of the text size, in the font the clock draws with. */
+    private static final float DIGIT_WIDTH = 0.55f;
+
+    /** How much of the bar's thickness the text fills; the rest is the air around it. */
+    private static final float TEXT_SHARE = 0.62f;
 
     private final float length;
     private final float breadth;
@@ -76,13 +89,60 @@ public final class TimerBar {
         return breadth * BAR_SHARE;
     }
 
-    /** The middle of one control, along the strip. */
+    /** How broad the strip is, across the bar. */
+    public float breadth() {
+        return breadth;
+    }
+
+    /**
+     * The bar's band across the strip: near edge and far edge, with the band centred.
+     *
+     * "Near" is the side the moving readout rides on, "far" the side the fixed two are written on.
+     * Everything is expressed here so that nothing has to guess an offset — the readouts used to be
+     * placed by adding a fraction of the text size to the middle, which put them over the bar on
+     * one screen and off the end of the strip on another.
+     */
+    public float barNear() {
+        return (breadth - thickness()) / 2f;
+    }
+
+    public float barFar() {
+        return (breadth + thickness()) / 2f;
+    }
+
+    /** The middle of the bar, across it — where the readouts are written. */
+    public float barMiddle() {
+        return breadth / 2f;
+    }
+
+    /** The middle of the bar along its length, where the elapsed time is written. */
+    public float midAt() {
+        return (barStart() + barEnd()) / 2f;
+    }
+
+    /**
+     * How large the readouts are: they sit inside the bar, so its thickness is the ceiling — and
+     * three of them have to fit along it side by side, which on a short bar is the tighter limit.
+     */
+    public float textSize(int characters) {
+        float byThickness = thickness() * TEXT_SHARE;
+        int chars = characters < 1 ? 1 : characters;
+        // A digit is about 0.55 of the text size wide, and a tenth of the bar is left as air
+        // between the readouts. Counting the characters actually being drawn rather than assuming
+        // the longest possible ones is what keeps the text large on a short bar.
+        float byLength = (barEnd() - barStart()) * 0.9f / (chars * DIGIT_WIDTH);
+        return Math.min(byThickness, byLength);
+    }
+
+    /** The size for the widest case: three readouts written in full. */
+    public float textSize() {
+        return textSize(30);
+    }
+
+    /** The middle of one control, along the strip: play nearest the bar, the hourglass furthest. */
     public float controlCenter(int index) {
         int at = index < 0 ? 0 : index >= CONTROLS ? CONTROLS - 1 : index;
-        float center = controlSize * (at + 0.5f);
-        // Landscape counts up from the bottom, where the controls are; portrait counts in from the
-        // right, where they are instead.
-        return horizontal ? length - center : center;
+        return length - controlSize * (CONTROLS - at - 0.5f);
     }
 
     /** Which control a touch at this point along the strip is on, or -1 for none. */
@@ -95,17 +155,14 @@ public final class TimerBar {
         return -1;
     }
 
-    /** Where the bar begins: the empty end, from which it fills. */
+    /** Where the bar begins: the near end — the bottom in landscape, the left in portrait. */
     public float barStart() {
-        // Landscape: above the controls. Portrait: hard against the left edge.
-        return horizontal ? 0f : controlSize * CONTROLS;
+        return 0f;
     }
 
-    /** Where the bar ends: the full end, beside which the remaining time is written. */
+    /** Where the bar ends: short of the controls, beside which the remaining time is written. */
     public float barEnd() {
-        // Landscape: the top of the screen. Portrait: short of the controls on the right.
-        float end = horizontal ? length - controlSize * CONTROLS : length;
-        return Math.max(end, barStart());
+        return Math.max(length - controlSize * CONTROLS, 0f);
     }
 
     /** How far along the bar a progress of 0..1 reaches. */

@@ -46,6 +46,9 @@ public final class Settings {
     public static final String KEY_STAY_UNLOCKED = "stay_unlocked";
     public static final String KEY_RUN_ORIGIN = "timer_run_origin";
     public static final String KEY_RUN_PAUSED_AT = "timer_run_paused_at";
+    public static final String KEY_RUN_PRESET = "timer_run_preset";
+    public static final String KEY_VOICE_INIT = "voice_init";
+    public static final String KEY_VOICE_LANG = "voice_lang";
 
     /** How the timer makes itself heard. */
     public static final int ALERT_SOUND = 0;
@@ -402,8 +405,10 @@ public final class Settings {
      * The running timer, as three numbers, so it survives leaving the clock and coming back — and
      * so the screensaver can show what the clock started. See {@link com.reteclock.core.TimerMemory}.
      */
-    public static void rememberRun(Context context, long originMs, long pausedAtMs) {
+    public static void rememberRun(Context context, String identity, long originMs,
+            long pausedAtMs) {
         prefs(context).edit()
+                .putString(KEY_RUN_PRESET, identity)
                 .putLong(KEY_RUN_ORIGIN, originMs)
                 .putLong(KEY_RUN_PAUSED_AT, pausedAtMs)
                 .commit();
@@ -412,6 +417,7 @@ public final class Settings {
     public static void forgetRun(Context context) {
         prefs(context).edit()
                 .putLong(KEY_RUN_ORIGIN, com.reteclock.core.TimerMemory.NONE)
+                .putString(KEY_RUN_PRESET, "")
                 .commit();
     }
 
@@ -419,8 +425,33 @@ public final class Settings {
         return prefs(context).getLong(KEY_RUN_ORIGIN, com.reteclock.core.TimerMemory.NONE);
     }
 
+    /** Which preset the stored run belongs to; a run is only taken up by that same preset. */
+    public static String runPreset(Context context) {
+        return prefs(context).getString(KEY_RUN_PRESET, "");
+    }
+
     public static long runPausedAt(Context context) {
         return prefs(context).getLong(KEY_RUN_PAUSED_AT, -1L);
+    }
+
+    /**
+     * What the speech engine turned out to be capable of, learned the last time one was started.
+     *
+     * Written by the timer's voice and read by the settings screen, which is the only place that
+     * can tell the user their typed message will never be heard on this device.
+     */
+    public static void rememberVoice(Context context, int init, int language) {
+        prefs(context).edit()
+                .putInt(KEY_VOICE_INIT, init)
+                .putInt(KEY_VOICE_LANG, language)
+                .commit();
+    }
+
+    /** {@link com.reteclock.core.VoiceState}'s summary for this device. */
+    public static int voiceSummary(Context context) {
+        return com.reteclock.core.VoiceState.summary(TimerVoice.engineInstalled(context),
+                prefs(context).getInt(KEY_VOICE_INIT, com.reteclock.core.VoiceState.INIT_UNKNOWN),
+                prefs(context).getInt(KEY_VOICE_LANG, com.reteclock.core.VoiceState.LANG_UNKNOWN));
     }
 
     /** Sound, vibrate or silent — one setting covering every noise the timer makes. */

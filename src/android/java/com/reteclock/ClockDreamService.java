@@ -76,7 +76,7 @@ public class ClockDreamService extends DreamService {
         if (presets.isEmpty()) {
             return null;
         }
-        return TimerMemory.restore(presets.get(Settings.timerChosen(this)),
+        return TimerMemory.restore(presets.get(Settings.timerChosen(this)), Settings.runPreset(this),
                 Settings.runOrigin(this), Settings.runPausedAt(this),
                 android.os.SystemClock.elapsedRealtime());
     }
@@ -102,6 +102,7 @@ public class ClockDreamService extends DreamService {
                 Settings.forgetRun(ClockDreamService.this);
             } else {
                 Settings.rememberRun(ClockDreamService.this,
+                        TimerMemory.identityOf(timer == null ? null : timer.preset()),
                         TimerMemory.originOf(run, android.os.SystemClock.elapsedRealtime()),
                         TimerMemory.pausedAtOf(run));
             }

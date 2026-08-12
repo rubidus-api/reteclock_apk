@@ -41,6 +41,7 @@ public class TimerView extends View {
     private static final int CONTROL = 0xFF9E9E9E;
 
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint.FontMetrics metrics = new Paint.FontMetrics();
     private final Path path = new Path();
     private final Handler handler = new Handler();
     private final FramePacer pacer = new FramePacer();
@@ -160,6 +161,26 @@ public class TimerView extends View {
         invalidate();
     }
 
+    /**
+     * Stops for good: no more ticks, no more sounds, and nothing said to the listener.
+     *
+     * The screen builds a fresh strip whenever it is turned or returned to, and the one it drops
+     * used to carry on ticking in the background — still holding its own run, still sounding it
+     * through the listener it shares with the live one. That is why a stopped timer went on
+     * beeping at times that made no sense. A view that leaves the window now falls silent.
+     */
+    void retire() {
+        running = false;
+        handler.removeCallbacks(tick);
+        listener = null;
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        retire();
+    }
+
     /** Starts the redraws, if they are not already going. */
     private void begin() {
         if (!running) {
@@ -272,92 +293,75 @@ public class TimerView extends View {
 
     /** One rectangle of the bar, from one point along the strip to another. */
     private void rect(Canvas canvas, float fromAlong, float toAlong) {
-        float thickness = bar.thickness();
         if (horizontal) {
-            float top = (getHeight() - thickness) / 2f;
-            canvas.drawRect(fromAlong, top, toAlong, top + thickness, paint);
+            canvas.drawRect(fromAlong, bar.barNear(), toAlong, bar.barFar(), paint);
         } else {
             // Landscape counts upwards from the bottom of the screen.
-            float left = (getWidth() - thickness) / 2f;
-            canvas.drawRect(left, getHeight() - toAlong, left + thickness,
+            canvas.drawRect(bar.barNear(), getHeight() - toAlong, bar.barFar(),
                     getHeight() - fromAlong, paint);
         }
     }
 
     /**
-     * The three times: the whole preset at the empty end, what is left at the full end, and how far
-     * into this interval we are, riding on the edge between them.
+     * The three times, written inside the bar: the whole length at the left, how much has gone in
+     * the middle, and what is left at the right — left, middle and right along the bar, whichever
+     * way up the strip is.
      *
-     * In landscape they are turned ninety degrees and read up the bar; in portrait they are
-     * upright. Nothing else about them differs, which is why the positions come from one place.
+     * They sit in the bar rather than beside it because beside it they were forever either touching
+     * the bar or being clipped by the end of the strip. Inside, each is outlined in the bar's own
+     * dark so it stays readable over the fill, whatever colour the interval has reached.
      */
     private void drawReadouts(Canvas canvas, long now, float progress) {
-        float size = Math.min(bar.thickness() * 0.62f, textCeiling());
-        paint.setTextSize(size);
-        paint.setColor(TEXT);
-
         long total = run == null
                 ? (preset == null ? 0L : preset.totalMs())
                 : run.totalMs();
-        long into = run == null ? 0L : run.elapsedInIntervalAt(now);
-        long left = run == null
-                ? (preset == null || preset.intervals.isEmpty()
-                        ? 0L : preset.intervals.get(0).lengthMs)
-                : run.remainingInIntervalAt(now);
+        long gone = run == null ? 0L : run.elapsedAt(now);
+        long left = total - gone;
 
-        // The total sits on the far side of the bar, the remaining on the far side too but at the
-        // other end, and the elapsed on the near side where the fill edge is.
-        text(canvas, TimeReadout.of(total), bar.totalAt(), true, Paint.Align.LEFT);
-        text(canvas, TimeReadout.of(left), bar.remainingAt(), true, Paint.Align.RIGHT);
+        String whole = TimeReadout.brief(total);
+        String elapsed = TimeReadout.of(gone);
+        String remaining = TimeReadout.brief(left);
+        // Sized from what is actually being written, so short times are drawn large.
+        paint.setTextSize(bar.textSize(whole.length() + elapsed.length() + remaining.length()));
 
-        // The riding readout is centred on the fill's edge, so half of it can hang off the end of
-        // the strip when the edge is near one. The geometry cannot know how wide the text is; this
-        // does, so the clamping belongs here.
-        String elapsed = TimeReadout.of(into);
-        float half = paint.measureText(elapsed) / 2f;
-        float ride = bar.elapsedAt(progress);
-        float low = bar.barStart() + half;
-        float high = bar.barEnd() - half;
-        if (low <= high) {
-            ride = ride < low ? low : ride > high ? high : ride;
-        }
-        text(canvas, elapsed, ride, false, Paint.Align.CENTER);
-    }
-
-    /** How large the readouts may be before they would not fit across the strip. */
-    private float textCeiling() {
-        float breadth = horizontal ? getHeight() : getWidth();
-        return breadth * 0.30f;
+        text(canvas, whole, bar.totalAt(), bar.barMiddle(), Paint.Align.LEFT);
+        text(canvas, elapsed, bar.midAt(), bar.barMiddle(), Paint.Align.CENTER);
+        text(canvas, remaining, bar.remainingAt(), bar.barMiddle(), Paint.Align.RIGHT);
     }
 
     /**
-     * One readout beside the bar. {@code farSide} puts it on the side away from the bar's centre;
-     * in landscape everything is drawn turned, which is one save-rotate-restore rather than a
-     * different code path.
+     * One readout, at {@code along} the strip and centred on the lane {@code across} it.
+     *
+     * The baseline comes from the font's own metrics rather than from a guessed fraction of the
+     * text size, so the line really is centred in its lane and cannot creep over the bar or off the
+     * edge. In landscape the whole thing is turned a quarter turn, which is one rotate rather than
+     * a second code path.
      */
-    private void text(Canvas canvas, String value, float along, boolean farSide,
-            Paint.Align align) {
+    private void text(Canvas canvas, String value, float along, float across, Paint.Align align) {
         paint.setTextAlign(align);
-        float offset = bar.thickness() * 0.5f + paint.getTextSize() * 0.85f;
+        paint.getFontMetrics(metrics);
+        float baseline = -(metrics.ascent + metrics.descent) / 2f;
+        // A little air at the ends so a left- or right-aligned readout does not touch the edge.
+        float inset = bar.textSize() * 0.25f;
+        float at = align == Paint.Align.LEFT ? along + inset
+                : align == Paint.Align.RIGHT ? along - inset
+                : along;
+
         canvas.save();
-        if (horizontal) {
-            float y = (getHeight() + bar.thickness()) / 2f
-                    + (farSide ? offset : -offset + paint.getTextSize() * 0.2f);
-            float x = along;
-            if (align == Paint.Align.LEFT) {
-                x += paint.getTextSize() * 0.2f;
-            } else if (align == Paint.Align.RIGHT) {
-                x -= paint.getTextSize() * 0.2f;
-            }
-            canvas.drawText(value, x, y, paint);
-        } else {
-            // Turned a quarter turn, reading up the bar, on whichever side was asked for.
-            float x = (getWidth() + bar.thickness()) / 2f
-                    + (farSide ? offset : -offset + paint.getTextSize() * 0.2f);
-            float y = getHeight() - along;
-            canvas.rotate(-90f, x, y);
-            canvas.drawText(value, x, y, paint);
+        if (!horizontal) {
+            // Landscape: along counts up from the bottom, across from the left.
+            canvas.rotate(-90f, across, getHeight() - at);
         }
+        float x = horizontal ? at : across;
+        float y = (horizontal ? across : getHeight() - at) + baseline;
+        // Outlined, so it reads over the track and over the fill alike.
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(Math.max(1f, bar.textSize() * 0.12f));
+        paint.setColor(TRACK);
+        canvas.drawText(value, x, y, paint);
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(TEXT);
+        canvas.drawText(value, x, y, paint);
         canvas.restore();
         paint.setTextAlign(Paint.Align.CENTER);
     }
@@ -367,8 +371,9 @@ public class TimerView extends View {
         float size = Math.min(bar.thickness() * 1.1f, shortEdge() * 0.7f);
         for (int i = 0; i < bar.controlCount(); i++) {
             float along = bar.controlCenter(i);
-            float cx = horizontal ? along : getWidth() / 2f;
-            float cy = horizontal ? getHeight() / 2f : getHeight() - along;
+            float middle = (bar.barNear() + bar.barFar()) / 2f;
+            float cx = horizontal ? along : middle;
+            float cy = horizontal ? middle : getHeight() - along;
             boolean lit = i == TimerBar.CONTROL_PLAY ? !isRunning()
                     : i == TimerBar.CONTROL_PAUSE ? isRunning()
                     : true;

@@ -50,6 +50,27 @@ public final class TimerMemory {
      * @param pausedAtMs what {@link #pausedAtOf} wrote
      * @param nowMs the current `elapsedRealtime`
      */
+    /**
+     * A short name for a preset, stored beside a run so it can be told whose it was.
+     *
+     * Presets have no identifiers — they are a list the user edits — so this stands in for one: the
+     * name and the total length. Change either, or pick a different preset, and the stored run no
+     * longer matches and is not taken up. Without this a run stored from one preset was restored
+     * against whichever preset happened to be chosen later, and rang at times belonging to neither.
+     */
+    public static String identityOf(TimerPreset preset) {
+        return preset == null ? "" : preset.totalMs() + ":" + preset.name;
+    }
+
+    /** The stored run, but only if it belongs to this preset. */
+    public static TimerRun restore(TimerPreset preset, String identity, long originMs,
+            long pausedAtMs, long nowMs) {
+        if (!identityOf(preset).equals(identity == null ? "" : identity)) {
+            return null;
+        }
+        return restore(preset, originMs, pausedAtMs, nowMs);
+    }
+
     public static TimerRun restore(TimerPreset preset, long originMs, long pausedAtMs,
             long nowMs) {
         if (preset == null || originMs == NONE) {
