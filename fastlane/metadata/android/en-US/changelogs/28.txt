@@ -1,0 +1,5 @@
+* The timer's strip is half as thick, and the bar, the controls and the numbers
+  on it shrank with it.
+* Your background now runs behind the strip: a picture or a GIF fills the whole
+  screen instead of being cut in two by it.
+* The timer's controls take the clock's own text colour.

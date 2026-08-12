@@ -39,6 +39,8 @@ public class TimerView extends View {
     private static final int TRACK = 0xFF262626;
     private static final int TEXT = 0xFFF2F2F2;
     private static final int CONTROL = 0xFF9E9E9E;
+    /** How much of its colour a control keeps when it has nothing to do. */
+    private static final int DIM_ALPHA = 0x66;
 
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint.FontMetrics metrics = new Paint.FontMetrics();
@@ -53,6 +55,8 @@ public class TimerView extends View {
     private boolean running;
     /** Showing the hourglass alone, with the clock having the rest of the screen back. */
     private boolean hidden;
+    /** The clock's text colour, which the controls are drawn in. */
+    private int chromeControl = CONTROL;
     /** Settled by {@link #settleReadouts()}; never recomputed while drawing. */
     private float readoutSize;
     private float readoutMiddle;
@@ -94,6 +98,18 @@ public class TimerView extends View {
      * A timer that is not being watched still runs: the beeps and the speech carry on, and the
      * hourglass is where they are called back from. Hiding is about the screen, not the clock.
      */
+    /**
+     * The colour the clock draws its text in, which the strip's controls take too.
+     *
+     * The strip paints no background of its own: the clock is laid out behind it at full size, so
+     * whatever is back there — a colour or a picture — runs under the strip and the screen stays
+     * one image instead of two.
+     */
+    void setChrome(int control) {
+        chromeControl = control;
+        invalidate();
+    }
+
     void setHidden(boolean hide) {
         hidden = hide;
         invalidate();
@@ -491,7 +507,7 @@ public class TimerView extends View {
             return;
         }
         paint.setStyle(Paint.Style.FILL);
-        paint.setColor(CONTROL);
+        paint.setColor(chromeControl);
         float size = Math.min(bar.thickness() * 1.1f, shortEdge() * 0.7f);
         float along = bar.controlCenter(TimerBar.CONTROL_HOURGLASS);
         float middle = (bar.barNear() + bar.barFar()) / 2f;
@@ -505,6 +521,11 @@ public class TimerView extends View {
         canvas.restore();
     }
 
+    /** The same colour, faded, for a control there is nothing to do with just now. */
+    private static int dimmed(int color) {
+        return (color & 0x00FFFFFF) | (DIM_ALPHA << 24);
+    }
+
     private void drawControls(Canvas canvas) {
         float size = Math.min(bar.thickness() * 1.1f, shortEdge() * 0.7f);
         for (int i = 0; i < bar.controlCount(); i++) {
@@ -515,7 +536,7 @@ public class TimerView extends View {
             boolean lit = i == TimerBar.CONTROL_PLAY ? !isRunning()
                     : i == TimerBar.CONTROL_PAUSE ? isRunning()
                     : true;
-            paint.setColor(lit ? CONTROL : 0xFF4A4A4A);
+            paint.setColor(lit ? chromeControl : dimmed(chromeControl));
             // In landscape the strip is turned, so the glyphs are turned with it: play points the
             // way the bar fills — upwards — rather than off to the side.
             canvas.save();

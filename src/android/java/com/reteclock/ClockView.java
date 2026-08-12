@@ -139,6 +139,18 @@ public class ClockView extends View {
     private long lastForegroundMs;
     /** The bitmap the shader was made over, so a new picture gets a new shader. */
     private Bitmap foregroundShaderSource;
+    /**
+     * How much of the view the timer's strip covers, on the left in landscape and at the top in
+     * portrait.
+     *
+     * The clock draws its background across the whole view — so a picture runs behind the strip and
+     * the screen is one image rather than two — and lays its text out inside what is left. Keeping
+     * these apart is the whole trick: the picture does not care about the strip, and the digits
+     * must not sit under it.
+     */
+    private int insetLeft;
+    private int insetTop;
+
     /** The frame of the background animation drawn last, so freezing it keeps that frame. */
     private long lastFrameMs;
     /** The screen this device's prepared files were baked for; one pack serves both orientations. */
@@ -355,9 +367,22 @@ public class ClockView extends View {
      * field's own font — and it is why the draw path does none of that. Called when the screen size
      * changes and when the settings do, which is the only time any of it can change.
      */
+    /** Tells the clock how much of itself the timer's strip is covering. */
+    void setContentInset(int left, int top) {
+        if (left == insetLeft && top == insetTop) {
+            return;
+        }
+        insetLeft = left;
+        insetTop = top;
+        layout = null;
+        plan = null;
+        invalidate();
+    }
+
     private void rebuild(int w, int h) {
+        // The background is the size of the view; the text is laid out in what the strip leaves.
         refreshSlideForSize(w, h);
-        layout = ClockLayout.of(w, h, options);
+        layout = ClockLayout.of(Math.max(1, w - insetLeft), Math.max(1, h - insetTop), options);
         plan = layout.plan(new ClockLayout.Metrics() {
             @Override
             public float width(String role, String text, float textSize) {
@@ -429,12 +454,14 @@ public class ClockView extends View {
             }
         }
         if (foreground != null) {
-            updateForegroundShader(w, h, textShow == null ? 0L : textShow.frameMs(elapsed));
+            updateForegroundShader(Math.max(1, w - insetLeft), Math.max(1, h - insetTop),
+                    textShow == null ? 0L : textShow.frameMs(elapsed));
         }
         paint.setShader(foreground != null ? foregroundShader : null);
 
         canvas.save();
-        canvas.translate(BurnInShift.offsetX(elapsed, maxShift), BurnInShift.offsetY(elapsed, maxShift));
+        canvas.translate(insetLeft + BurnInShift.offsetX(elapsed, maxShift),
+                insetTop + BurnInShift.offsetY(elapsed, maxShift));
 
         for (ClockLayout.Slot slot : layout.slots()) {
             String[] pieces = piecesFor(slot, time);

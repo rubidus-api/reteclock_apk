@@ -131,12 +131,10 @@ public class ClockActivity extends Activity {
 
         if (!wantTimer) {
             timer = null;
+            view.setContentInset(0, 0);
             root.addView(view, new FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
         } else {
-            LinearLayout row = new LinearLayout(this);
-            row.setOrientation(landscape ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
-
             timer = new TimerView(this);
             timer.setListener(timerListener);
             List<TimerPreset> presets = Settings.timerPresets(this);
@@ -152,17 +150,28 @@ public class ClockActivity extends Activity {
             // very pixel it was on. Only switching the timer off entirely gives the space back,
             // and that is the branch above.
             timer.setHidden(Settings.timerHidden(this));
+            // The strip's controls are drawn in the clock's own text colour, so the two belong to
+            // the same clock rather than looking like a panel bolted on.
+            int chosenText = Settings.color(this, Settings.KEY_TEXT_COLOR);
+            int chosenBackground = com.reteclock.core.ClockColors.opaque(
+                    Settings.color(this, Settings.KEY_BACKGROUND_COLOR));
+            timer.setChrome(
+                    com.reteclock.core.ClockColors.resolveText(chosenText, chosenBackground));
 
+            // The clock is laid out at full size *under* the strip, and told how much of itself the
+            // strip covers. Its background — a colour, or a picture, or a GIF playing — therefore
+            // runs the whole width of the screen and the strip sits in it rather than cutting it in
+            // two; only the digits keep clear.
             int strip = stripThickness(landscape);
-            row.addView(timer, landscape
-                    ? new LinearLayout.LayoutParams(strip, LinearLayout.LayoutParams.MATCH_PARENT)
-                    : new LinearLayout.LayoutParams(
-                            LinearLayout.LayoutParams.MATCH_PARENT, strip));
-            row.addView(view, new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.MATCH_PARENT, 1f));
-            root.addView(row, new FrameLayout.LayoutParams(
+            root.addView(view, new FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+            view.setContentInset(landscape ? strip : 0, landscape ? 0 : strip);
+
+            FrameLayout.LayoutParams band = landscape
+                    ? new FrameLayout.LayoutParams(strip, FrameLayout.LayoutParams.MATCH_PARENT)
+                    : new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, strip);
+            band.gravity = landscape ? (Gravity.TOP | Gravity.LEFT) : (Gravity.TOP | Gravity.LEFT);
+            root.addView(timer, band);
         }
 
         // The sheet the flash uses, above everything and invisible until it is wanted.
@@ -189,9 +198,13 @@ public class ClockActivity extends Activity {
     private int stripThickness(boolean landscape) {
         android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
         int shorter = Math.min(metrics.widthPixels, metrics.heightPixels);
-        int wanted = Math.round(shorter * 0.16f);
-        int floor = Math.round(56f * metrics.density);
-        int ceiling = Math.round(120f * metrics.density);
+        // Eight per cent of the shorter edge. It was sixteen, and on a real phone that was a band
+        // as wide as a thumb for what is, most of the time, a bar and three small numbers. Halving
+        // it halves everything on it too: the controls and the lettering are both measured from the
+        // strip's thickness, so there is one number here rather than three that must agree.
+        int wanted = Math.round(shorter * 0.08f);
+        int floor = Math.round(28f * metrics.density);
+        int ceiling = Math.round(60f * metrics.density);
         return Math.max(floor, Math.min(wanted, ceiling));
     }
 
