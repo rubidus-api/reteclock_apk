@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.reteclock"
-    android:versionCode="20"
-    android:versionName="0.9.1"
+    android:versionCode="21"
+    android:versionName="0.10.0"
     android:installLocation="auto">
 
     <!-- minSdk 9 keeps very old devices supported; targetSdk 28 keeps current Android versions
@@ -12,6 +12,9 @@
         android:targetSdkVersion="28" />
 
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- The timer's vibrate mode. An install-time permission, so nothing is ever prompted for at
+         runtime and R5 still holds; it is here only because the timer offers vibration. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <supports-screens
         android:smallScreens="true"
@@ -42,6 +45,12 @@
                 <category android:name="android.intent.category.DESK_DOCK" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".TimerSettingsActivity"
+            android:exported="false"
+            android:label="@string/timer_title"
+            android:theme="@android:style/Theme.Black" />
 
         <activity
             android:name=".SettingsActivity"

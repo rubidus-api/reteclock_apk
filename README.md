@@ -17,7 +17,7 @@ under 100 KB — and asks for one permission only: the one that keeps the screen
 
 **[⬇ Get it on F-Droid](https://f-droid.org/packages/com.reteclock/)** — recommended.
 
-**[⬇ Download reteclock-0.9.1.apk](https://github.com/rubidus-api/reteclock_apk/releases/latest/download/reteclock-0.9.1.apk)** — 91 KB, installs on Android 2.3 and newer.
+**[⬇ Download reteclock-0.10.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/latest/download/reteclock-0.10.0.apk)** — 91 KB, installs on Android 2.3 and newer.
 
 Every release is listed on the
 [Releases page](https://github.com/rubidus-api/reteclock_apk/releases).
@@ -104,7 +104,7 @@ beyond keeping the screen awake. Copy the APK to the phone, open it, and the pho
 
 ## Which phones it runs on
 
-Published on F-Droid; the latest release is 0.9.1.
+Published on F-Droid; the latest release is 0.10.0.
 
 | | |
 |---|---|

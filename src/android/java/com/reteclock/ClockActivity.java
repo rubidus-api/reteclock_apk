@@ -2,11 +2,20 @@ package com.reteclock;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.res.Configuration;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.Toast;
+
+import java.util.List;
+
+import com.reteclock.core.TimerPreset;
+import com.reteclock.core.Tones;
 
 /**
  * Full-screen clock activity.
@@ -23,6 +32,13 @@ public class ClockActivity extends Activity {
     public static final String EXTRA_DOCK = "com.reteclock.DOCK";
 
     private ClockView view;
+    /** The timer's strip beside the clock, or null when the timer is switched off. */
+    private TimerView timer;
+    /** Everything on screen: the clock, the strip, and the sheet the flash uses. */
+    private FrameLayout root;
+    private View flash;
+    private TimerSounds sounds;
+    private TimerVoice voice;
     /** This run leaves the imported images and fonts alone; the run before it never came back. */
     private boolean safeMode;
     private final android.os.Handler handler = new android.os.Handler();
@@ -60,6 +76,15 @@ public class ClockActivity extends Activity {
         }
 
         view = new ClockView(this, safeMode);
+        // A tap opens the menu; a long press is the old way straight to the settings, kept because
+        // people who have used the app know it.
+        view.setClickable(true);
+        view.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                ClockMenu.show(ClockActivity.this);
+            }
+        });
         view.setLongClickable(true);
         view.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
@@ -68,9 +93,159 @@ public class ClockActivity extends Activity {
                 return true;
             }
         });
-        setContentView(view);
+
+        root = new FrameLayout(this);
+        setContentView(root);
+        layOutScreen();
         hideSystemBars();
         maybeHintAtSettings();
+    }
+
+    /**
+     * Puts the clock on screen, with the timer's strip beside it when the timer is on: down the
+     * left in landscape, across the top in portrait.
+     *
+     * Called again when the screen turns, because this activity handles its own configuration
+     * changes and the strip has to change sides.
+     */
+    private void layOutScreen() {
+        root.removeAllViews();
+        if (view.getParent() instanceof android.view.ViewGroup) {
+            ((android.view.ViewGroup) view.getParent()).removeView(view);
+        }
+
+        boolean landscape = getResources().getConfiguration().orientation
+                == Configuration.ORIENTATION_LANDSCAPE;
+        boolean wantTimer = !safeMode && Settings.timerOn(this)
+                && !Settings.timerPresets(this).isEmpty();
+
+        if (!wantTimer) {
+            timer = null;
+            root.addView(view, new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        } else {
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(landscape ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
+
+            timer = new TimerView(this);
+            timer.setListener(timerListener);
+            List<TimerPreset> presets = Settings.timerPresets(this);
+            timer.setPreset(presets.get(Settings.timerChosen(this)));
+
+            int strip = stripThickness(landscape);
+            row.addView(timer, landscape
+                    ? new LinearLayout.LayoutParams(strip, LinearLayout.LayoutParams.MATCH_PARENT)
+                    : new LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT, strip));
+            row.addView(view, new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.MATCH_PARENT, 1f));
+            root.addView(row, new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        }
+
+        // The sheet the flash uses, above everything and invisible until it is wanted.
+        flash = new View(this);
+        flash.setBackgroundColor(Color.WHITE);
+        flash.setVisibility(View.INVISIBLE);
+        root.addView(flash, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+    }
+
+    /** How wide the strip is: enough for the bar and its turned readouts, and no more. */
+    private int stripThickness(boolean landscape) {
+        android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
+        int shorter = Math.min(metrics.widthPixels, metrics.heightPixels);
+        int wanted = Math.round(shorter * 0.16f);
+        int floor = Math.round(56f * metrics.density);
+        int ceiling = Math.round(120f * metrics.density);
+        return Math.max(floor, Math.min(wanted, ceiling));
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        // The strip changes sides; the clock re-measures itself as it always did.
+        layOutScreen();
+        hideSystemBars();
+    }
+
+    /** What the strip asks the world for: sounds, speech, a flash, and the preset list. */
+    private final TimerView.Listener timerListener = new TimerView.Listener() {
+        @Override
+        public void cue(Tones.Note[] pattern) {
+            if (sounds == null) {
+                sounds = new TimerSounds(ClockActivity.this);
+            }
+            sounds.play(pattern, Settings.timerAlert(ClockActivity.this));
+        }
+
+        @Override
+        public void speak(String message) {
+            if (message == null || message.isEmpty()
+                    || Settings.timerAlert(ClockActivity.this) != Settings.ALERT_SOUND) {
+                return;
+            }
+            if (voice == null) {
+                voice = new TimerVoice(ClockActivity.this);
+            }
+            voice.say(message, android.os.SystemClock.elapsedRealtime());
+        }
+
+        @Override
+        public void flash() {
+            flashScreen(3);
+        }
+
+        @Override
+        public void choosePreset() {
+            showPresetList();
+        }
+    };
+
+    /** Three quick blinks of the whole screen: an interval has ended. */
+    private void flashScreen(final int times) {
+        if (flash == null || times <= 0) {
+            return;
+        }
+        flash.setVisibility(View.VISIBLE);
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                flash.setVisibility(View.INVISIBLE);
+                if (times > 1) {
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            flashScreen(times - 1);
+                        }
+                    }, 90L);
+                }
+            }
+        }, 70L);
+    }
+
+    /** The hourglass: which preset should the controls start? */
+    private void showPresetList() {
+        final List<TimerPreset> presets = Settings.timerPresets(this);
+        if (presets.isEmpty() || timer == null) {
+            return;
+        }
+        String[] names = new String[presets.size()];
+        for (int i = 0; i < presets.size(); i++) {
+            names[i] = presets.get(i).name + "   "
+                    + com.reteclock.core.TimeReadout.of(presets.get(i).totalMs());
+        }
+        new android.app.AlertDialog.Builder(this)
+                .setTitle(R.string.timer_pick)
+                .setItems(names, new android.content.DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(android.content.DialogInterface dialog, int which) {
+                        Settings.setTimerChosen(ClockActivity.this, which);
+                        timer.setPreset(presets.get(which));
+                    }
+                })
+                .show();
     }
 
     /**
@@ -92,7 +267,7 @@ public class ClockActivity extends Activity {
         if (startedByCharger || Settings.hintSeen(this)) {
             return;
         }
-        Toast.makeText(this, R.string.hint_long_press, Toast.LENGTH_LONG).show();
+        Toast.makeText(this, R.string.hint_touch, Toast.LENGTH_LONG).show();
     }
 
     @Override
@@ -106,9 +281,14 @@ public class ClockActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        // The user may have just changed the options in the settings screen.
+        // The user may have just changed the options in the settings screen — including whether
+        // the timer is on at all, which changes what is on screen.
         view.reloadOptions();
+        layOutScreen();
         view.start();
+        if (timer != null) {
+            timer.resumeDrawing();
+        }
         // The mark this run leaves if it never comes back.
         Settings.setRunUnfinished(this, true);
         handler.removeCallbacks(reportHealthy);
@@ -118,6 +298,13 @@ public class ClockActivity extends Activity {
     @Override
     protected void onPause() {
         view.stop();
+        if (timer != null) {
+            timer.pauseDrawing();
+        }
+        if (voice != null) {
+            voice.release();
+            voice = null;
+        }
         // Being put aside is proof the clock was answering, so the mark comes off here too — the
         // long press into the settings is exactly the case a hung clock never reaches.
         handler.removeCallbacks(reportHealthy);

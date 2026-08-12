@@ -39,6 +39,15 @@ public final class Settings {
     public static final String KEY_RUN_UNFINISHED = "run_unfinished";
     public static final String KEY_SAFE_NOTICE = "safe_notice";
     public static final String KEY_DIRECT_START = "direct_start";
+    public static final String KEY_TIMER_ON = "timer_on";
+    public static final String KEY_TIMER_PRESETS = "timer_presets";
+    public static final String KEY_TIMER_CHOSEN = "timer_chosen";
+    public static final String KEY_TIMER_ALERT = "timer_alert";
+
+    /** How the timer makes itself heard. */
+    public static final int ALERT_SOUND = 0;
+    public static final int ALERT_VIBRATE = 1;
+    public static final int ALERT_SILENT = 2;
 
     /** How long a still background image shows before the slideshow moves on. */
     public static final int DEFAULT_STILL_SECONDS = 10;
@@ -320,6 +329,64 @@ public final class Settings {
 
     public static void setDirectStart(Context context, boolean direct) {
         prefs(context).edit().putBoolean(KEY_DIRECT_START, direct).commit();
+    }
+
+    /**
+     * Whether the timer shows on the clock at all.
+     *
+     * Off by default, and off means off: the clock draws exactly what it drew before the timer
+     * existed, and costs exactly what it cost.
+     */
+    public static boolean timerOn(Context context) {
+        return prefs(context).getBoolean(KEY_TIMER_ON, false);
+    }
+
+    public static void setTimerOn(Context context, boolean on) {
+        prefs(context).edit().putBoolean(KEY_TIMER_ON, on).commit();
+    }
+
+    /**
+     * The presets, as the core writes them.
+     *
+     * A first run finds the starter set rather than an empty list: a timer with no presets offers
+     * no way to understand what a preset is for.
+     */
+    public static java.util.List<com.reteclock.core.TimerPreset> timerPresets(Context context) {
+        String stored = prefs(context).getString(KEY_TIMER_PRESETS, null);
+        if (stored == null) {
+            return com.reteclock.core.TimerPresets.starter();
+        }
+        return com.reteclock.core.TimerPresets.parse(stored);
+    }
+
+    public static void setTimerPresets(Context context,
+            java.util.List<com.reteclock.core.TimerPreset> presets) {
+        prefs(context).edit()
+                .putString(KEY_TIMER_PRESETS, com.reteclock.core.TimerPresets.toText(presets))
+                .commit();
+    }
+
+    /** Which preset the hourglass last chose, by position; clamped to what exists. */
+    public static int timerChosen(Context context) {
+        int at = prefs(context).getInt(KEY_TIMER_CHOSEN, 0);
+        int count = timerPresets(context).size();
+        if (count == 0) {
+            return 0;
+        }
+        return at < 0 ? 0 : at >= count ? count - 1 : at;
+    }
+
+    public static void setTimerChosen(Context context, int index) {
+        prefs(context).edit().putInt(KEY_TIMER_CHOSEN, Math.max(0, index)).commit();
+    }
+
+    /** Sound, vibrate or silent — one setting covering every noise the timer makes. */
+    public static int timerAlert(Context context) {
+        return prefs(context).getInt(KEY_TIMER_ALERT, ALERT_SOUND);
+    }
+
+    public static void setTimerAlert(Context context, int mode) {
+        prefs(context).edit().putInt(KEY_TIMER_ALERT, mode).commit();
     }
 
     /** The fields that can each carry their own font, in the order the settings screen lists them. */

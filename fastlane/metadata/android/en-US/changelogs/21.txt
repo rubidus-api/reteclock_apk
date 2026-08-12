@@ -1,0 +1,12 @@
+* A timer. Touch the clock for a menu - general settings, timer settings - with
+  the app's version and addresses at the foot of it.
+* Timer settings: presets of named intervals, each with its own colour, the
+  colour it moves to as it runs, a message spoken when it begins, and a warning
+  so many seconds before it ends.
+* On the clock: a bar down the left in landscape, across the top in portrait,
+  filling as the preset runs, with the time so far, the time left and the whole
+  length beside it, and hourglass, stop, pause and play at the end.
+* It counts you in and out - three beeps and a higher one landing exactly on
+  each ending, a melody when the whole preset finishes - or vibrates instead, or
+  says nothing. The screen flashes at every ending either way.
+* Switched off, the clock is exactly what it was.

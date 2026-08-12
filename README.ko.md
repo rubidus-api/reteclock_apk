@@ -18,7 +18,7 @@
 
 **[⬇ F-Droid에서 받기](https://f-droid.org/packages/com.reteclock/)** — 권장합니다.
 
-**[⬇ reteclock-0.9.1.apk 내려받기](https://github.com/rubidus-api/reteclock_apk/releases/latest/download/reteclock-0.9.1.apk)**
+**[⬇ reteclock-0.10.0.apk 내려받기](https://github.com/rubidus-api/reteclock_apk/releases/latest/download/reteclock-0.10.0.apk)**
 — 91 KB이고 안드로이드 2.3 이상에 설치됩니다.
 
 지난 버전을 포함한 모든 릴리즈는
@@ -105,7 +105,7 @@ F-Droid 앱은 업데이트할 때마다 서명도 검사합니다.
 
 ## 어떤 폰에서 돌아가나
 
-F-Droid에 게시되어 있고, 최신 릴리즈는 0.9.1입니다.
+F-Droid에 게시되어 있고, 최신 릴리즈는 0.10.0입니다.
 
 | | |
 |---|---|
