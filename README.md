@@ -18,12 +18,13 @@ keep the screen awake, and one to vibrate, which only the timer uses.
 
 **[⬇ Get it on F-Droid](https://f-droid.org/packages/com.reteclock/)** — recommended.
 
-**[⬇ Download the latest APK](https://github.com/rubidus-api/reteclock_apk/releases/latest)** —
-about 140 KB, installs on Android 2.3 and newer. The link opens the newest release; the APK is the
-file attached to it.
+**[⬇ Download reteclock-0.15.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.15.0/reteclock-0.15.0.apk)**
+— 137 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
+render GitHub's release page can still fetch it.
 
-Every release is listed on the
-[Releases page](https://github.com/rubidus-api/reteclock_apk/releases).
+The newest release is always at
+[releases/latest](https://github.com/rubidus-api/reteclock_apk/releases/latest), and every release
+is listed on the [Releases page](https://github.com/rubidus-api/reteclock_apk/releases).
 
 ### Setting it up, step by step
 
@@ -88,8 +89,22 @@ the app.
 
 You can also put your own pictures behind the clock — several take turns, and animated GIFs play —
 fill the digits themselves with a picture, and decide how much of the screen the time should take.
-There is an interval timer too, for a pomodoro or a round of tabata, off until you ask for it.
 It is all in [Settings](#settings).
+
+### The timer
+
+Switched on, an interval timer runs beside the clock — a pomodoro, a round of tabata, three minutes
+for tea. The strip carries the whole preset: each interval takes the share of the length its
+duration is worth, and wears one colour before the bar reaches it and another after, so the shape
+of the session is there at a glance. The three times inside the bar are the current interval's
+length, how far into it you are, and what is left of it.
+
+| Landscape (wide) | Portrait (tall) |
+|---|---|
+| <img src="docs/screenshots/timer-landscape.png" alt="Landscape: the timer strip down the left, its first interval part red for the time already spent and part teal for the time to come, a green second interval above it, and the clock beside it" width="420"> | <img src="docs/screenshots/timer-portrait.png" alt="Portrait: the timer strip across the top reading 25:00, 8:21 and 16:39, with the bar part filled, above the clock" width="210"> |
+
+Eight minutes into a twenty-five minute stretch of work, with five minutes of rest waiting behind
+it. Switched off, the clock is exactly as it was: no strip, no controls, nothing extra drawn.
 
 ## What it is for
 
