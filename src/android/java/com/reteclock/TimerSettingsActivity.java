@@ -24,6 +24,7 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.reteclock.core.ColorText;
 import com.reteclock.core.TimeInput;
 import com.reteclock.core.TimerInterval;
 import com.reteclock.core.TimerPreset;
@@ -338,12 +339,14 @@ public class TimerSettingsActivity extends Activity {
         });
         top.addView(name);
 
+        top.addView(swatchLabel(R.string.timer_colour_before));
         top.addView(swatch(interval.color, new OnColor() {
             @Override
             public void got(int color) {
                 replace(presetIndex, index, interval.withColors(color, interval.endColor));
             }
         }));
+        top.addView(swatchLabel(R.string.timer_colour_after));
         top.addView(swatch(interval.endColor, new OnColor() {
             @Override
             public void got(int color) {
@@ -475,8 +478,9 @@ public class TimerSettingsActivity extends Activity {
      * How long, asked for in the units people think in.
      *
      * A single box wanting seconds is arithmetic homework — twenty-five minutes is 1500 — and
-     * getting it wrong by a factor of sixty is silent. Four boxes, filled in from what the interval
+     * getting it wrong by a factor of sixty is silent. Three boxes, filled in from what the interval
      * already is, and anything odd typed into one of them is read leniently rather than refused.
+     * There was a fourth for milliseconds; nobody sets a kitchen timer to the millisecond.
      */
     private void askForLength(long current, final OnLength then) {
         LinearLayout row = new LinearLayout(this);
@@ -489,8 +493,7 @@ public class TimerSettingsActivity extends Activity {
                 numberField(TimeInput.minutesOf(current), R.string.timer_unit_minutes);
         final EditText seconds =
                 numberField(TimeInput.secondsOf(current), R.string.timer_unit_seconds);
-        final EditText millis = numberField(TimeInput.millisOf(current), R.string.timer_unit_millis);
-        for (EditText field : new EditText[] {hours, minutes, seconds, millis}) {
+        for (EditText field : new EditText[] {hours, minutes, seconds}) {
             row.addView(labelled(field));
         }
 
@@ -503,8 +506,7 @@ public class TimerSettingsActivity extends Activity {
                         then.got(TimeInput.msOf(
                                 TimeInput.number(hours.getText().toString(), 0),
                                 TimeInput.number(minutes.getText().toString(), 0),
-                                TimeInput.number(seconds.getText().toString(), 0),
-                                TimeInput.number(millis.getText().toString(), 0)));
+                                TimeInput.number(seconds.getText().toString(), 0)));
                     }
                 })
                 .setNegativeButton(android.R.string.cancel, null)
@@ -621,7 +623,52 @@ public class TimerSettingsActivity extends Activity {
             });
             row.addView(cell);
         }
+
+        // No colour at all is a real choice: that part of the bar then shows the clock behind it.
+        LinearLayout tail = new LinearLayout(this);
+        tail.setOrientation(LinearLayout.HORIZONTAL);
+        tail.setGravity(Gravity.CENTER_VERTICAL);
+        tail.setPadding(0, dp(6), 0, 0);
+        tail.addView(actionButton(getString(R.string.timer_colour_none),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        dialog.dismiss();
+                        then.got(ColorText.NONE);
+                    }
+                }));
+        grid.addView(tail);
+
+        // And the colour somebody already has in mind, written the way the web writes it.
+        final EditText typed = new EditText(this);
+        typed.setHint(R.string.timer_colour_hex_hint);
+        typed.setSingleLine(true);
+        typed.setTextColor(TEXT_WHITE);
+        grid.addView(typed);
+        grid.addView(actionButton(getString(R.string.timer_colour_hex_use),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        int parsed = ColorText.parse(typed.getText().toString(), Integer.MIN_VALUE);
+                        if (parsed == Integer.MIN_VALUE) {
+                            typed.setError(getString(R.string.timer_colour_hex_bad));
+                            return;
+                        }
+                        dialog.dismiss();
+                        then.got(parsed);
+                    }
+                }));
         dialog.show();
+    }
+
+    /** Which of an interval's two colours a swatch stands for. */
+    private TextView swatchLabel(int text) {
+        TextView view = new TextView(this);
+        view.setText(text);
+        view.setTextColor(TEXT_DIM);
+        view.setTextSize(11f);
+        view.setPadding(dp(6), 0, dp(3), 0);
+        return view;
     }
 
     private TextView title(String text) {

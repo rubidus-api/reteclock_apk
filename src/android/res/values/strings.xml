@@ -109,6 +109,12 @@
     <string name="timer_preset_rename">Rename preset</string>
     <string name="timer_preset_summary">%1$d intervals · %2$s</string>
     <string name="timer_preset_note">Tap a preset to open its intervals. Each interval has its own colour, the colour it moves to as it runs, a message to speak when it begins, and a warning so many seconds before it ends.</string>
+    <string name="timer_colour_before">before</string>
+    <string name="timer_colour_after">after</string>
+    <string name="timer_colour_none">No colour (see through)</string>
+    <string name="timer_colour_hex_hint">#RRGGBB</string>
+    <string name="timer_colour_hex_use">Use this code</string>
+    <string name="timer_colour_hex_bad">Not a colour code</string>
     <string name="timer_repeat_on">Repeat forever: on</string>
     <string name="timer_repeat_off">Repeat forever: off</string>
     <string name="timer_interval_add">Add an interval…</string>

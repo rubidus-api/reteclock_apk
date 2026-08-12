@@ -1,0 +1,11 @@
+* The timer's finishing tune is the theme from the fourth movement of Schubert's
+  Trout Quintet - the washing-machine tune - played from the score rather than
+  recorded. The beeps lost the buzz of a square wave.
+* An interval's two colours now mean what they say: the first is the bar before
+  the fill has passed it, the second is the bar after. Either can be left empty,
+  and the clock shows through.
+* Colours can be typed as #RRGGBB as well as picked.
+* The timer works to the second: no more hundredths on the bar, and lengths are
+  entered as hours, minutes and seconds.
+* The timer's lettering no longer grows, shrinks or vanishes while it runs. Its
+  size is settled once, before anything is drawn with it.

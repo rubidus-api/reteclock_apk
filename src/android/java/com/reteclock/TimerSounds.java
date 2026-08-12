@@ -13,9 +13,11 @@ import com.reteclock.core.Tones;
  *
  * The tones are computed here, a few thousand samples at a time, and handed to an
  * {@link AudioTrack}: no files, no decoder, nothing to ship, and the same result from Android 2.3
- * upwards. A square wave rather than a sine, because it is what a beeping appliance sounds like and
- * because it costs one comparison a sample rather than a call into the maths library — this runs on
- * phones where that difference is visible.
+ * upwards. It was a square wave at first — one comparison a sample, and the sound of a beeping
+ * appliance — but a square wave carries every odd harmonic at full strength, which is exactly what
+ * makes a cheap alarm grating. This is a fundamental with a quiet second and third above it and a
+ * softened attack: the same notes, played by something one does not mind hearing. The cost is a
+ * table lookup a sample, which a 2012 phone can afford for a second of audio on a worker thread.
  *
  * Playing happens on a worker thread. A beep that took its 200 ms on the drawing thread would be
  * 200 ms the clock did not have.
@@ -96,12 +98,16 @@ final class TimerSounds {
         for (Tones.Note note : pattern) {
             int on = note.onMs * RATE / 1000;
             int off = note.offMs * RATE / 1000;
-            int period = Math.max(1, RATE / Math.max(1, note.hz));
-            short high = (short) (Short.MAX_VALUE * VOLUME);
+            float step = 2f * (float) Math.PI * Math.max(1, note.hz) / RATE;
+            float peak = Short.MAX_VALUE * VOLUME;
             for (int i = 0; i < on && at < samples.length; i++, at++) {
-                // A square wave, softened at both ends so it does not click.
-                short value = (i % period) * 2 < period ? high : (short) -high;
-                samples[at] = (short) (value * fade(i, on));
+                float phase = step * i;
+                // The fundamental, with a little of the two harmonics above it: enough to give the
+                // note a body, far short of the buzz a square wave has.
+                float wave = (float) (Math.sin(phase)
+                        + 0.28 * Math.sin(2 * phase)
+                        + 0.12 * Math.sin(3 * phase)) / 1.4f;
+                samples[at] = (short) (peak * wave * fade(i, on));
             }
             at += off;
         }
@@ -134,16 +140,20 @@ final class TimerSounds {
     }
 
     /** A few milliseconds of ramp at each end of a beep, which is what stops the click. */
+    /**
+     * The shape of one note: a quick rise, and a fall long enough that it ends rather than stops.
+     *
+     * Without it every note begins and ends with a click, which is the loudest part of a short beep
+     * and the reason cheap alarms sound cheap.
+     */
     private static float fade(int at, int length) {
-        int ramp = Math.min(length / 4, RATE / 400);
-        if (ramp <= 0) {
-            return 1f;
+        int rise = Math.max(1, Math.min(length / 8, RATE / 500));
+        int fall = Math.max(1, Math.min(length / 3, RATE / 40));
+        if (at < rise) {
+            return (float) at / rise;
         }
-        if (at < ramp) {
-            return (float) at / ramp;
-        }
-        if (at > length - ramp) {
-            return (float) (length - at) / ramp;
+        if (at > length - fall) {
+            return (float) (length - at) / fall;
         }
         return 1f;
     }

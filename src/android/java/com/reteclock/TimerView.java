@@ -12,7 +12,7 @@ import android.view.View;
 
 import java.util.List;
 
-import com.reteclock.core.ColorRamp;
+import com.reteclock.core.ColorText;
 import com.reteclock.core.FramePacer;
 import com.reteclock.core.TimeReadout;
 import com.reteclock.core.TimerBar;
@@ -51,6 +51,9 @@ public class TimerView extends View {
     private TimerBar bar;
     private boolean horizontal;
     private boolean running;
+    /** Settled by {@link #settleReadouts()}; never recomputed while drawing. */
+    private float readoutSize;
+    private float readoutMiddle;
     /** When the cues were last collected, so the next window starts where that one ended. */
     private long lastCueMs = Long.MIN_VALUE / 2L;
 
@@ -86,6 +89,7 @@ public class TimerView extends View {
     /** Which preset the controls will start, and what the bar shows before anything runs. */
     void setPreset(TimerPreset preset) {
         this.preset = preset;
+        settleReadouts();
         if (run != null) {
             stop();
         }
@@ -249,6 +253,7 @@ public class TimerView extends View {
         super.onSizeChanged(w, h, oldW, oldH);
         horizontal = w >= h;
         bar = TimerBar.of(w, h, horizontal);
+        settleReadouts();
     }
 
     @Override
@@ -264,13 +269,14 @@ public class TimerView extends View {
         TimerInterval interval = run == null
                 ? (preset == null || preset.intervals.isEmpty() ? null : preset.intervals.get(0))
                 : run.intervalObjectAt(now);
-        float inInterval = run == null ? 0f : run.progressInIntervalAt(now);
-        int filled = interval == null
-                ? TimerInterval.DEFAULT_COLOR
-                : ColorRamp.blend(interval.color, interval.endColor, inInterval);
+        // The interval's two colours are what it looks like before the bar passes and after: the
+        // part still to come is the first, the part gone is the second. Either may be no colour at
+        // all, in which case the clock shows through.
+        int before = interval == null ? TimerInterval.DEFAULT_COLOR : interval.color;
+        int after = interval == null ? TimerInterval.DEFAULT_END_COLOR : interval.endColor;
 
-        drawTrack(canvas);
-        drawFill(canvas, progress, filled);
+        drawTrack(canvas, before);
+        drawFill(canvas, progress, after);
         drawReadouts(canvas, now, progress);
         drawControls(canvas);
 
@@ -279,14 +285,20 @@ public class TimerView extends View {
         }
     }
 
-    /** The bar's empty length. */
-    private void drawTrack(Canvas canvas) {
+    /** The bar's whole length, in the colour of what has not happened yet. */
+    private void drawTrack(Canvas canvas, int color) {
         paint.setStyle(Paint.Style.FILL);
-        paint.setColor(TRACK);
+        if (ColorText.isNone(color)) {
+            return;
+        }
+        paint.setColor(color);
         rect(canvas, bar.barStart(), bar.barEnd());
     }
 
     private void drawFill(Canvas canvas, float progress, int color) {
+        if (ColorText.isNone(color)) {
+            return;
+        }
         paint.setColor(color);
         rect(canvas, bar.barStart(), bar.fillAt(progress));
     }
@@ -312,51 +324,64 @@ public class TimerView extends View {
      * dark so it stays readable over the fill, whatever colour the interval has reached.
      */
     private void drawReadouts(Canvas canvas, long now, float progress) {
+        if (readoutSize <= 0f) {
+            return;
+        }
         long total = run == null
                 ? (preset == null ? 0L : preset.totalMs())
                 : run.totalMs();
-        long gone = run == null ? 0L : run.elapsedAt(now);
-        long left = total - gone;
+        // Both readouts are cut down to whole seconds, so the time left is taken from the elapsed
+        // time *as shown* rather than from the exact one. Otherwise a twenty-second preset reads
+        // "20, 13, 6" halfway through — both truncated, and a second lost between them.
+        long gone = run == null ? 0L : run.elapsedAt(now) / 1000L * 1000L;
+        long left = Math.max(total - gone, 0L);
 
-        String whole = TimeReadout.trimmed(total);
-        String elapsed = TimeReadout.trimmed(gone);
-        String remaining = TimeReadout.trimmed(left);
-
-        // The geometry sizes them by counting characters, which is close enough to start from but
-        // not close enough to trust: a colon is not a digit's width, and the middle readout grows a
-        // hundredths place and loses it again while it runs. So the three are measured in the font
-        // actually being drawn, and shrunk until they and the air between them fit the bar.
-        float size = bar.textSize(whole.length() + elapsed.length() + remaining.length());
-        float room = bar.barEnd() - bar.barStart() - size * 0.5f;
-        paint.setTextSize(size);
-        float wide = paint.measureText(whole) + paint.measureText(elapsed)
-                + paint.measureText(remaining) + size * 0.8f;
-        if (wide > room && wide > 0f) {
-            size *= room / wide;
-            paint.setTextSize(size);
-        }
-
-        text(canvas, whole, bar.totalAt(), bar.barMiddle(), Paint.Align.LEFT);
-        text(canvas, elapsed, middleOf(whole, elapsed, remaining), bar.barMiddle(),
-                Paint.Align.CENTER);
-        text(canvas, remaining, bar.remainingAt(), bar.barMiddle(), Paint.Align.RIGHT);
+        paint.setTextSize(readoutSize);
+        text(canvas, TimeReadout.trimmed(total), bar.totalAt(), bar.barMiddle(), Paint.Align.LEFT);
+        text(canvas, TimeReadout.trimmed(gone), readoutMiddle, bar.barMiddle(), Paint.Align.CENTER);
+        text(canvas, TimeReadout.trimmed(left), bar.remainingAt(), bar.barMiddle(),
+                Paint.Align.RIGHT);
     }
 
     /**
-     * Where the middle readout sits: the middle of the bar, unless that would put it against one of
-     * its neighbours, in which case as near the middle as it can get without touching them.
+     * Decides, once, how the three readouts will be lettered — before anything is drawn with them.
+     *
+     * They used to be sized frame by frame from the strings of that instant, which meant the
+     * lettering changed size whenever a readout gained or lost a digit, and could be shrunk to
+     * nothing when the numbers were briefly long. Nothing about the size actually depends on the
+     * moment: the longest any of the three can ever be is the whole preset's length, written out.
+     * So that is measured once, here, and kept until the strip or the preset changes.
      */
-    private float middleOf(String whole, String elapsed, String remaining) {
-        float inset = paint.getTextSize() * 0.25f;
-        float gap = paint.getTextSize() * 0.4f;
-        float half = paint.measureText(elapsed) / 2f;
-        float low = bar.barStart() + inset + paint.measureText(whole) + gap + half;
-        float high = bar.barEnd() - inset - paint.measureText(remaining) - gap - half;
-        if (low > high) {
-            return bar.midAt();
+    private void settleReadouts() {
+        readoutSize = 0f;
+        if (bar == null) {
+            return;
         }
-        float at = bar.midAt();
-        return at < low ? low : at > high ? high : at;
+        long total = preset == null ? 0L : preset.totalMs();
+        String widest = TimeReadout.trimmed(total);
+        float size = bar.textSize(widest.length() * 3);
+        float room = bar.barEnd() - bar.barStart();
+        if (size <= 0f || room <= 0f) {
+            return;
+        }
+        // Three of the widest, the air between them and the air at the ends, measured in the font
+        // that will draw them rather than guessed from a character count.
+        paint.setTextSize(size);
+        float needed = paint.measureText(widest) * 3f + size * 1.3f;
+        if (needed > room) {
+            size *= room / needed;
+            paint.setTextSize(size);
+        }
+        readoutSize = size;
+
+        // The middle one sits in the middle of the bar unless the widest case would put it against
+        // a neighbour, in which case it sits as near the middle as it can. Fixed here too: the
+        // moving readout must not shuffle sideways as its own digits change.
+        float widestWidth = paint.measureText(widest);
+        float low = bar.barStart() + size * 0.25f + widestWidth + size * 0.4f + widestWidth / 2f;
+        float high = bar.barEnd() - size * 0.25f - widestWidth - size * 0.4f - widestWidth / 2f;
+        float middle = bar.midAt();
+        readoutMiddle = low > high ? middle : middle < low ? low : middle > high ? high : middle;
     }
 
     /**
