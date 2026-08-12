@@ -34,6 +34,19 @@ public final class TimerRun {
         return preset;
     }
 
+    /**
+     * When it began, after however long it has spent paused — the number to write down when the
+     * run has to be handed to another screen. See {@link TimerMemory}.
+     */
+    public long originMs() {
+        return originMs;
+    }
+
+    /** When it was paused, or -1 while it is running. */
+    public long pausedAtMs() {
+        return pausedAtMs;
+    }
+
     public boolean isPaused() {
         return pausedAtMs >= 0L;
     }

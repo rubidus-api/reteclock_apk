@@ -43,6 +43,9 @@ public final class Settings {
     public static final String KEY_TIMER_PRESETS = "timer_presets";
     public static final String KEY_TIMER_CHOSEN = "timer_chosen";
     public static final String KEY_TIMER_ALERT = "timer_alert";
+    public static final String KEY_STAY_UNLOCKED = "stay_unlocked";
+    public static final String KEY_RUN_ORIGIN = "timer_run_origin";
+    public static final String KEY_RUN_PAUSED_AT = "timer_run_paused_at";
 
     /** How the timer makes itself heard. */
     public static final int ALERT_SOUND = 0;
@@ -378,6 +381,46 @@ public final class Settings {
 
     public static void setTimerChosen(Context context, int index) {
         prefs(context).edit().putInt(KEY_TIMER_CHOSEN, Math.max(0, index)).commit();
+    }
+
+    /**
+     * Whether the clock keeps the lock screen away and stays up indefinitely.
+     *
+     * Off by default: showing over a lock screen is not something to do to somebody without being
+     * asked. On, the clock behaves the way it already does when the charger starts it — the screen
+     * stays on, the keyguard is dismissed, and nothing takes the screen away from it.
+     */
+    public static boolean stayUnlocked(Context context) {
+        return prefs(context).getBoolean(KEY_STAY_UNLOCKED, false);
+    }
+
+    public static void setStayUnlocked(Context context, boolean stay) {
+        prefs(context).edit().putBoolean(KEY_STAY_UNLOCKED, stay).commit();
+    }
+
+    /**
+     * The running timer, as three numbers, so it survives leaving the clock and coming back — and
+     * so the screensaver can show what the clock started. See {@link com.reteclock.core.TimerMemory}.
+     */
+    public static void rememberRun(Context context, long originMs, long pausedAtMs) {
+        prefs(context).edit()
+                .putLong(KEY_RUN_ORIGIN, originMs)
+                .putLong(KEY_RUN_PAUSED_AT, pausedAtMs)
+                .commit();
+    }
+
+    public static void forgetRun(Context context) {
+        prefs(context).edit()
+                .putLong(KEY_RUN_ORIGIN, com.reteclock.core.TimerMemory.NONE)
+                .commit();
+    }
+
+    public static long runOrigin(Context context) {
+        return prefs(context).getLong(KEY_RUN_ORIGIN, com.reteclock.core.TimerMemory.NONE);
+    }
+
+    public static long runPausedAt(Context context) {
+        return prefs(context).getLong(KEY_RUN_PAUSED_AT, -1L);
     }
 
     /** Sound, vibrate or silent — one setting covering every noise the timer makes. */

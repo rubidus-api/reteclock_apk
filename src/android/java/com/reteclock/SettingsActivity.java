@@ -292,6 +292,20 @@ public class SettingsActivity extends Activity {
             }
         });
         dock.addView(charging);
+
+        final CheckBox stay = new CheckBox(this);
+        stay.setText(R.string.settings_stay_unlocked);
+        stay.setTextColor(TEXT_WHITE);
+        stay.setChecked(Settings.stayUnlocked(this));
+        stay.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                Settings.setStayUnlocked(SettingsActivity.this, checked);
+            }
+        });
+        dock.addView(stay);
+        dock.addView(footer(getString(R.string.settings_stay_unlocked_note)));
+
         addScreensaverRow(dock);
         root.addView(dock);
 

@@ -62,7 +62,11 @@ public class ClockActivity extends Activity {
 
         int flags = WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
                 | WindowManager.LayoutParams.FLAG_FULLSCREEN;
-        if (getIntent() != null && getIntent().getBooleanExtra(EXTRA_DOCK, false)) {
+        // Asked to stay up: the same flags the charger already brings, but every time. The screen
+        // never sleeps, the keyguard never covers the clock, and nothing takes it away — which is
+        // what a clock on a wall, running a timer, is for.
+        if (Settings.stayUnlocked(this)
+                || (getIntent() != null && getIntent().getBooleanExtra(EXTRA_DOCK, false))) {
             flags |= WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
                     | WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
                     | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON;
@@ -130,7 +134,12 @@ public class ClockActivity extends Activity {
             timer = new TimerView(this);
             timer.setListener(timerListener);
             List<TimerPreset> presets = Settings.timerPresets(this);
-            timer.setPreset(presets.get(Settings.timerChosen(this)));
+            TimerPreset chosen = presets.get(Settings.timerChosen(this));
+            timer.setPreset(chosen);
+            // A timer started before the screen was left, or turned, carries on from where it is.
+            timer.adopt(com.reteclock.core.TimerMemory.restore(chosen,
+                    Settings.runOrigin(this), Settings.runPausedAt(this),
+                    android.os.SystemClock.elapsedRealtime()));
 
             int strip = stripThickness(landscape);
             row.addView(timer, landscape
@@ -150,6 +159,18 @@ public class ClockActivity extends Activity {
         flash.setVisibility(View.INVISIBLE);
         root.addView(flash, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+    }
+
+    /** The setting can be changed while the clock is up, so the flags follow it on every return. */
+    private void applyStayUnlocked() {
+        int flags = WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
+                | WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
+                | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON;
+        if (Settings.stayUnlocked(this)) {
+            getWindow().addFlags(flags);
+        } else if (getIntent() == null || !getIntent().getBooleanExtra(EXTRA_DOCK, false)) {
+            getWindow().clearFlags(flags);
+        }
     }
 
     /** How wide the strip is: enough for the bar and its turned readouts, and no more. */
@@ -172,6 +193,18 @@ public class ClockActivity extends Activity {
 
     /** What the strip asks the world for: sounds, speech, a flash, and the preset list. */
     private final TimerView.Listener timerListener = new TimerView.Listener() {
+        @Override
+        public void remember(com.reteclock.core.TimerRun run) {
+            if (run == null) {
+                Settings.forgetRun(ClockActivity.this);
+            } else {
+                Settings.rememberRun(ClockActivity.this,
+                        com.reteclock.core.TimerMemory.originOf(run,
+                                android.os.SystemClock.elapsedRealtime()),
+                        com.reteclock.core.TimerMemory.pausedAtOf(run));
+            }
+        }
+
         @Override
         public void cue(Tones.Note[] pattern) {
             if (sounds == null) {
@@ -284,6 +317,7 @@ public class ClockActivity extends Activity {
         // The user may have just changed the options in the settings screen — including whether
         // the timer is on at all, which changes what is on screen.
         view.reloadOptions();
+        applyStayUnlocked();
         layOutScreen();
         view.start();
         if (timer != null) {

@@ -1,0 +1,6 @@
+* The clock can be asked to stay up past the lock screen: the screen stays on,
+  the lock screen does not cover it, and no screensaver takes over. For a phone
+  left showing the time, or running a timer. Off until you ask for it.
+* A running timer now belongs to the app rather than to one screen. It carries
+  on across a rotation and a trip to the settings, and the screensaver shows it
+  and sounds it too.

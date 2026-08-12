@@ -57,6 +57,9 @@ public class TimerView extends View {
 
     /** What the strip needs the world to do for it. */
     interface Listener {
+        /** Write the run down, or forget it, so another screen can pick it up where it stands. */
+        void remember(TimerRun run);
+
         /** Play this pattern, however the settings say it should be heard. */
         void cue(Tones.Note[] pattern);
 
@@ -104,7 +107,29 @@ public class TimerView extends View {
         run = TimerRun.start(preset, now);
         // A window that opens a moment before the start, so the preset's own opening cue is caught.
         lastCueMs = now - 1L;
+        remember();
         begin();
+    }
+
+    /**
+     * Takes on a run that another screen — or this one before it was left — had going.
+     *
+     * The cue window opens at now, so whatever sounded while nobody was looking is not replayed.
+     */
+    void adopt(TimerRun existing) {
+        run = existing;
+        lastCueMs = SystemClock.elapsedRealtime();
+        if (run != null && !run.isPaused() && !run.finishedAt(lastCueMs)) {
+            begin();
+        } else {
+            invalidate();
+        }
+    }
+
+    private void remember() {
+        if (listener != null) {
+            listener.remember(run);
+        }
     }
 
     void pause() {
@@ -112,6 +137,7 @@ public class TimerView extends View {
             return;
         }
         run = run.pausedAt(SystemClock.elapsedRealtime());
+        remember();
         invalidate();
     }
 
@@ -122,11 +148,13 @@ public class TimerView extends View {
         long now = SystemClock.elapsedRealtime();
         run = run.resumedAt(now);
         lastCueMs = now;
+        remember();
         begin();
     }
 
     void stop() {
         run = null;
+        remember();
         running = false;
         handler.removeCallbacks(tick);
         invalidate();
