@@ -231,6 +231,32 @@ nothing extra drawn.
   other phone does not have are skipped, and it tells you how many. Neither direction asks for a
   storage permission.
 
+**Calendar** — its own screen, reached from the clock's menu.
+
+- **Show a calendar on the clock** — the month under the time, drawn as the clock's own writing: it
+  takes the text colour, and the picture filling the digits fills it too. The month and a pair of
+  arrows are on the first row, three-letter weekdays on the second, and six week rows always, so
+  paging through the months does not make the grid breathe. Today is knocked out of a filled box —
+  the numerals are cleared from the colour rather than painted over it, so a picture behind the
+  clock shows through the digits themselves. The arrows page back and forth, and it returns to this
+  month whenever the clock is opened again.
+- **The week starts on** — Sunday or Monday.
+- **The month is written as** — `Aug 2026` or `2026-08`.
+
+| Landscape (wide) | Portrait (tall) |
+|---|---|
+| <img src="docs/screenshots/calendar-landscape.png" alt="Landscape: the hour and minute reading down the left with the seconds smaller beneath, the month filling the right-hand column, and a saying along the foot — all of it filled with a picture" width="420"> | <img src="docs/screenshots/calendar-portrait.png" alt="Portrait: the time on one line, the month beneath it, the seconds, and a saying at the foot, over a picture background with a second picture filling the digits" width="210"> |
+
+  Both shots have a picture behind the clock and a second picture filling the writing, which is why
+  the numerals are orange over blue — and why today's date shows the background through the digits
+  rather than a colour.
+
+  With the calendar on, the clock rearranges itself around it. Sideways, the time reads down the
+  left — hour, minute, and the seconds smaller beneath — and the calendar takes the whole of the
+  side column where the date and year used to be. Upright, the time becomes one line above the
+  grid. Either way the weekday, the date and the year go: the calendar says them better. The slider
+  that decides how much room the time takes still decides it.
+
 **A saying**
 
 - **Show a saying along the bottom** — a thin strip under the clock, about as deep as the timer's,
@@ -239,14 +265,26 @@ nothing extra drawn.
   to one, two or three lines depending on how long it is and how much room the strip has, and it
   chooses its own font and decoration in the list of fields like every other line does.
 
-  The sayings are the whole of *Book of Wise Sayings: Selected Largely from Eastern Sources*,
-  compiled by W. A. Clouston and published by Hutchinson & Co. in 1893 — 351 of them, from Sa'dí,
-  Firdausí, the Dhammapada, the Hitopadesa, Goethe and eighty-odd others. The book was published in
-  1893 and its compiler died in 1896, so the text is in the public domain everywhere by age. The
-  transcription came from Project Gutenberg (ebook 21130) with that project's header, footer and
-  licence removed and its trademark unused, so nothing here carries any licence but this app's.
-  It is all in `src/android/res/raw/quotes.txt`, one saying to a line, should you want to read it
-  or replace it. See `LICENSE`.
+  There are 6,678 of them, drawn from three nineteenth-century collections and all in the public
+  domain by age:
+
+  - Clouston, W. A., comp. *Book of Wise Sayings: Selected Largely from Eastern Sources*. London:
+    Hutchinson & Co., 1893. 289 sayings, from eighty-three named hands — Sa'dí, Firdausí, the
+    Dhammapada, the Hitopadesa, Goethe among them.
+  - [Preston, Thomas], comp. *A Dictionary of English Proverbs and Proverbial Phrases*. London:
+    Whittaker & Co., [n.d.]. 1,334 English proverbs. The title page names neither author nor year;
+    the attribution is Project Gutenberg's.
+  - Bohn, Henry G., comp. *A Polyglot of Foreign Proverbs*. London: Henry G. Bohn, 1857. 5,055
+    proverbs in English rendering, marked by the language they came from — Spanish, Italian,
+    French, Danish, Dutch and Portuguese.
+
+  All three were published before 1900 and their compilers are long dead, so the texts are in the
+  public domain worldwide. The transcriptions came from Project Gutenberg (ebooks 21130, 39281 and
+  51090) with that project's header, footer and licence removed and its trademark unused, so
+  nothing here carries any licence but this app's. They are all in
+  `src/android/res/raw/quotes.txt`, one saying to a line, should you want to read them or replace
+  them. The same citations are in `LICENSE`, and in the settings under the switch that turns them
+  on.
 
 **Starting**
 
