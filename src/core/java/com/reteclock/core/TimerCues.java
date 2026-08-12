@@ -35,6 +35,19 @@ public final class TimerCues {
     /** How many seconds of counting lead into every ending. */
     public static final int COUNT_IN_SECONDS = 3;
 
+    /**
+     * How long the timer counts you in before it actually starts.
+     *
+     * Pressing play and having the clock already be running is no use to somebody timing something
+     * they have to do with their hands. Three low beeps, one a second, and the high one lands on
+     * the moment the preset truly begins — the same shape as the count into an ending, which is the
+     * point: you learn one rhythm and it means the same thing in both places.
+     */
+    public static final int LEAD_IN_SECONDS = 3;
+
+    /** The same, in milliseconds: what the start of a run is pushed into the future by. */
+    public static final long LEAD_IN_MS = LEAD_IN_SECONDS * 1000L;
+
     /** One thing to play, and when it was due. */
     public static final class Cue {
         public final int kind;
@@ -99,7 +112,15 @@ public final class TimerCues {
     /** One pass of the preset, its cues offset to where that pass begins. */
     private static void layOut(List<Cue> out, TimerPreset preset, long offset, long from,
             long to) {
-        // The preset's own beginning, counted in the same way an interval's end is.
+        // The count into the very beginning. Only the first pass gets one: when a preset repeats,
+        // the count into the last interval's ending is already the count into the next pass, and
+        // beeping twice for one moment would be worse than not beeping at all.
+        if (offset == 0L) {
+            for (int back = LEAD_IN_SECONDS; back >= 1; back--) {
+                add(out, from, to, new Cue(TICK, 0, offset - back * 1000L));
+            }
+        }
+        // The preset's own beginning, landing on zero the way an interval's end lands on its own.
         add(out, from, to, new Cue(START, 0, offset));
         if (!preset.intervals.isEmpty() && !preset.intervals.get(0).message.isEmpty()) {
             add(out, from, to, new Cue(SPEAK, 0, offset));

@@ -109,8 +109,11 @@ public class TimerView extends View {
             return;
         }
         long now = SystemClock.elapsedRealtime();
-        run = TimerRun.start(preset, now);
-        // A window that opens a moment before the start, so the preset's own opening cue is caught.
+        // The preset begins three seconds from now, not this instant: pressing play and finding the
+        // clock already running is no use to somebody timing something they do with their hands.
+        // Those three seconds are counted out loud — see TimerCues.LEAD_IN_SECONDS.
+        run = TimerRun.start(preset, now + TimerCues.LEAD_IN_MS);
+        // A window that opens a moment before the count, so its first beep is caught.
         lastCueMs = now - 1L;
         remember();
         begin();
@@ -226,9 +229,13 @@ public class TimerView extends View {
                 case TimerCues.PRE_ALARM:
                     listener.cue(Tones.PRE_ALARM);
                     break;
-                case TimerCues.START:
                 case TimerCues.TICK:
                     listener.cue(Tones.TICK);
+                    break;
+                case TimerCues.START:
+                    // The high one, landing on the moment the preset really begins — the same
+                    // sound as an ending, because it marks an instant just as exactly.
+                    listener.cue(Tones.END);
                     break;
                 case TimerCues.END:
                     listener.cue(Tones.END);
@@ -269,14 +276,7 @@ public class TimerView extends View {
         TimerInterval interval = run == null
                 ? (preset == null || preset.intervals.isEmpty() ? null : preset.intervals.get(0))
                 : run.intervalObjectAt(now);
-        // The interval's two colours are what it looks like before the bar passes and after: the
-        // part still to come is the first, the part gone is the second. Either may be no colour at
-        // all, in which case the clock shows through.
-        int before = interval == null ? TimerInterval.DEFAULT_COLOR : interval.color;
-        int after = interval == null ? TimerInterval.DEFAULT_END_COLOR : interval.endColor;
-
-        drawTrack(canvas, before);
-        drawFill(canvas, progress, after);
+        drawIntervals(canvas, progress);
         drawReadouts(canvas, now, progress);
         drawControls(canvas);
 
@@ -285,22 +285,40 @@ public class TimerView extends View {
         }
     }
 
-    /** The bar's whole length, in the colour of what has not happened yet. */
-    private void drawTrack(Canvas canvas, int color) {
+    /**
+     * The whole preset along the bar: every interval in its own place, in its own two colours.
+     *
+     * Each interval owns the share of the length its duration is worth. Within that share, what the
+     * fill has already passed is drawn in the interval's second colour and what is still to come in
+     * its first — so the bar reads as the shape of the whole session, and you can see at a glance
+     * that the long green stretch is followed by a short orange one. Either colour may be absent,
+     * and then the clock shows through that piece.
+     */
+    private void drawIntervals(Canvas canvas, float progress) {
         paint.setStyle(Paint.Style.FILL);
-        if (ColorText.isNone(color)) {
+        float edge = bar.fillAt(progress);
+
+        if (preset == null || preset.intervals.isEmpty()) {
+            piece(canvas, bar.barStart(), bar.barEnd(), TimerInterval.DEFAULT_COLOR);
             return;
         }
-        paint.setColor(color);
-        rect(canvas, bar.barStart(), bar.barEnd());
+        for (int i = 0; i < preset.intervals.size(); i++) {
+            TimerInterval part = preset.intervals.get(i);
+            float from = bar.fillAt(preset.startFraction(i));
+            float to = bar.fillAt(preset.endFraction(i));
+            // Gone, then still to come. Either can be empty, which draws nothing.
+            piece(canvas, from, Math.min(edge, to), part.endColor);
+            piece(canvas, Math.max(edge, from), to, part.color);
+        }
     }
 
-    private void drawFill(Canvas canvas, float progress, int color) {
-        if (ColorText.isNone(color)) {
+    /** One stretch of the bar in one colour; nothing at all if the colour is none. */
+    private void piece(Canvas canvas, float fromAlong, float toAlong, int color) {
+        if (toAlong <= fromAlong || ColorText.isNone(color)) {
             return;
         }
         paint.setColor(color);
-        rect(canvas, bar.barStart(), bar.fillAt(progress));
+        rect(canvas, fromAlong, toAlong);
     }
 
     /** One rectangle of the bar, from one point along the strip to another. */
@@ -327,18 +345,29 @@ public class TimerView extends View {
         if (readoutSize <= 0f) {
             return;
         }
-        long total = run == null
-                ? (preset == null ? 0L : preset.totalMs())
-                : run.totalMs();
+        // The bar shows the whole preset; the numbers show the interval you are actually in. Its
+        // own length, how far into it you are, and what is left of it — which is what somebody
+        // timing a rest between sets wants, rather than the total of a session they can see.
+        TimerInterval part = run == null
+                ? (preset == null || preset.intervals.isEmpty() ? null : preset.intervals.get(0))
+                : run.intervalObjectAt(now);
+        long total = part == null ? 0L : part.lengthMs;
         // Both readouts are cut down to whole seconds, so the time left is taken from the elapsed
-        // time *as shown* rather than from the exact one. Otherwise a twenty-second preset reads
+        // time *as shown* rather than from the exact one. Otherwise a twenty-second interval reads
         // "20, 13, 6" halfway through — both truncated, and a second lost between them.
-        long gone = run == null ? 0L : run.elapsedAt(now) / 1000L * 1000L;
+        long gone = run == null ? 0L : run.elapsedInIntervalAt(now) / 1000L * 1000L;
         long left = Math.max(total - gone, 0L);
+
+        // While it is counting in, the middle readout counts down with the beeps rather than
+        // sitting at zero, so the three seconds read as "starting" and not as "did I press it?".
+        long before = run == null ? 0L : -run.rawElapsedAt(now);
+        String middle = before > 0L
+                ? "-" + ((before + 999L) / 1000L)
+                : TimeReadout.trimmed(gone);
 
         paint.setTextSize(readoutSize);
         text(canvas, TimeReadout.trimmed(total), bar.totalAt(), bar.barMiddle(), Paint.Align.LEFT);
-        text(canvas, TimeReadout.trimmed(gone), readoutMiddle, bar.barMiddle(), Paint.Align.CENTER);
+        text(canvas, middle, readoutMiddle, bar.barMiddle(), Paint.Align.CENTER);
         text(canvas, TimeReadout.trimmed(left), bar.remainingAt(), bar.barMiddle(),
                 Paint.Align.RIGHT);
     }
@@ -357,8 +386,15 @@ public class TimerView extends View {
         if (bar == null) {
             return;
         }
-        long total = preset == null ? 0L : preset.totalMs();
-        String widest = TimeReadout.trimmed(total);
+        // The readouts speak about one interval at a time, so the longest of them is the widest
+        // the numbers can ever be — not the preset's total.
+        long longest = 0L;
+        if (preset != null) {
+            for (TimerInterval part : preset.intervals) {
+                longest = Math.max(longest, part.lengthMs);
+            }
+        }
+        String widest = TimeReadout.trimmed(longest);
         float size = bar.textSize(widest.length() * 3);
         float room = bar.barEnd() - bar.barStart();
         if (size <= 0f || room <= 0f) {

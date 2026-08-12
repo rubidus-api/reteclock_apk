@@ -1,0 +1,8 @@
+* The timer counts you in. Press play and it starts three seconds later, with a
+  low beep on each of those seconds and the high one landing exactly on the
+  start. Vibrate mode buzzes instead; silent mode just counts down on screen.
+* The bar now shows the whole preset at once: every interval takes the share of
+  the length its duration is worth, drawn in its own two colours, so you can see
+  the shape of the session at a glance.
+* The three times now describe the interval you are in rather than the whole
+  preset - its length, how far in you are, and what is left of it.

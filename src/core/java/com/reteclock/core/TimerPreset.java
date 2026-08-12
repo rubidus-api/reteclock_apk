@@ -53,6 +53,33 @@ public final class TimerPreset {
         return total;
     }
 
+    /**
+     * Where an interval begins, as a fraction of the whole preset.
+     *
+     * The bar draws the whole preset at once — every interval in its own colours — so it needs to
+     * know where each one sits along the length. Kept here rather than in the view because it is
+     * arithmetic on the model, and arithmetic on the model is the part worth testing.
+     */
+    public float startFraction(int index) {
+        long total = totalMs();
+        if (total <= 0L || index <= 0) {
+            return 0f;
+        }
+        long before = 0L;
+        for (int i = 0; i < index && i < intervals.size(); i++) {
+            before += intervals.get(i).lengthMs;
+        }
+        return (float) ((double) before / total);
+    }
+
+    /** Where it ends, as a fraction of the whole preset. */
+    public float endFraction(int index) {
+        if (index >= intervals.size() - 1) {
+            return intervals.isEmpty() || totalMs() <= 0L ? 0f : 1f;
+        }
+        return startFraction(index + 1);
+    }
+
     /** The same preset under another name. */
     public TimerPreset withName(String newName) {
         return new TimerPreset(newName, intervals, loops);

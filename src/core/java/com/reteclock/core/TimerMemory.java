@@ -76,8 +76,9 @@ public final class TimerMemory {
         if (preset == null || originMs == NONE) {
             return null;
         }
-        if (originMs > nowMs) {
-            // The device has rebooted since; this run is from a previous life.
+        if (originMs > nowMs + TimerCues.LEAD_IN_MS) {
+            // The device has rebooted since; this run is from a previous life. A little of the
+            // future is allowed, because a run that is still counting in has its origin there.
             return null;
         }
         boolean paused = pausedAtMs >= 0L;
