@@ -10,14 +10,17 @@ itself when you turn the phone sideways, and quietly shifts what it draws by a p
 so the numbers never burn into an OLED screen.
 
 There is nothing to sign up for and nothing to configure. It needs no account, no network and no
-Play Store, so it still works on phones that can no longer install anything else. It is tiny —
-under 100 KB — and asks for one permission only: the one that keeps the screen awake.
+Play Store, so it still works on phones that can no longer install anything else. It is small —
+about 140 KB — and asks for two permissions, both granted at install and never at runtime: one to
+keep the screen awake, and one to vibrate, which only the timer uses.
 
 ## Download
 
 **[⬇ Get it on F-Droid](https://f-droid.org/packages/com.reteclock/)** — recommended.
 
-**[⬇ Download reteclock-0.10.1.apk](https://github.com/rubidus-api/reteclock_apk/releases/latest/download/reteclock-0.10.1.apk)** — 91 KB, installs on Android 2.3 and newer.
+**[⬇ Download the latest APK](https://github.com/rubidus-api/reteclock_apk/releases/latest)** —
+about 140 KB, installs on Android 2.3 and newer. The link opens the newest release; the APK is the
+file attached to it.
 
 Every release is listed on the
 [Releases page](https://github.com/rubidus-api/reteclock_apk/releases).
@@ -85,6 +88,7 @@ the app.
 
 You can also put your own pictures behind the clock — several take turns, and animated GIFs play —
 fill the digits themselves with a picture, and decide how much of the screen the time should take.
+There is an interval timer too, for a pomodoro or a round of tabata, off until you ask for it.
 It is all in [Settings](#settings).
 
 ## What it is for
@@ -104,7 +108,7 @@ beyond keeping the screen awake. Copy the APK to the phone, open it, and the pho
 
 ## Which phones it runs on
 
-Published on F-Droid; the latest release is 0.10.1.
+Published on F-Droid; the latest release is 0.15.0.
 
 | | |
 |---|---|
@@ -177,9 +181,47 @@ In the order they appear on the screen.
   `001 …`, `002 …` turns the A-to-Z sort into your own order. If you import a file the pool already
   has, it is recognised and not stored twice.
 
+**Timer**
+
+The clock can also run an interval timer — a pomodoro, a round of tabata, three minutes for tea. It
+is off until you ask for it, and with it off the clock is exactly as it was: no strip, no controls,
+nothing extra drawn.
+
+- **Presets** — a preset is a named list of intervals. Each interval has its own length, typed in
+  hours, minutes and seconds; two colours; a message spoken aloud at its beginning, if the phone has
+  a speech engine; and a warning so many seconds before it ends. A preset can be told to repeat
+  forever, which is what turns twenty seconds of work and ten of rest into a tabata.
+- **On the clock face** — a strip runs down the left of the screen, or across the top when the phone
+  stands upright. It carries the whole preset at once: each interval takes the share of the strip
+  its length is worth, drawn in its own two colours — one for before the bar has reached it, one for
+  after — so the shape of the session is there at a glance. Either colour may be left empty, and
+  then the clock shows through. Three times are written inside the bar, all about the interval you
+  are in: its length, how far into it you are, and what is left of it.
+- **Counting in** — pressing play starts the preset three seconds later, with a low beep on each of
+  those three seconds and a high one landing exactly on the start, so you can put the phone down and
+  begin on the beat.
+- **Sound, vibration or silence** — one setting covers everything the timer says. Whichever you
+  choose, the end of each interval also flashes the screen three times. The tune at the end of a
+  preset is the theme from the fourth movement of Schubert's *Trout* Quintet, which the phone plays
+  from the notes rather than from a recording.
+- **Putting it away** — the hourglass at the end of the strip opens the list of presets, and the
+  first item there hides the timer. The strip empties, leaving the hourglass where it was, and the
+  clock keeps exactly the shape and size it had. A timer that is running keeps running and keeps
+  sounding; the same first item brings it back mid-count.
+
+**Settings file**
+
+- **Export / Import** — everything you have arranged can be written to a file and read back on
+  another phone, or kept as a backup. Pictures and fonts are not carried in it: names of ones the
+  other phone does not have are skipped, and it tells you how many. Neither direction asks for a
+  storage permission.
+
 **Starting**
 
 - **Start when the charger is connected** — on or off. See below for what to do on newer Android.
+- **Stay unlocked** — keeps the clock up past the lock screen: the screen never sleeps, the lock
+  screen never covers it, and no screensaver takes over. Off by default, since showing over a lock
+  screen is not something to do to somebody unasked.
 
 ## How to start it
 
@@ -200,9 +242,9 @@ Nothing below is needed to use the app.
 Java and the Android framework, nothing else. Built with the Android SDK command-line tools
 (`aapt2`, `javac`, `d8`, `zipalign`, `apksigner`) driven by POSIX shell scripts. No Gradle. No
 AndroidX, no support library, no Kotlin runtime and no third-party dependency — a single
-`classes.dex` and an APK well under 100 KB. It is signed with the v1 (JAR) scheme so old phones
-accept it, plus v2 and v3 for current ones, and it holds one normal permission (`WAKE_LOCK`), never
-requested at runtime.
+`classes.dex` and an APK of about 140 KB. It is signed with the v1 (JAR) scheme so old phones
+accept it, plus v2 and v3 for current ones, and it holds two normal permissions (`WAKE_LOCK` and
+`VIBRATE`, the latter for the timer), both granted at install and never requested at runtime.
 
 ### Build
 
