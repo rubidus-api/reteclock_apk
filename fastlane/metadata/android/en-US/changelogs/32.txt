@@ -1,0 +1,2 @@
+* The calendar's weekday headings no longer run into one another: they shrink
+  to fit their columns, so the grid reads evenly spaced.

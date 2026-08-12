@@ -419,11 +419,25 @@ public class ClockView extends View {
         backArrow.set(left, top, left + cellWidth, top + rowHeight);
         forwardArrow.set(left + width - cellWidth, top, left + width, top + rowHeight);
 
+        // The headings are words where the days are one or two digits, so at the grid's own size
+        // "Sun Mon Tue" runs together into one lump. They are measured and shrunk until the widest
+        // of them clears its column with air on both sides — the columns themselves never move, so
+        // the grid stays a grid.
         String[] names = grid.weekdayNames();
+        float widest = 0f;
+        for (String name : names) {
+            widest = Math.max(widest, paint.measureText(name));
+        }
+        float room = cellWidth * 0.84f;
+        float nameSize = widest > room ? size * (room / widest) : size;
+        applyStyle(ClockLayout.ROLE_MONTH_DAY, nameSize);
+        paint.setTextAlign(Paint.Align.CENTER);
         float namesBase = top + rowHeight * 1.5f - (paint.ascent() + paint.descent()) / 2f;
         for (int column = 0; column < MonthGrid.COLUMNS; column++) {
             canvas.drawText(names[column], left + cellWidth * (column + 0.5f), namesBase, paint);
         }
+        applyStyle(ClockLayout.ROLE_MONTH_DAY, size);
+        paint.setTextAlign(Paint.Align.CENTER);
 
         // Today's numbers, which ClockText does not carry: it holds the strings the clock draws,
         // and a calendar needs to compare, not to print.
