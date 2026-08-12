@@ -51,6 +51,8 @@ public class TimerView extends View {
     private TimerBar bar;
     private boolean horizontal;
     private boolean running;
+    /** Showing the hourglass alone, with the clock having the rest of the screen back. */
+    private boolean hidden;
     /** Settled by {@link #settleReadouts()}; never recomputed while drawing. */
     private float readoutSize;
     private float readoutMiddle;
@@ -84,6 +86,17 @@ public class TimerView extends View {
 
     void setListener(Listener listener) {
         this.listener = listener;
+    }
+
+    /**
+     * Puts the strip away, leaving only the hourglass.
+     *
+     * A timer that is not being watched still runs: the beeps and the speech carry on, and the
+     * hourglass is where they are called back from. Hiding is about the screen, not the clock.
+     */
+    void setHidden(boolean hide) {
+        hidden = hide;
+        invalidate();
     }
 
     /** Which preset the controls will start, and what the bar shows before anything runs. */
@@ -272,6 +285,14 @@ public class TimerView extends View {
         long now = SystemClock.elapsedRealtime();
         long began = isRunning() ? now : 0L;
 
+        if (hidden) {
+            drawHourglassAlone(canvas);
+            if (began != 0L) {
+                pacer.sample(SystemClock.elapsedRealtime() - began);
+            }
+            return;
+        }
+
         float progress = run == null ? 0f : run.progressAt(now);
         TimerInterval interval = run == null
                 ? (preset == null || preset.intervals.isEmpty() ? null : preset.intervals.get(0))
@@ -458,6 +479,15 @@ public class TimerView extends View {
     }
 
     /** Hourglass, stop, pause, play — drawn rather than shipped, like everything else here. */
+    /** The one control that is left when the strip is put away, in the middle of what remains. */
+    private void drawHourglassAlone(Canvas canvas) {
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(CONTROL);
+        float size = Math.min(getWidth(), getHeight());
+        drawControl(canvas, TimerBar.CONTROL_HOURGLASS,
+                getWidth() / 2f, getHeight() / 2f, size * 0.3f);
+    }
+
     private void drawControls(Canvas canvas) {
         float size = Math.min(bar.thickness() * 1.1f, shortEdge() * 0.7f);
         for (int i = 0; i < bar.controlCount(); i++) {
@@ -521,6 +551,13 @@ public class TimerView extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        if (hidden) {
+            // The whole of what is left is the hourglass, so anywhere on it opens the list.
+            if (event.getAction() == MotionEvent.ACTION_DOWN && listener != null) {
+                listener.choosePreset();
+            }
+            return true;
+        }
         if (bar == null || event.getAction() != MotionEvent.ACTION_DOWN) {
             // The strip swallows the whole gesture so a press on it never opens the clock's menu.
             return event.getAction() == MotionEvent.ACTION_UP

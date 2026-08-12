@@ -1,0 +1,6 @@
+* Settings can be exported to a file and imported again, for moving to a new
+  phone or keeping a backup. Images and fonts aren't carried; names the new
+  phone doesn't have are skipped, and it tells you how many.
+* The hourglass menu can put the timer away: everything but the hourglass goes,
+  and the clock gets the whole screen back. The timer keeps running and keeps
+  sounding. Pick a preset from the same hourglass to bring it back.

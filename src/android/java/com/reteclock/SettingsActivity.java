@@ -68,6 +68,11 @@ public class SettingsActivity extends Activity {
 
     private static final int REQUEST_PICK_FONT = 1;
     private static final int REQUEST_PICK_IMAGE = 2;
+    private static final int REQUEST_PICK_SETTINGS = 3;
+    private static final int REQUEST_SAVE_SETTINGS = 4;
+
+    /** A settings file is a few dozen short lines; anything far larger is not one of ours. */
+    private static final int MAX_SETTINGS_BYTES = 256 * 1024;
 
     /** The orderings the spinner offers, the default first. */
     private static final int[] ORDER_MODES = {
@@ -132,6 +137,8 @@ public class SettingsActivity extends Activity {
     private LinearLayout fieldSection;
     /** Rebuilt in place whenever the image pool or the roles change. */
     private LinearLayout imageSection;
+    /** The arrangement waiting for the system to say where to put it. */
+    private String pendingExport;
     /** The worker that bakes the images, and whether another pass was asked for while it ran. */
     private final Object bakeLock = new Object();
     private Thread baker;
@@ -278,6 +285,25 @@ public class SettingsActivity extends Activity {
         imageSection.setOrientation(LinearLayout.VERTICAL);
         images.addView(imageSection);
         root.addView(images);
+
+        // ---- Carrying the settings ----
+        LinearLayout carry = card(getString(R.string.settings_card_carry));
+        carry.addView(footer(getString(R.string.settings_carry_note)));
+        carry.addView(actionButton(getString(R.string.settings_export),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        exportSettings();
+                    }
+                }));
+        carry.addView(actionButton(getString(R.string.settings_import),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        pickSettings();
+                    }
+                }));
+        root.addView(carry);
 
         // ---- Dock ----
         LinearLayout dock = card(getString(R.string.settings_dock));
@@ -1188,7 +1214,123 @@ public class SettingsActivity extends Activity {
             importFont(data.getData());
         } else if (requestCode == REQUEST_PICK_IMAGE) {
             importImage(data.getData());
+        } else if (requestCode == REQUEST_PICK_SETTINGS) {
+            importSettings(data.getData());
+        } else if (requestCode == REQUEST_SAVE_SETTINGS) {
+            writeSettings(data.getData());
         }
+    }
+
+    /**
+     * Writes the arrangement out.
+     *
+     * On KitKat and later the system asks where to put it, which needs no storage permission. On
+     * anything older there is no such picker, so the text is handed to whatever the user shares
+     * with — mail, notes, a file manager — which also needs no permission and is the only way to
+     * get a file off a 2011 phone without asking for the whole of external storage.
+     */
+    private void exportSettings() {
+        String text = SettingsPortability.export(this);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("text/plain");
+            intent.putExtra(Intent.EXTRA_TITLE, exportName());
+            try {
+                pendingExport = text;
+                startActivityForResult(intent, REQUEST_SAVE_SETTINGS);
+                return;
+            } catch (ActivityNotFoundException e) {
+                pendingExport = null;
+            }
+        }
+        Intent share = new Intent(Intent.ACTION_SEND);
+        share.setType("text/plain");
+        share.putExtra(Intent.EXTRA_SUBJECT, exportName());
+        share.putExtra(Intent.EXTRA_TEXT, text);
+        try {
+            startActivity(Intent.createChooser(share, getString(R.string.settings_export)));
+        } catch (ActivityNotFoundException e) {
+            toast(getString(R.string.settings_carry_no_picker));
+        }
+    }
+
+    /** reteclock-settings-20260812-2130.txt — the date is what tells two backups apart. */
+    private String exportName() {
+        return "reteclock-settings-"
+                + new java.text.SimpleDateFormat("yyyyMMdd-HHmm", java.util.Locale.US)
+                        .format(new java.util.Date())
+                + ".txt";
+    }
+
+    private void writeSettings(Uri uri) {
+        String text = pendingExport;
+        pendingExport = null;
+        if (text == null) {
+            return;
+        }
+        java.io.OutputStream out = null;
+        try {
+            out = getContentResolver().openOutputStream(uri);
+            if (out == null) {
+                throw new IOException("cannot write " + uri);
+            }
+            out.write(text.getBytes("UTF-8"));
+            toast(getString(R.string.settings_export_done));
+        } catch (IOException e) {
+            toast(getString(R.string.settings_export_failed));
+        } finally {
+            if (out != null) {
+                try {
+                    out.close();
+                } catch (IOException ignored) {
+                    // Nothing useful to do; the toast above already said how it went.
+                }
+            }
+        }
+    }
+
+    private void pickSettings() {
+        Intent intent;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        } else {
+            intent = new Intent(Intent.ACTION_GET_CONTENT);
+        }
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+        try {
+            startActivityForResult(intent, REQUEST_PICK_SETTINGS);
+        } catch (ActivityNotFoundException e) {
+            toast(getString(R.string.settings_carry_no_picker));
+        }
+    }
+
+    private void importSettings(Uri uri) {
+        String text;
+        try {
+            text = new String(readAll(uri, MAX_SETTINGS_BYTES), "UTF-8");
+        } catch (IOException e) {
+            toast(getString(R.string.settings_import_failed));
+            return;
+        }
+        SettingsPortability.Result result = SettingsPortability.importFrom(this, text);
+        if (!result.readable) {
+            toast(getString(R.string.settings_import_not_ours));
+            return;
+        }
+        toast(result.droppedNames > 0
+                ? getString(R.string.settings_import_done_partial, result.applied,
+                        result.droppedNames)
+                : getString(R.string.settings_import_done, result.applied));
+        // Everything on screen was built from the old values; the sections that can be rebuilt
+        // are, and a restart of the screen catches the rest.
+        rebuildFontSection();
+        rebuildFieldSection();
+        rebuildImageSection();
+        rebuildColorSection();
+        finish();
+        startActivity(new Intent(this, SettingsActivity.class));
     }
 
     private void importFont(Uri uri) {

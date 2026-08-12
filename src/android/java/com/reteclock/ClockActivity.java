@@ -6,6 +6,7 @@ import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
@@ -147,15 +148,30 @@ public class ClockActivity extends Activity {
                     Settings.runPausedAt(this), android.os.SystemClock.elapsedRealtime()));
 
             int strip = stripThickness(landscape);
-            row.addView(timer, landscape
-                    ? new LinearLayout.LayoutParams(strip, LinearLayout.LayoutParams.MATCH_PARENT)
-                    : new LinearLayout.LayoutParams(
-                            LinearLayout.LayoutParams.MATCH_PARENT, strip));
-            row.addView(view, new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.MATCH_PARENT, 1f));
-            root.addView(row, new FrameLayout.LayoutParams(
-                    FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+            if (Settings.timerHidden(this)) {
+                // Put away: the clock has the whole screen and only the hourglass is left, sitting
+                // where it sat on the strip so it is where the hand already expects it.
+                timer.setHidden(true);
+                root.addView(view, new FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT));
+                FrameLayout.LayoutParams corner =
+                        new FrameLayout.LayoutParams(strip, strip);
+                corner.gravity = Gravity.TOP | (landscape ? Gravity.LEFT : Gravity.RIGHT);
+                root.addView(timer, corner);
+            } else {
+                row.addView(timer, landscape
+                        ? new LinearLayout.LayoutParams(strip,
+                                LinearLayout.LayoutParams.MATCH_PARENT)
+                        : new LinearLayout.LayoutParams(
+                                LinearLayout.LayoutParams.MATCH_PARENT, strip));
+                row.addView(view, new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.MATCH_PARENT, 1f));
+                root.addView(row, new FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT));
+            }
         }
 
         // The sheet the flash uses, above everything and invisible until it is wanted.
@@ -271,9 +287,12 @@ public class ClockActivity extends Activity {
         if (presets.isEmpty() || timer == null) {
             return;
         }
-        String[] names = new String[presets.size()];
+        // Putting the timer away is the first thing on the list, because it is the one thing the
+        // hourglass can do that nothing else on the clock face can.
+        final String[] names = new String[presets.size() + 1];
+        names[0] = getString(R.string.timer_hide);
         for (int i = 0; i < presets.size(); i++) {
-            names[i] = presets.get(i).name + "   "
+            names[i + 1] = presets.get(i).name + "   "
                     + com.reteclock.core.TimeReadout.of(presets.get(i).totalMs());
         }
         new android.app.AlertDialog.Builder(this)
@@ -281,8 +300,19 @@ public class ClockActivity extends Activity {
                 .setItems(names, new android.content.DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(android.content.DialogInterface dialog, int which) {
-                        Settings.setTimerChosen(ClockActivity.this, which);
-                        timer.setPreset(presets.get(which));
+                        if (which == 0) {
+                            Settings.setTimerHidden(ClockActivity.this, true);
+                            layOutScreen();
+                            return;
+                        }
+                        // Choosing a preset is also how the strip comes back: the hourglass is the
+                        // way in and the way out, and there is nowhere else to look for it.
+                        Settings.setTimerHidden(ClockActivity.this, false);
+                        Settings.setTimerChosen(ClockActivity.this, which - 1);
+                        layOutScreen();
+                        if (timer != null) {
+                            timer.setPreset(presets.get(which - 1));
+                        }
                     }
                 })
                 .show();

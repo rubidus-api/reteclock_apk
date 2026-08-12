@@ -44,6 +44,7 @@ public final class Settings {
     public static final String KEY_TIMER_CHOSEN = "timer_chosen";
     public static final String KEY_TIMER_ALERT = "timer_alert";
     public static final String KEY_STAY_UNLOCKED = "stay_unlocked";
+    public static final String KEY_TIMER_HIDDEN = "timer_hidden";
     public static final String KEY_RUN_ORIGIN = "timer_run_origin";
     public static final String KEY_RUN_PAUSED_AT = "timer_run_paused_at";
     public static final String KEY_RUN_PRESET = "timer_run_preset";
@@ -99,6 +100,22 @@ public final class Settings {
 
     public static void setDateStyle(Context context, int style) {
         prefs(context).edit().putInt(KEY_DATE_STYLE, style).commit();
+    }
+
+    /**
+     * Every stored setting, for carrying the arrangement off this phone.
+     *
+     * The judgement of what may travel is not made here — see
+     * {@link com.reteclock.core.SettingsText#isPortable} — so that it can be tested away from
+     * Android.
+     */
+    public static java.util.Map<String, ?> all(Context context) {
+        return prefs(context).getAll();
+    }
+
+    /** An editor for writing a carried arrangement back in one commit. */
+    public static SharedPreferences.Editor edit(Context context) {
+        return prefs(context).edit();
     }
 
     /** The fonts the user has imported. */
@@ -405,6 +422,15 @@ public final class Settings {
      * The running timer, as three numbers, so it survives leaving the clock and coming back — and
      * so the screensaver can show what the clock started. See {@link com.reteclock.core.TimerMemory}.
      */
+    /** Whether the strip is put away, leaving only the hourglass on the clock face. */
+    public static boolean timerHidden(Context context) {
+        return prefs(context).getBoolean(KEY_TIMER_HIDDEN, false);
+    }
+
+    public static void setTimerHidden(Context context, boolean hidden) {
+        prefs(context).edit().putBoolean(KEY_TIMER_HIDDEN, hidden).commit();
+    }
+
     public static void rememberRun(Context context, String identity, long originMs,
             long pausedAtMs) {
         prefs(context).edit()
