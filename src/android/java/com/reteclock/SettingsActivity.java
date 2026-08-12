@@ -260,6 +260,13 @@ public class SettingsActivity extends Activity {
         });
         clock.addView(saying);
         clock.addView(footer(getString(R.string.settings_quote_note)));
+        // The sayings are somebody else's work, even if nobody's copyright. Cited in full, where
+        // the person switching them on can actually see it.
+        clock.addView(subheading(getString(R.string.settings_quote_sources)));
+        clock.addView(footer(getString(R.string.settings_quote_source1)));
+        clock.addView(footer(getString(R.string.settings_quote_source2)));
+        clock.addView(footer(getString(R.string.settings_quote_source3)));
+        clock.addView(footer(getString(R.string.settings_quote_rights)));
 
         clock.addView(subheading(getString(R.string.settings_colors)));
         colorSection = new LinearLayout(this);

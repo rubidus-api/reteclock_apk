@@ -440,19 +440,35 @@ public class ClockView extends View {
                     continue;
                 }
                 boolean today = thisMonth && day == todayDay;
-                // Today is the one day that has to be findable at a glance from across a room.
                 applyStyle(ClockLayout.ROLE_MONTH_DAY, size);
-                if (today) {
-                    paint.setFakeBoldText(true);
-                    paint.setUnderlineText(true);
-                }
                 paint.setTextAlign(Paint.Align.CENTER);
-                canvas.drawText(String.valueOf(day),
-                        left + cellWidth * (column + 0.5f), base, paint);
-                if (today) {
-                    paint.setFakeBoldText(false);
-                    paint.setUnderlineText(false);
+                float centreX = left + cellWidth * (column + 0.5f);
+                if (!today) {
+                    canvas.drawText(String.valueOf(day), centreX, base, paint);
+                    continue;
                 }
+                // Today is knocked out of a filled box rather than underlined: the numerals are
+                // cut clean through the colour, so whatever is behind the clock — a picture, a
+                // GIF — shows through the digits themselves. On a layer of its own, because
+                // clearing pixels needs somewhere to clear them from.
+                float boxHalfW = Math.min(cellWidth, rowHeight) * 0.46f;
+                float boxHalfH = rowHeight * 0.44f;
+                float centreY = top + rowHeight * (row + 2.5f);
+                android.graphics.RectF box = new android.graphics.RectF(
+                        centreX - boxHalfW, centreY - boxHalfH,
+                        centreX + boxHalfW, centreY + boxHalfH);
+                int layer = canvas.saveLayer(box.left - 2f, box.top - 2f,
+                        box.right + 2f, box.bottom + 2f, null, Canvas.ALL_SAVE_FLAG);
+                android.graphics.Paint fill =
+                        new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+                fill.setColor(textColor);
+                canvas.drawRoundRect(box, boxHalfH * 0.35f, boxHalfH * 0.35f, fill);
+                android.graphics.Xfermode was = paint.getXfermode();
+                paint.setXfermode(new android.graphics.PorterDuffXfermode(
+                        android.graphics.PorterDuff.Mode.CLEAR));
+                canvas.drawText(String.valueOf(day), centreX, base, paint);
+                paint.setXfermode(was);
+                canvas.restoreToCount(layer);
             }
         }
         paint.setTextAlign(Paint.Align.LEFT);

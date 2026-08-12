@@ -462,12 +462,10 @@ public final class ClockLayout {
     private static ClockLayout wide(int w, int h, ClockOptions options) {
         float pad = paddingPx(w, h);
         // The clock is laid out in a shorter screen and the calendar takes the floor it stands on.
-        float[] calendar = null;
         if (options.calendar) {
-            float top = h * (1f - CALENDAR_SHARE_WIDE);
-            calendar = new float[] {pad, top, w - 2f * pad, h - top - pad};
-            h = Math.round(top);
+            return wideWithCalendar(w, h, options, pad);
         }
+        float[] calendar = null;
         // The user's dial: how much of the width belongs to the big time. The rest is the side
         // column's region, and its lines grow with it.
         float mainWidth = w * options.timeFractionWide;
@@ -512,6 +510,41 @@ public final class ClockLayout {
                     SIDE_GROUP));
             cursor += size + lineGap;
         }
+        return new ClockLayout(true, out, options, calendar);
+    }
+
+    /**
+     * The wide arrangement with a month beside the clock.
+     *
+     * The calendar takes the side column's place — the seconds, weekday, date and year lived
+     * there, and the calendar says three of those four better than a line of text can. What is
+     * left on the left is the time: the hour and the minute on their own lines, one above the
+     * other, and the seconds smaller underneath. The dial that splits the screen still splits it,
+     * so the user's own proportion goes on working with the calendar as it did without.
+     */
+    private static ClockLayout wideWithCalendar(int w, int h, ClockOptions options, float pad) {
+        float mainWidth = w * options.timeFractionWide;
+        float boxWidth = mainWidth - 2f * pad;
+        float centerX = mainWidth / 2f;
+        float gap = h * 0.02f;
+
+        float content = h - 2f * pad - 2f * gap;
+        float bigSize = content * (options.showSeconds ? 0.40f : 0.50f);
+        float secondSize = content * 0.20f;
+
+        List<Slot> out = new ArrayList<Slot>(3);
+        float cursor = pad;
+        out.add(new Slot(ROLE_HOUR, centerX, cursor + bigSize / 2f, bigSize, boxWidth));
+        cursor += bigSize + gap;
+        out.add(new Slot(ROLE_MINUTE, centerX, cursor + bigSize / 2f, bigSize, boxWidth));
+        cursor += bigSize + gap;
+        if (options.showSeconds) {
+            out.add(new Slot(ROLE_SECOND, centerX, cursor + secondSize / 2f, secondSize, boxWidth));
+        }
+
+        float[] calendar = new float[] {
+            mainWidth + pad, pad, w - mainWidth - 2f * pad, h - 2f * pad,
+        };
         return new ClockLayout(true, out, options, calendar);
     }
 

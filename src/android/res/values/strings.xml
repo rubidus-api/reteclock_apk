@@ -112,6 +112,11 @@
     <string name="settings_field_quote">Saying</string>
     <string name="settings_quote">Show a saying along the bottom</string>
     <string name="settings_quote_note">One a day, in a thin strip under the clock. Touch it for another. The sayings are from W. A. Clouston\'s "Book of Wise Sayings" (1893), which is in the public domain.</string>
+    <string name="settings_quote_sources">Where the sayings come from</string>
+    <string name="settings_quote_source1">Clouston, W. A., comp. Book of Wise Sayings: Selected Largely from Eastern Sources. London: Hutchinson &amp; Co., 1893. Public domain. Transcription: Project Gutenberg ebook 21130.</string>
+    <string name="settings_quote_source2">[Preston, Thomas], comp. A Dictionary of English Proverbs and Proverbial Phrases, with a Copious Index of Principal Words. London: Whittaker &amp; Co., [n.d.]. The title page names neither author nor year; the attribution is Project Gutenberg\'s. Public domain. Transcription: Project Gutenberg ebook 39281.</string>
+    <string name="settings_quote_source3">Bohn, Henry G., comp. A Polyglot of Foreign Proverbs. London: Henry G. Bohn, 1857. Public domain. Transcription: Project Gutenberg ebook 51090.</string>
+    <string name="settings_quote_rights">All three were published before 1900 and their compilers are long dead, so the texts are in the public domain worldwide. Project Gutenberg\'s header, footer, licence and trademark have been removed, so no Project Gutenberg Licence attaches to anything in this app.</string>
     <string name="menu_calendar_settings">Calendar settings</string>
     <string name="calendar_title">Calendar</string>
     <string name="calendar_show">Show a calendar on the clock</string>

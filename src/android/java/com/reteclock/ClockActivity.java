@@ -89,11 +89,23 @@ public class ClockActivity extends Activity {
         view.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, android.view.MotionEvent event) {
-                if (event.getAction() != android.view.MotionEvent.ACTION_DOWN) {
+                int action = event.getAction();
+                if (action == android.view.MotionEvent.ACTION_DOWN) {
+                    // Taken now, and the rest of the gesture with it: consuming only the press
+                    // leaves the release to the view, which counts it as a tap and opens the menu
+                    // on top of whatever the arrow just did.
+                    ownGesture = view.pageCalendar(event.getX(), event.getY())
+                            || view.nextSaying(event.getX(), event.getY());
+                    return ownGesture;
+                }
+                if (!ownGesture) {
                     return false;
                 }
-                return view.pageCalendar(event.getX(), event.getY())
-                        || view.nextSaying(event.getX(), event.getY());
+                if (action == android.view.MotionEvent.ACTION_UP
+                        || action == android.view.MotionEvent.ACTION_CANCEL) {
+                    ownGesture = false;
+                }
+                return true;
             }
         });
         view.setOnClickListener(new View.OnClickListener() {
@@ -229,6 +241,9 @@ public class ClockActivity extends Activity {
     }
 
     /** What the strip asks the world for: sounds, speech, a flash, and the preset list. */
+    /** Whether the touch in progress belongs to the calendar's arrows or to the saying. */
+    private boolean ownGesture;
+
     private final TimerView.Listener timerListener = new TimerView.Listener() {
         @Override
         public void remember(com.reteclock.core.TimerRun run) {

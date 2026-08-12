@@ -1,0 +1,8 @@
+* Sideways with the calendar on, the clock reads down the left - hour, minute,
+  then the seconds smaller - and the calendar fills the side column where the
+  date and year used to be.
+* Today is knocked out of a filled box instead of underlined, so a picture
+  behind the clock shows through the numerals.
+* Touching the calendar's arrows or the saying no longer opens the menu too.
+* Full citations for the three saying collections are now shown in the settings
+  under the saying switch, and in LICENSE.
