@@ -1,0 +1,13 @@
+* A stopped timer stayed silent but went on sounding: turning the screen built
+  a new timer strip, and the one it replaced kept ticking in the background. It
+  now stops at once, and a saved run is only taken up by the preset it belongs
+  to.
+* The three times are written inside the timer bar now — whole length, elapsed,
+  remaining — outlined so they read over the fill, and each written only to the
+  units it needs, so a half hour reads 30:00.
+* Portrait and landscape read the same way: the bar, then play, pause, stop and
+  the hourglass.
+* A preset can be set to repeat forever, and interval lengths are entered as
+  hours, minutes, seconds and milliseconds.
+* The timer settings say so when the phone has no speech engine, instead of
+  falling silent without explanation.

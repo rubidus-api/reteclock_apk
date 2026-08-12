@@ -38,30 +38,39 @@ public final class TimeReadout {
     }
 
     /**
-     * The same time without the hundredths, and without the hour unless there is one.
+     * The same time with nothing written that is not needed.
      *
-     * Three readouts share the width of the bar, and only the middle one — the one that is moving —
-     * is worth reading to a hundredth of a second. Writing the other two in full made all three
-     * small enough to be useless; written briefly, all three grow.
+     * An hour appears only when there is one; the minutes only when there are minutes or an hour to
+     * lead them; the hundredths only when they are not zero. So a half-hour preset is `30:00`, the
+     * moment it starts is `0`, four and a bit seconds in is `4.92`, and an hour and five minutes is
+     * `1:05:00`. Whatever is shown keeps its leading zeros beneath the largest unit shown, so the
+     * digits do not jump about as the numbers change: `1:04.92`, never `1:4.92`.
+     *
+     * The bar carries three of these side by side, and their size is set by how many characters
+     * they come to — so trimming them is not tidiness, it is what makes them large enough to read.
      */
-    public static String brief(long ms) {
-        long safe = ms < 0L ? 0L : ms;
-        long seconds = safe / 1000L;
-        long hours = seconds / 3600L;
-        long minutes = (seconds / 60L) % 60L;
-        long rest = seconds % 60L;
-        StringBuilder out = new StringBuilder();
+    public static String trimmed(long ms) {
+        long at = ms < 0L ? 0L : ms;
+        long hours = at / 3_600_000L;
+        long minutes = at / 60_000L % 60L;
+        long seconds = at / 1000L % 60L;
+        long hundredths = at % 1000L / 10L;
+
+        StringBuilder out = new StringBuilder(11);
         if (hours > 0L) {
             out.append(hours).append(':');
-            if (minutes < 10L) {
-                out.append('0');
-            }
+            two(out, minutes).append(':');
+            two(out, seconds);
+        } else if (minutes > 0L) {
+            out.append(minutes).append(':');
+            two(out, seconds);
+        } else {
+            out.append(seconds);
         }
-        out.append(minutes).append(':');
-        if (rest < 10L) {
-            out.append('0');
+        if (hundredths > 0L) {
+            out.append('.');
+            two(out, hundredths);
         }
-        out.append(rest);
         return out.toString();
     }
 }

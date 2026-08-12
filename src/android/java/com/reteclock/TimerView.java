@@ -318,15 +318,45 @@ public class TimerView extends View {
         long gone = run == null ? 0L : run.elapsedAt(now);
         long left = total - gone;
 
-        String whole = TimeReadout.brief(total);
-        String elapsed = TimeReadout.of(gone);
-        String remaining = TimeReadout.brief(left);
-        // Sized from what is actually being written, so short times are drawn large.
-        paint.setTextSize(bar.textSize(whole.length() + elapsed.length() + remaining.length()));
+        String whole = TimeReadout.trimmed(total);
+        String elapsed = TimeReadout.trimmed(gone);
+        String remaining = TimeReadout.trimmed(left);
+
+        // The geometry sizes them by counting characters, which is close enough to start from but
+        // not close enough to trust: a colon is not a digit's width, and the middle readout grows a
+        // hundredths place and loses it again while it runs. So the three are measured in the font
+        // actually being drawn, and shrunk until they and the air between them fit the bar.
+        float size = bar.textSize(whole.length() + elapsed.length() + remaining.length());
+        float room = bar.barEnd() - bar.barStart() - size * 0.5f;
+        paint.setTextSize(size);
+        float wide = paint.measureText(whole) + paint.measureText(elapsed)
+                + paint.measureText(remaining) + size * 0.8f;
+        if (wide > room && wide > 0f) {
+            size *= room / wide;
+            paint.setTextSize(size);
+        }
 
         text(canvas, whole, bar.totalAt(), bar.barMiddle(), Paint.Align.LEFT);
-        text(canvas, elapsed, bar.midAt(), bar.barMiddle(), Paint.Align.CENTER);
+        text(canvas, elapsed, middleOf(whole, elapsed, remaining), bar.barMiddle(),
+                Paint.Align.CENTER);
         text(canvas, remaining, bar.remainingAt(), bar.barMiddle(), Paint.Align.RIGHT);
+    }
+
+    /**
+     * Where the middle readout sits: the middle of the bar, unless that would put it against one of
+     * its neighbours, in which case as near the middle as it can get without touching them.
+     */
+    private float middleOf(String whole, String elapsed, String remaining) {
+        float inset = paint.getTextSize() * 0.25f;
+        float gap = paint.getTextSize() * 0.4f;
+        float half = paint.measureText(elapsed) / 2f;
+        float low = bar.barStart() + inset + paint.measureText(whole) + gap + half;
+        float high = bar.barEnd() - inset - paint.measureText(remaining) - gap - half;
+        if (low > high) {
+            return bar.midAt();
+        }
+        float at = bar.midAt();
+        return at < low ? low : at > high ? high : at;
     }
 
     /**
