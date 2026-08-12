@@ -129,6 +129,7 @@ public class SettingsActivity extends Activity {
         R.string.settings_field_weekday,
         R.string.settings_field_month_day,
         R.string.settings_field_year,
+        R.string.settings_field_quote,
     };
 
     /** Rebuilt in place whenever a font is added or deleted. */
@@ -246,6 +247,19 @@ public class SettingsActivity extends Activity {
             }
         });
         clock.addView(dateStyle);
+
+        final CheckBox saying = new CheckBox(this);
+        saying.setText(R.string.settings_quote);
+        saying.setTextColor(TEXT_WHITE);
+        saying.setChecked(Settings.quoteOn(this));
+        saying.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                Settings.setQuoteOn(SettingsActivity.this, checked);
+            }
+        });
+        clock.addView(saying);
+        clock.addView(footer(getString(R.string.settings_quote_note)));
 
         clock.addView(subheading(getString(R.string.settings_colors)));
         colorSection = new LinearLayout(this);

@@ -28,6 +28,16 @@ public final class ClockOptions {
     public final float timeFractionWide;
     /** The share of a tall screen's content height the hour and minute take. */
     public final float timeFractionTall;
+    /** Whether a month's grid is shown under the time. */
+    public final boolean calendar;
+    /** Whether a saying is shown in a thin strip along the bottom. */
+    public final boolean quote;
+
+    /** The same options with the calendar switched on or off. */
+    public ClockOptions withCalendar(boolean showCalendar) {
+        return new ClockOptions(showSeconds, dateStyle, timeFractionWide, timeFractionTall,
+                showCalendar, quote);
+    }
 
     public ClockOptions(boolean showSeconds, int dateStyle) {
         this(showSeconds, dateStyle, DEFAULT_TIME_FRACTION_WIDE, DEFAULT_TIME_FRACTION_TALL);
@@ -35,6 +45,18 @@ public final class ClockOptions {
 
     public ClockOptions(boolean showSeconds, int dateStyle, float timeFractionWide,
             float timeFractionTall) {
+        this(showSeconds, dateStyle, timeFractionWide, timeFractionTall, false);
+    }
+
+    public ClockOptions(boolean showSeconds, int dateStyle, float timeFractionWide,
+            float timeFractionTall, boolean calendar) {
+        this(showSeconds, dateStyle, timeFractionWide, timeFractionTall, calendar, false);
+    }
+
+    public ClockOptions(boolean showSeconds, int dateStyle, float timeFractionWide,
+            float timeFractionTall, boolean calendar, boolean quote) {
+        this.quote = quote;
+        this.calendar = calendar;
         this.showSeconds = showSeconds;
         this.dateStyle = dateStyle == DATE_STYLE_NUMERIC ? DATE_STYLE_NUMERIC : DATE_STYLE_NAME;
         this.timeFractionWide = clampFraction(timeFractionWide);

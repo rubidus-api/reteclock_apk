@@ -1,0 +1,6 @@
+* A calendar. Turn it on from the clock's menu: the month under the time, in
+  the clock's own colour and font, week starting Sunday or Monday, arrows to
+  page through it, today marked. In portrait it takes the place of the date.
+* A saying along the bottom - one a day, touch it for another. 6,678 of them
+  from three 19th-century collections, all public domain. It takes its own font
+  and decoration like every other line.

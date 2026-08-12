@@ -75,6 +75,16 @@ final class ClockMenu {
                     }
                 }));
 
+        card.addView(choice(activity, activity.getString(R.string.menu_calendar_settings),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        dialog.dismiss();
+                        activity.startActivity(
+                                new Intent(activity, CalendarSettingsActivity.class));
+                    }
+                }));
+
         View rule = new View(activity);
         rule.setBackgroundColor(CARD_STROKE);
         rule.setLayoutParams(new LinearLayout.LayoutParams(

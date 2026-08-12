@@ -19,3 +19,22 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+
+----------------------------------------------------------------------
+
+The sayings in `src/android/res/raw/quotes.txt` are not covered by the
+licence above, because they are older than any licence.
+
+    Book of Wise Sayings: Selected Largely from Eastern Sources
+    Compiled by W. A. Clouston
+    Hutchinson & Co., London, 1893
+
+The book was published in 1893 and its compiler died in 1896, so both the
+text and the compilation are in the public domain worldwide by age. The
+transcription came from Project Gutenberg (ebook 21130); Project
+Gutenberg's own header, footer and licence have been removed and its
+trademark is not used, so nothing in this repository is subject to the
+Project Gutenberg Licence. What remains is the public-domain text itself,
+which anyone may use for any purpose.
+

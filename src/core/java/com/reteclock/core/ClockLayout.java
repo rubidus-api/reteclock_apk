@@ -43,6 +43,8 @@ public final class ClockLayout {
     public static final String ROLE_YEAR = "year";
     public static final String ROLE_WEEKDAY_DATE = "weekday_date";
     public static final String ROLE_SMALL_LINE = "small_line";
+    /** The saying along the bottom, which chooses its own font and decoration like any line. */
+    public static final String ROLE_QUOTE = "quote";
     /**
      * Not a field: the space between two of them.
      *
@@ -142,6 +144,31 @@ public final class ClockLayout {
     private static final float TALL_DATE_SHARE = 0.6f;
 
     /**
+     * How much of a wide screen's height the calendar takes, leaving the clock the rest.
+     *
+     * The time moves out of the middle and up into what is left, which is what the calendar being
+     * "underneath" amounts to: nothing is repositioned by hand, the clock is simply given a shorter
+     * screen to lay itself out in.
+     */
+    private static final float CALENDAR_SHARE_WIDE = 0.5f;
+
+    /**
+     * How tall the saying's strip is, as a share of the screen's shorter edge.
+     *
+     * A shade more than the timer's strip, which is eight per cent of the same edge: the two run
+     * along opposite edges of the same screen and should look like a pair, and words need a little
+     * more room than a bar does.
+     */
+    private static final float QUOTE_SHARE = 0.09f;
+
+    /**
+     * On a tall screen the time and the calendar together take exactly the share the time used to
+     * take alone, so switching the calendar on does not push the date and the year about. Within
+     * that share, this much is the time and the rest is the grid.
+     */
+    private static final float CALENDAR_TIME_SHARE_TALL = 0.32f;
+
+    /**
      * Padding kept free on every edge, as a fraction of the shorter edge.
      *
      * Derived from the burn-in amplitude rather than chosen independently: the whole drawing is
@@ -155,13 +182,27 @@ public final class ClockLayout {
     /** Kept because which strings a field can show depends on them. */
     private final ClockOptions options;
 
-    private ClockLayout(boolean wide, List<Slot> slots, ClockOptions options) {
+    private final float[] calendarRect;
+    private float[] quoteRect;
+
+    private ClockLayout(boolean wide, List<Slot> slots, ClockOptions options, float[] calendar) {
         this.wide = wide;
         this.slots = slots;
         this.options = options;
+        this.calendarRect = calendar;
     }
 
     /** True when the wide (landscape) arrangement is used. */
+    /** Where the calendar goes: left, top, width, height — or null when there is no calendar. */
+    public float[] calendarRect() {
+        return calendarRect;
+    }
+
+    /** Where the saying goes: left, top, width, height — or null when there is none. */
+    public float[] quoteRect() {
+        return quoteRect;
+    }
+
     public boolean isWide() {
         return wide;
     }
@@ -397,13 +438,35 @@ public final class ClockLayout {
 
     /** Builds the layout for a screen of the given pixel size. */
     public static ClockLayout of(int widthPx, int heightPx, ClockOptions options) {
-        return widthPx > heightPx
-                ? wide(widthPx, heightPx, options)
-                : tall(widthPx, heightPx, options);
+        // The saying takes a strip off the bottom and the clock lays itself out in what is left,
+        // exactly as it does for the timer: nothing else has to know the strip is there.
+        float quoteHeight = options.quote
+                ? Math.min(widthPx, heightPx) * QUOTE_SHARE
+                : 0f;
+        int usable = Math.max(1, Math.round(heightPx - quoteHeight));
+        ClockLayout layout = widthPx > usable
+                ? wide(widthPx, usable, options)
+                : tall(widthPx, usable, options);
+        if (quoteHeight > 0f) {
+            // The same air at the foot as everywhere else: text flush against the edge of a screen
+            // reads as text that has been cut off.
+            float pad = paddingPx(widthPx, heightPx);
+            layout.quoteRect = new float[] {
+                pad, usable, widthPx - 2f * pad, Math.max(1f, quoteHeight - pad),
+            };
+        }
+        return layout;
     }
 
     private static ClockLayout wide(int w, int h, ClockOptions options) {
         float pad = paddingPx(w, h);
+        // The clock is laid out in a shorter screen and the calendar takes the floor it stands on.
+        float[] calendar = null;
+        if (options.calendar) {
+            float top = h * (1f - CALENDAR_SHARE_WIDE);
+            calendar = new float[] {pad, top, w - 2f * pad, h - top - pad};
+            h = Math.round(top);
+        }
         // The user's dial: how much of the width belongs to the big time. The rest is the side
         // column's region, and its lines grow with it.
         float mainWidth = w * options.timeFractionWide;
@@ -448,7 +511,7 @@ public final class ClockLayout {
                     SIDE_GROUP));
             cursor += size + lineGap;
         }
-        return new ClockLayout(true, out, options);
+        return new ClockLayout(true, out, options, calendar);
     }
 
     private static ClockLayout tall(int w, int h, ClockOptions options) {
@@ -463,6 +526,11 @@ public final class ClockLayout {
         // its share exactly; a line too wide for the screen is shrunk by the plan as always,
         // which is where the growing stops.
         float content = h - 2f * pad - 3f * gap;
+
+        if (options.calendar) {
+            return tallWithCalendar(w, h, options, pad, boxWidth, centerX, gap, content);
+        }
+
         float mainSize = content * options.timeFractionTall / 2f;
         float rest = content * (1f - options.timeFractionTall);
         float dateSize = rest * TALL_DATE_SHARE;
@@ -483,7 +551,42 @@ public final class ClockLayout {
                 : singlePart(ROLE_YEAR);
         out.add(new Slot(ROLE_SMALL_LINE, smallParts,
                 centerX, cursor + smallSize / 2f, smallSize, boxWidth));
-        return new ClockLayout(false, out, options);
+        return new ClockLayout(false, out, options, null);
+    }
+
+    /**
+     * The tall layout with a month under the time.
+     *
+     * Two things go, because the calendar already says them better than a line of text can: the
+     * weekday with the date, and the year beside the seconds. What is left is the time on one
+     * line — hour and minute together, as wide as the screen allows rather than stacked — then the
+     * grid, then the seconds if they are wanted at all.
+     *
+     * The time and the grid together take exactly the share the time alone used to take, so
+     * turning the calendar on does not move what remains below it.
+     */
+    private static ClockLayout tallWithCalendar(int w, int h, ClockOptions options, float pad,
+            float boxWidth, float centerX, float gap, float content) {
+        float together = content * options.timeFractionTall;
+        float timeSize = together * CALENDAR_TIME_SHARE_TALL;
+        float gridHeight = together - timeSize;
+        float smallSize = content * (1f - options.timeFractionTall) * (1f - TALL_DATE_SHARE);
+
+        List<Slot> out = new ArrayList<Slot>(2);
+        float cursor = pad;
+        out.add(new Slot(ROLE_HOUR_MINUTE,
+                parts(new String[] {ROLE_HOUR, ROLE_MINUTE}, new String[] {"", ":"}),
+                centerX, cursor + timeSize / 2f, timeSize, boxWidth));
+        cursor += timeSize + gap;
+
+        float[] calendar = new float[] {pad, cursor, boxWidth, gridHeight};
+        cursor += gridHeight + gap;
+
+        if (options.showSeconds) {
+            out.add(new Slot(ROLE_SMALL_LINE, singlePart(ROLE_SECOND),
+                    centerX, cursor + smallSize / 2f, smallSize, boxWidth));
+        }
+        return new ClockLayout(false, out, options, calendar);
     }
 
     /**

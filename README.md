@@ -11,15 +11,15 @@ so the numbers never burn into an OLED screen.
 
 There is nothing to sign up for and nothing to configure. It needs no account, no network and no
 Play Store, so it still works on phones that can no longer install anything else. It is small —
-about 140 KB — and asks for two permissions, both granted at install and never at runtime: one to
+about 280 KB — and asks for two permissions, both granted at install and never at runtime: one to
 keep the screen awake, and one to vibrate, which only the timer uses.
 
 ## Download
 
 **[⬇ Get it on F-Droid](https://f-droid.org/packages/com.reteclock/)** — recommended.
 
-**[⬇ Download reteclock-0.16.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.16.0/reteclock-0.16.0.apk)**
-— 137 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
+**[⬇ Download reteclock-0.17.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.17.0/reteclock-0.17.0.apk)**
+— 277 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
 render GitHub's release page can still fetch it.
 
 The newest release is always at
@@ -123,7 +123,7 @@ beyond keeping the screen awake. Copy the APK to the phone, open it, and the pho
 
 ## Which phones it runs on
 
-Published on F-Droid; the latest release is 0.16.0.
+Published on F-Droid; the latest release is 0.17.0.
 
 | | |
 |---|---|
@@ -231,6 +231,23 @@ nothing extra drawn.
   other phone does not have are skipped, and it tells you how many. Neither direction asks for a
   storage permission.
 
+**A saying**
+
+- **Show a saying along the bottom** — a thin strip under the clock, about as deep as the timer's,
+  carrying one saying and who said it. One a day, the same one all day, since a clock that changed
+  what it said while you looked at it would be a thing that moves. Touch it for another. It wraps
+  to one, two or three lines depending on how long it is and how much room the strip has, and it
+  chooses its own font and decoration in the list of fields like every other line does.
+
+  The sayings are the whole of *Book of Wise Sayings: Selected Largely from Eastern Sources*,
+  compiled by W. A. Clouston and published by Hutchinson & Co. in 1893 — 351 of them, from Sa'dí,
+  Firdausí, the Dhammapada, the Hitopadesa, Goethe and eighty-odd others. The book was published in
+  1893 and its compiler died in 1896, so the text is in the public domain everywhere by age. The
+  transcription came from Project Gutenberg (ebook 21130) with that project's header, footer and
+  licence removed and its trademark unused, so nothing here carries any licence but this app's.
+  It is all in `src/android/res/raw/quotes.txt`, one saying to a line, should you want to read it
+  or replace it. See `LICENSE`.
+
 **Starting**
 
 - **Start when the charger is connected** — on or off. See below for what to do on newer Android.
@@ -257,7 +274,7 @@ Nothing below is needed to use the app.
 Java and the Android framework, nothing else. Built with the Android SDK command-line tools
 (`aapt2`, `javac`, `d8`, `zipalign`, `apksigner`) driven by POSIX shell scripts. No Gradle. No
 AndroidX, no support library, no Kotlin runtime and no third-party dependency — a single
-`classes.dex` and an APK of about 140 KB. It is signed with the v1 (JAR) scheme so old phones
+`classes.dex` and an APK of about 280 KB. It is signed with the v1 (JAR) scheme so old phones
 accept it, plus v2 and v3 for current ones, and it holds two normal permissions (`WAKE_LOCK` and
 `VIBRATE`, the latter for the timer), both granted at install and never requested at runtime.
 

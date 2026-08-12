@@ -84,6 +84,18 @@ public class ClockActivity extends Activity {
         // A tap opens the menu; a long press is the old way straight to the settings, kept because
         // people who have used the app know it.
         view.setClickable(true);
+        // The calendar's arrows are part of the clock's own face, so a touch is offered to them
+        // before it is taken as "open the menu". They exist only while the calendar does.
+        view.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, android.view.MotionEvent event) {
+                if (event.getAction() != android.view.MotionEvent.ACTION_DOWN) {
+                    return false;
+                }
+                return view.pageCalendar(event.getX(), event.getY())
+                        || view.nextSaying(event.getX(), event.getY());
+            }
+        });
         view.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

@@ -15,6 +15,7 @@ import android.view.View;
 
 import com.reteclock.core.BurnInShift;
 import com.reteclock.core.ClockLayout;
+import com.reteclock.core.MonthGrid;
 import com.reteclock.core.ClockOptions;
 import com.reteclock.core.ClockText;
 import com.reteclock.core.FramePacer;
@@ -151,6 +152,20 @@ public class ClockView extends View {
     private int insetLeft;
     private int insetTop;
 
+    /** The sayings, read once from the app's own resources, and which one is showing. */
+    private java.util.List<com.reteclock.core.Quotes.Saying> sayings;
+    private int sayingAt = -1;
+    private final android.graphics.RectF quoteArea = new android.graphics.RectF();
+
+    /** How many months away from this one the calendar is being looked at. */
+    private int monthOffset;
+    /** Whether the week is taken to begin on a Monday, and how the month is written. */
+    private boolean weekStartsMonday;
+    private int headerStyle = MonthGrid.HEADER_NAME;
+    /** Where the paging arrows last were, so a touch can be tested against them. */
+    private final android.graphics.RectF backArrow = new android.graphics.RectF();
+    private final android.graphics.RectF forwardArrow = new android.graphics.RectF();
+
     /** The frame of the background animation drawn last, so freezing it keeps that frame. */
     private long lastFrameMs;
     /** The screen this device's prepared files were baked for; one pack serves both orientations. */
@@ -186,11 +201,19 @@ public class ClockView extends View {
         super(context);
         this.safeMode = safeMode;
         options = Settings.options(context);
+        loadCalendar(context);
         loadTypeface(context);
         loadImages(context);
         loadColors(context);
         // Parts are positioned by their left edge, since a line can be several of them.
         paint.setTextAlign(Paint.Align.LEFT);
+    }
+
+    /** How the calendar is to be read: which day leads the week, and how the month is written. */
+    private void loadCalendar(Context context) {
+        weekStartsMonday = Settings.calendarWeekStartsMonday(context);
+        headerStyle = Settings.calendarHeaderStyle(context);
+        monthOffset = 0;
     }
 
     /**
@@ -209,6 +232,7 @@ public class ClockView extends View {
     /** Re-reads the options, e.g. after the user comes back from the settings screen. */
     public void reloadOptions() {
         options = Settings.options(getContext());
+        loadCalendar(getContext());
         loadTypeface(getContext());
         loadImages(getContext());
         loadColors(getContext());
@@ -361,6 +385,235 @@ public class ClockView extends View {
 
 
     /**
+     * A month, drawn in the space the layout set aside for it.
+     *
+     * Eight rows: the year and month with an arrow at each end, the seven weekday headings, then
+     * six weeks — always six, so paging through the months does not make the grid breathe. It is
+     * drawn with the clock's own paint, which is what makes it obey the text colour and, when one
+     * is set, the picture filling the digits: the calendar is the clock's writing, not a widget
+     * sitting on top of it.
+     */
+    private void drawCalendar(Canvas canvas, float[] rect) {
+        float left = rect[0];
+        float top = rect[1];
+        float width = rect[2];
+        float height = rect[3];
+        if (width <= 0f || height <= 0f) {
+            return;
+        }
+
+        int rows = MonthGrid.ROWS + 2;
+        float cellWidth = width / MonthGrid.COLUMNS;
+        float rowHeight = height / rows;
+        float size = Math.min(rowHeight * 0.66f, cellWidth * 0.52f);
+
+        MonthGrid grid = monthShown();
+        applyStyle(ClockLayout.ROLE_MONTH_DAY, size);
+        paint.setTextAlign(Paint.Align.CENTER);
+
+        // The header: the month between two arrows, each given a whole column to be touched in.
+        float headerBase = top + rowHeight / 2f - (paint.ascent() + paint.descent()) / 2f;
+        canvas.drawText(grid.header(headerStyle), left + width / 2f, headerBase, paint);
+        canvas.drawText("<", left + cellWidth / 2f, headerBase, paint);
+        canvas.drawText(">", left + width - cellWidth / 2f, headerBase, paint);
+        backArrow.set(left, top, left + cellWidth, top + rowHeight);
+        forwardArrow.set(left + width - cellWidth, top, left + width, top + rowHeight);
+
+        String[] names = grid.weekdayNames();
+        float namesBase = top + rowHeight * 1.5f - (paint.ascent() + paint.descent()) / 2f;
+        for (int column = 0; column < MonthGrid.COLUMNS; column++) {
+            canvas.drawText(names[column], left + cellWidth * (column + 0.5f), namesBase, paint);
+        }
+
+        // Today's numbers, which ClockText does not carry: it holds the strings the clock draws,
+        // and a calendar needs to compare, not to print.
+        java.util.Calendar now = java.util.Calendar.getInstance();
+        int todayYear = now.get(java.util.Calendar.YEAR);
+        int todayMonth = now.get(java.util.Calendar.MONTH) + 1;
+        int todayDay = now.get(java.util.Calendar.DAY_OF_MONTH);
+        boolean thisMonth = grid.holds(todayYear, todayMonth);
+        for (int row = 0; row < MonthGrid.ROWS; row++) {
+            float base = top + rowHeight * (row + 2.5f) - (paint.ascent() + paint.descent()) / 2f;
+            for (int column = 0; column < MonthGrid.COLUMNS; column++) {
+                int day = grid.dayAt(row, column);
+                if (day == 0) {
+                    continue;
+                }
+                boolean today = thisMonth && day == todayDay;
+                // Today is the one day that has to be findable at a glance from across a room.
+                applyStyle(ClockLayout.ROLE_MONTH_DAY, size);
+                if (today) {
+                    paint.setFakeBoldText(true);
+                    paint.setUnderlineText(true);
+                }
+                paint.setTextAlign(Paint.Align.CENTER);
+                canvas.drawText(String.valueOf(day),
+                        left + cellWidth * (column + 0.5f), base, paint);
+                if (today) {
+                    paint.setFakeBoldText(false);
+                    paint.setUnderlineText(false);
+                }
+            }
+        }
+        paint.setTextAlign(Paint.Align.LEFT);
+    }
+
+    /**
+     * The day's saying, in the strip along the bottom.
+     *
+     * Up to three lines, sized so that they fill the strip; the words and the name are one string,
+     * so a short saying by somebody with a long name breaks where it has to rather than by a rule
+     * about which half matters. Drawn with the clock's paint in the saying's own font, so it takes
+     * the text colour and the picture filling the digits like every other line.
+     */
+    private void drawSaying(Canvas canvas, float[] rect) {
+        if (sayings == null) {
+            loadSayings();
+        }
+        if (sayings.isEmpty()) {
+            return;
+        }
+        if (sayingAt < 0) {
+            sayingAt = com.reteclock.core.Quotes.forDay(today(), sayings.size());
+        }
+        String text = sayings.get(sayingAt).toString();
+
+        float left = rect[0];
+        float top = rect[1];
+        float width = rect[2];
+        float height = rect[3];
+        quoteArea.set(left, top, left + width, top + height);
+
+        // The largest lettering that still says the whole thing. One line is the biggest letters
+        // the strip can hold but the fewest characters; three lines are a third the height each
+        // and three times the room. So the three are tried from biggest to smallest and the first
+        // that fits without an ellipsis wins — and a saying that fits nowhere is drawn at the
+        // three-line size, which is the most of it anyone will get.
+        final com.reteclock.core.QuoteLines.Width measure =
+                new com.reteclock.core.QuoteLines.Width() {
+                    @Override
+                    public float of(String value) {
+                        return paint.measureText(value);
+                    }
+                };
+        java.util.List<String> best = null;
+        float bestSize = 0f;
+        for (int lineCount = 1; lineCount <= 3; lineCount++) {
+            float size = height / lineCount * 0.85f;
+            applyStyle(ClockLayout.ROLE_QUOTE, size);
+            java.util.List<String> lines =
+                    com.reteclock.core.QuoteLines.wrap(text, width, lineCount, measure);
+            if (lines.isEmpty()) {
+                continue;
+            }
+            best = lines;
+            bestSize = size;
+            if (!lines.get(lines.size() - 1).endsWith("...")) {
+                break;
+            }
+        }
+
+        if (best == null || best.isEmpty()) {
+            return;
+        }
+
+        applyStyle(ClockLayout.ROLE_QUOTE, bestSize);
+        paint.setTextAlign(Paint.Align.CENTER);
+        float lineHeight = height / best.size();
+        for (int i = 0; i < best.size(); i++) {
+            paint.getFontMetrics(fontMetrics);
+            float base = top + lineHeight * (i + 0.5f)
+                    - (fontMetrics.ascent + fontMetrics.descent) / 2f;
+            canvas.drawText(best.get(i), left + width / 2f, base, paint);
+        }
+        paint.setTextAlign(Paint.Align.LEFT);
+    }
+
+    private void loadSayings() {
+        String text = "";
+        try {
+            java.io.InputStream in = getResources().openRawResource(R.raw.quotes);
+            try {
+                java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, read);
+                }
+                text = new String(out.toByteArray(), "UTF-8");
+            } finally {
+                in.close();
+            }
+        } catch (java.io.IOException e) {
+            // Nothing to show is better than a clock that will not start.
+        }
+        sayings = com.reteclock.core.Quotes.parse(text);
+    }
+
+    private long today() {
+        java.util.TimeZone zone = java.util.TimeZone.getDefault();
+        long now = System.currentTimeMillis();
+        return com.reteclock.core.Quotes.dayNumber(now, zone.getOffset(now));
+    }
+
+    /**
+     * Answers a touch on the saying with another saying.
+     *
+     * Any saying but the one already showing — see {@link com.reteclock.core.Quotes#another} —
+     * because a shuffle that can land on what is there reads as a button that did not work.
+     */
+    boolean nextSaying(float x, float y) {
+        if (layout == null || layout.quoteRect() == null || sayings == null || sayings.isEmpty()) {
+            return false;
+        }
+        if (!quoteArea.contains(x - insetLeft, y - insetTop)) {
+            return false;
+        }
+        sayingAt = com.reteclock.core.Quotes.another(sayingAt, sayings.size(), Math.random());
+        invalidate();
+        return true;
+    }
+
+    /** The month being looked at: this one, or however far the arrows have been pressed. */
+    private MonthGrid monthShown() {
+        java.util.Calendar now = java.util.Calendar.getInstance();
+        int months = now.get(java.util.Calendar.YEAR) * 12
+                + now.get(java.util.Calendar.MONTH) + monthOffset;
+        return MonthGrid.of(months / 12, months % 12 + 1, weekStartsMonday);
+    }
+
+    /**
+     * Answers a touch that landed on one of the paging arrows.
+     *
+     * The clock's own tap opens the menu, so the arrows have to be asked first — and they are only
+     * there at all when the calendar is.
+     */
+    boolean pageCalendar(float x, float y) {
+        if (layout == null || layout.calendarRect() == null) {
+            return false;
+        }
+        float px = x - insetLeft;
+        float py = y - insetTop;
+        if (backArrow.contains(px, py)) {
+            monthOffset--;
+        } else if (forwardArrow.contains(px, py)) {
+            monthOffset++;
+        } else {
+            return false;
+        }
+        invalidate();
+        return true;
+    }
+
+    /** Back to this month — what the clock should show when nobody is looking at it. */
+    void resetCalendarPaging() {
+        if (monthOffset != 0) {
+            monthOffset = 0;
+            invalidate();
+        }
+    }
+
+    /**
      * Works out the layout and, with it, the sizes and cells every field will use.
      *
      * This is the expensive part — it measures every string each field can ever show, in that
@@ -482,6 +735,12 @@ public class ClockView extends View {
                 float baseline = slot.centerY - (fontMetrics.ascent + fontMetrics.descent) / 2f;
                 canvas.drawText(pieces[i], cellStart + (cellWidth - textWidth) / 2f, baseline, paint);
             }
+        }
+        if (layout.calendarRect() != null) {
+            drawCalendar(canvas, layout.calendarRect());
+        }
+        if (layout.quoteRect() != null) {
+            drawSaying(canvas, layout.quoteRect());
         }
         canvas.restore();
         // The shader must not leak into measurement or into a later draw without a foreground.

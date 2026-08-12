@@ -45,6 +45,10 @@ public final class Settings {
     public static final String KEY_TIMER_ALERT = "timer_alert";
     public static final String KEY_STAY_UNLOCKED = "stay_unlocked";
     public static final String KEY_TIMER_HIDDEN = "timer_hidden";
+    public static final String KEY_CALENDAR_ON = "calendar_on";
+    public static final String KEY_CALENDAR_MONDAY = "calendar_week_monday";
+    public static final String KEY_CALENDAR_HEADER = "calendar_header";
+    public static final String KEY_QUOTE_ON = "quote_on";
     public static final String KEY_RUN_ORIGIN = "timer_run_origin";
     public static final String KEY_RUN_PAUSED_AT = "timer_run_paused_at";
     public static final String KEY_RUN_PRESET = "timer_run_preset";
@@ -497,6 +501,7 @@ public final class Settings {
         ClockLayout.ROLE_WEEKDAY,
         ClockLayout.ROLE_MONTH_DAY,
         ClockLayout.ROLE_YEAR,
+        ClockLayout.ROLE_QUOTE,
     };
 
     /**
@@ -602,10 +607,47 @@ public final class Settings {
         prefs(context).edit().putInt(key, color).commit();
     }
 
+    /** Whether a saying is shown along the bottom. */
+    public static boolean quoteOn(Context context) {
+        return prefs(context).getBoolean(KEY_QUOTE_ON, false);
+    }
+
+    public static void setQuoteOn(Context context, boolean on) {
+        prefs(context).edit().putBoolean(KEY_QUOTE_ON, on).commit();
+    }
+
+    /** Whether a month's grid is drawn under the time. */
+    public static boolean calendarOn(Context context) {
+        return prefs(context).getBoolean(KEY_CALENDAR_ON, false);
+    }
+
+    public static void setCalendarOn(Context context, boolean on) {
+        prefs(context).edit().putBoolean(KEY_CALENDAR_ON, on).commit();
+    }
+
+    /** Whether the week is taken to begin on Monday rather than Sunday. */
+    public static boolean calendarWeekStartsMonday(Context context) {
+        return prefs(context).getBoolean(KEY_CALENDAR_MONDAY, false);
+    }
+
+    public static void setCalendarWeekStartsMonday(Context context, boolean monday) {
+        prefs(context).edit().putBoolean(KEY_CALENDAR_MONDAY, monday).commit();
+    }
+
+    /** `Aug 2026` or `2026-08`; see {@link com.reteclock.core.MonthGrid}. */
+    public static int calendarHeaderStyle(Context context) {
+        return prefs(context).getInt(KEY_CALENDAR_HEADER, com.reteclock.core.MonthGrid.HEADER_NAME);
+    }
+
+    public static void setCalendarHeaderStyle(Context context, int style) {
+        prefs(context).edit().putInt(KEY_CALENDAR_HEADER, style).commit();
+    }
+
     /** The display options the clock draws with. */
     public static ClockOptions options(Context context) {
         return new ClockOptions(showSeconds(context), dateStyle(context),
                 timePercent(context, KEY_TIME_PERCENT_WIDE) / 100f,
-                timePercent(context, KEY_TIME_PERCENT_TALL) / 100f);
+                timePercent(context, KEY_TIME_PERCENT_TALL) / 100f,
+                calendarOn(context), quoteOn(context));
     }
 }
