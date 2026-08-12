@@ -1,0 +1,2 @@
+* The saying at the bottom sits in a deeper strip, so its lettering is bigger
+  and a long saying is actually readable.

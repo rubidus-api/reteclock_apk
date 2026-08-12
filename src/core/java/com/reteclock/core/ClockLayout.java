@@ -155,11 +155,12 @@ public final class ClockLayout {
     /**
      * How tall the saying's strip is, as a share of the screen's shorter edge.
      *
-     * A shade more than the timer's strip, which is eight per cent of the same edge: the two run
-     * along opposite edges of the same screen and should look like a pair, and words need a little
-     * more room than a bar does.
+     * Half again as deep as the timer's strip, which is eight per cent of the same edge. It was
+     * nine, matching the timer almost exactly, and that turned out to be the wrong thing to match:
+     * a bar and three short numbers need a band, but a sentence of thirty words needs room to be
+     * read, and the lettering can only ever be a third of whatever this is.
      */
-    private static final float QUOTE_SHARE = 0.09f;
+    private static final float QUOTE_SHARE = 0.13f;
 
     /**
      * On a tall screen the time and the calendar together take exactly the share the time used to
