@@ -479,13 +479,30 @@ public class TimerView extends View {
     }
 
     /** Hourglass, stop, pause, play — drawn rather than shipped, like everything else here. */
-    /** The one control that is left when the strip is put away, in the middle of what remains. */
+    /**
+     * The one control that is left when the strip is emptied — on the pixel it was already on.
+     *
+     * The strip keeps its place in the layout when it is hidden, so the hourglass has no reason to
+     * move: hiding should look like everything else fading out around it, not like a button
+     * jumping to a corner.
+     */
     private void drawHourglassAlone(Canvas canvas) {
+        if (bar == null) {
+            return;
+        }
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(CONTROL);
-        float size = Math.min(getWidth(), getHeight());
-        drawControl(canvas, TimerBar.CONTROL_HOURGLASS,
-                getWidth() / 2f, getHeight() / 2f, size * 0.3f);
+        float size = Math.min(bar.thickness() * 1.1f, shortEdge() * 0.7f);
+        float along = bar.controlCenter(TimerBar.CONTROL_HOURGLASS);
+        float middle = (bar.barNear() + bar.barFar()) / 2f;
+        float cx = horizontal ? along : middle;
+        float cy = horizontal ? middle : getHeight() - along;
+        canvas.save();
+        if (!horizontal) {
+            canvas.rotate(-90f, cx, cy);
+        }
+        drawControl(canvas, TimerBar.CONTROL_HOURGLASS, cx, cy, size * 0.42f);
+        canvas.restore();
     }
 
     private void drawControls(Canvas canvas) {

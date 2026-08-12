@@ -147,31 +147,22 @@ public class ClockActivity extends Activity {
                     Settings.runPreset(this), Settings.runOrigin(this),
                     Settings.runPausedAt(this), android.os.SystemClock.elapsedRealtime()));
 
+            // Hiding empties the strip; it does not take it away. The clock keeps the shape and
+            // the size it had, so nothing on it moves or reflows, and the hourglass stays on the
+            // very pixel it was on. Only switching the timer off entirely gives the space back,
+            // and that is the branch above.
+            timer.setHidden(Settings.timerHidden(this));
+
             int strip = stripThickness(landscape);
-            if (Settings.timerHidden(this)) {
-                // Put away: the clock has the whole screen and only the hourglass is left, sitting
-                // where it sat on the strip so it is where the hand already expects it.
-                timer.setHidden(true);
-                root.addView(view, new FrameLayout.LayoutParams(
-                        FrameLayout.LayoutParams.MATCH_PARENT,
-                        FrameLayout.LayoutParams.MATCH_PARENT));
-                FrameLayout.LayoutParams corner =
-                        new FrameLayout.LayoutParams(strip, strip);
-                corner.gravity = Gravity.TOP | (landscape ? Gravity.LEFT : Gravity.RIGHT);
-                root.addView(timer, corner);
-            } else {
-                row.addView(timer, landscape
-                        ? new LinearLayout.LayoutParams(strip,
-                                LinearLayout.LayoutParams.MATCH_PARENT)
-                        : new LinearLayout.LayoutParams(
-                                LinearLayout.LayoutParams.MATCH_PARENT, strip));
-                row.addView(view, new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.MATCH_PARENT, 1f));
-                root.addView(row, new FrameLayout.LayoutParams(
-                        FrameLayout.LayoutParams.MATCH_PARENT,
-                        FrameLayout.LayoutParams.MATCH_PARENT));
-            }
+            row.addView(timer, landscape
+                    ? new LinearLayout.LayoutParams(strip, LinearLayout.LayoutParams.MATCH_PARENT)
+                    : new LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT, strip));
+            row.addView(view, new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.MATCH_PARENT, 1f));
+            root.addView(row, new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
         }
 
         // The sheet the flash uses, above everything and invisible until it is wanted.
@@ -287,10 +278,13 @@ public class ClockActivity extends Activity {
         if (presets.isEmpty() || timer == null) {
             return;
         }
-        // Putting the timer away is the first thing on the list, because it is the one thing the
-        // hourglass can do that nothing else on the clock face can.
+        // Putting the timer away — or bringing it back — is the first thing on the list, because
+        // it is the one thing the hourglass can do that nothing else on the clock face can. When
+        // the strip is already empty the item reads the other way round, so the same first line is
+        // always the way out of whichever state you are in.
+        final boolean wasHidden = Settings.timerHidden(this);
         final String[] names = new String[presets.size() + 1];
-        names[0] = getString(R.string.timer_hide);
+        names[0] = getString(wasHidden ? R.string.timer_unhide : R.string.timer_hide);
         for (int i = 0; i < presets.size(); i++) {
             names[i + 1] = presets.get(i).name + "   "
                     + com.reteclock.core.TimeReadout.of(presets.get(i).totalMs());
@@ -301,7 +295,10 @@ public class ClockActivity extends Activity {
                     @Override
                     public void onClick(android.content.DialogInterface dialog, int which) {
                         if (which == 0) {
-                            Settings.setTimerHidden(ClockActivity.this, true);
+                            // Showing again must not touch the run: a timer that is going comes
+                            // back mid-count rather than starting over, which is the whole point
+                            // of having hidden it rather than stopped it.
+                            Settings.setTimerHidden(ClockActivity.this, !wasHidden);
                             layOutScreen();
                             return;
                         }

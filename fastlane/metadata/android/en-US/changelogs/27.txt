@@ -1,0 +1,5 @@
+* Hiding the timer now empties the strip instead of removing it, so the clock
+  keeps the shape and size it had and the hourglass stays exactly where it was.
+  Switching the timer off entirely still gives the space back.
+* While hidden, the first item of the hourglass menu offers to show the timer
+  again - and doing so does not disturb a run in progress.
