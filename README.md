@@ -14,6 +14,14 @@ Play Store, so it still works on phones that can no longer install anything else
 about 280 KB — and asks for two permissions, both granted at install and never at runtime: one to
 keep the screen awake, and one to vibrate, which only the timer uses.
 
+> **If the clock does not answer your touch, it is not the clock.** Android does not pass touches to
+> a screensaver (Daydream) or to anything showing over the lock screen — the first touch wakes the
+> phone or dismisses the screensaver instead, and the app never hears it. So the menu, the timer's
+> buttons, the calendar's arrows and the saying all do nothing there. To have a clock you can
+> actually touch, run it as an app and turn on **Stay unlocked** in the settings: the screen stays
+> on, the lock screen never covers it, and no screensaver takes over — and every touch reaches the
+> clock.
+
 ## Download
 
 **[⬇ Get it on F-Droid](https://f-droid.org/packages/com.reteclock/)** — recommended.
