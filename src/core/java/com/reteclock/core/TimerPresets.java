@@ -49,6 +49,20 @@ public final class TimerPresets {
      * A timer with no presets would offer an empty list and no way to understand what a preset is
      * for, so there is something to start, and something to copy the shape of.
      */
+    /**
+     * The presets a phone starts with.
+     *
+     * Colour follows two rules, so a bar can be read without being labelled.
+     *
+     * The working interval carries the preset's own hue, drawn from the thing itself — the
+     * pomodoro's tomato, the cool blue of a gym clock, tea's leaf, ramen's broth, dried pasta's
+     * wheat-brown — and no two presets open in the same one. Rest is green wherever it appears, in
+     * every preset, so that one thing is learned once and never has to be read again.
+     *
+     * Under both, the part still to come wears its colour at full strength and the part already
+     * spent wears the same hue burnt down to a dark shade. A bar spends its own colour rather than
+     * turning into somebody else's.
+     */
     public static List<TimerPreset> starter() {
         List<TimerPreset> out = new ArrayList<TimerPreset>();
 
@@ -57,9 +71,9 @@ public final class TimerPresets {
         // every half hour, and the beeps already say what happened.
         List<TimerInterval> pomodoro = new ArrayList<TimerInterval>();
         pomodoro.add(new TimerInterval("Work", 25 * 60_000L,
-                0xFF4DB6AC, 0xFFEF5350, "", 60));
+                0xFFE64A19, 0xFF4A1505, "", 60));
         pomodoro.add(new TimerInterval("Break", 5 * 60_000L,
-                0xFF64B5F6, 0xFFFFB300, "", 30));
+                0xFF66BB6A, 0xFF1B3D1E, "", 30));
         out.add(new TimerPreset("Pomodoro", pomodoro, true));
 
         // Tabata as Izumi Tabata's protocol is universally given: eight rounds of twenty seconds
@@ -70,20 +84,23 @@ public final class TimerPresets {
         List<TimerInterval> tabata = new ArrayList<TimerInterval>();
         for (int round = 0; round < ordinals.length; round++) {
             tabata.add(new TimerInterval(ordinals[round] + " set", 20_000L,
-                    0xFFEF5350, 0xFF4DB6AC, ordinals[round] + " set", 0));
+                    0xFF1E88E5, 0xFF0B2A47, ordinals[round] + " set", 0));
             tabata.add(new TimerInterval(ordinals[round] + " rest", 10_000L,
-                    0xFF64B5F6, 0xFFAED581, ordinals[round] + " rest", 0));
+                    0xFF66BB6A, 0xFF1B3D1E, ordinals[round] + " rest", 0));
         }
         out.add(new TimerPreset("Tabata", tabata));
 
         List<TimerInterval> tea = new ArrayList<TimerInterval>();
+        // Said once, as the water goes on. Short because a voice that goes on talking is the
+        // opposite of what the three minutes are for.
         tea.add(new TimerInterval("Steep", 3 * 60_000L,
-                0xFFAED581, 0xFFFF8A65, "", 30));
+                0xFF558B2F, 0xFF1A2A0C, "Deep breath. Soften your shoulders. "
+                        + "This time is your own.", 30));
         out.add(new TimerPreset("Tea", tea));
 
         List<TimerInterval> ramen = new ArrayList<TimerInterval>();
         ramen.add(new TimerInterval("Boil", 4 * 60_000L + 30_000L,
-                0xFFFFB300, 0xFFEF5350, "A meal just for me", 30));
+                0xFFFFB300, 0xFF4A3300, "Today's happiness. A meal for myself.", 30));
         out.add(new TimerPreset("Ramen", ramen));
 
         // Pasta rather than spaghetti, and nine minutes: dried spaghetti is al dente at eight or
@@ -92,7 +109,7 @@ public final class TimerPresets {
         // to be changed, which is the honest thing for a value nobody can pin down.
         List<TimerInterval> pasta = new ArrayList<TimerInterval>();
         pasta.add(new TimerInterval("Boil", 9 * 60_000L,
-                0xFFAED581, 0xFFFF8A65, "For your health and wallet", 60));
+                0xFFA1887F, 0xFF33251F, "For your health and wallet", 60));
         out.add(new TimerPreset("Pasta", pasta));
 
         return out;

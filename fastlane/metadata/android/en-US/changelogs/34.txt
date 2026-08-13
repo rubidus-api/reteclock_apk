@@ -1,0 +1,4 @@
+* The starter timers are colour-coded: each keeps its own hue for work - tomato
+  for the pomodoro, cool blue for tabata, leaf for tea, broth for ramen, wheat
+  for pasta - and rest is the same green in all of them.
+* Tea has something to say when you put the water on.
