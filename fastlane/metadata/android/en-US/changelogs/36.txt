@@ -1,0 +1,2 @@
+* The timer's buttons stand upright sideways too. The hourglass was lying on
+  its side, where it looks less like an hourglass than like a mourning ribbon.

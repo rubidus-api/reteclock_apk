@@ -513,12 +513,7 @@ public class TimerView extends View {
         float middle = (bar.barNear() + bar.barFar()) / 2f;
         float cx = horizontal ? along : middle;
         float cy = horizontal ? middle : getHeight() - along;
-        canvas.save();
-        if (!horizontal) {
-            canvas.rotate(-90f, cx, cy);
-        }
         drawControl(canvas, TimerBar.CONTROL_HOURGLASS, cx, cy, size * 0.42f);
-        canvas.restore();
     }
 
     /** The same colour, faded, for a control there is nothing to do with just now. */
@@ -537,14 +532,11 @@ public class TimerView extends View {
                     : i == TimerBar.CONTROL_PAUSE ? isRunning()
                     : true;
             paint.setColor(lit ? chromeControl : dimmed(chromeControl));
-            // In landscape the strip is turned, so the glyphs are turned with it: play points the
-            // way the bar fills — upwards — rather than off to the side.
-            canvas.save();
-            if (!horizontal) {
-                canvas.rotate(-90f, cx, cy);
-            }
+            // Upright in both orientations. The readouts are turned with the strip because they
+            // are words and must be read along it, but a symbol is not read that way: an hourglass
+            // laid on its side stops being an hourglass and becomes a mourning ribbon, and play
+            // pointing up reads as "eject". Sand falls downwards whichever way the phone is held.
             drawControl(canvas, i, cx, cy, size * 0.42f);
-            canvas.restore();
         }
     }
 
