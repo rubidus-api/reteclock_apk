@@ -1,0 +1,3 @@
+* "Stay unlocked" is now at the top of the settings, under the start button,
+  and explains itself: Android gives no touches to a screensaver or to the lock
+  screen, so the menu, timer and calendar are dead there unless this is on.

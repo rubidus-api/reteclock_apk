@@ -196,6 +196,24 @@ public class SettingsActivity extends Activity {
                         startActivity(new Intent(SettingsActivity.this, ClockActivity.class));
                     }
                 }));
+
+        // Directly under the button that starts the clock, because it decides whether the clock
+        // you are about to look at can be touched at all: Android hands no touches to a
+        // screensaver or to anything over the lock screen. It used to sit at the foot of the
+        // screen with the dock settings, where nobody found it until they wondered why the
+        // timer's buttons did nothing.
+        final CheckBox stay = new CheckBox(this);
+        stay.setText(R.string.settings_stay_unlocked);
+        stay.setTextColor(TEXT_WHITE);
+        stay.setChecked(Settings.stayUnlocked(this));
+        stay.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                Settings.setStayUnlocked(SettingsActivity.this, checked);
+            }
+        });
+        start.addView(stay);
+        start.addView(footer(getString(R.string.settings_stay_unlocked_note)));
         final CheckBox direct = new CheckBox(this);
         direct.setText(R.string.settings_direct_start);
         direct.setTextColor(TEXT_WHITE);
@@ -339,19 +357,6 @@ public class SettingsActivity extends Activity {
             }
         });
         dock.addView(charging);
-
-        final CheckBox stay = new CheckBox(this);
-        stay.setText(R.string.settings_stay_unlocked);
-        stay.setTextColor(TEXT_WHITE);
-        stay.setChecked(Settings.stayUnlocked(this));
-        stay.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton button, boolean checked) {
-                Settings.setStayUnlocked(SettingsActivity.this, checked);
-            }
-        });
-        dock.addView(stay);
-        dock.addView(footer(getString(R.string.settings_stay_unlocked_note)));
 
         addScreensaverRow(dock);
         root.addView(dock);
