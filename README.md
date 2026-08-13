@@ -251,6 +251,13 @@ nothing extra drawn.
   the numerals are orange over blue — and why today's date shows the background through the digits
   rather than a colour.
 
+  If the clock looks a little off-centre in these, that is on purpose and not a slip. Everything on
+  the screen drifts very slowly — a few pixels at a time, around a circle it takes a long while to
+  complete — so that no bright shape sits on the same pixels for hours. It is why a phone can be
+  left showing this for years without the numbers etching themselves into the panel. The drift
+  never leaves the margin, so nothing is ever clipped. That slow wandering is the app looking after
+  your display.
+
   With the calendar on, the clock rearranges itself around it. Sideways, the time reads down the
   left — hour, minute, and the seconds smaller beneath — and the calendar takes the whole of the
   side column where the date and year used to be. Upright, the time becomes one line above the
