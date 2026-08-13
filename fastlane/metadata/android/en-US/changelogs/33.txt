@@ -1,0 +1,3 @@
+* A new install now starts with the timers people actually state: a pomodoro of
+  25 and 5 that repeats on its own, a tabata of eight rounds of 20 seconds on
+  and 10 off with each round announced, and tea, ramen and pasta.

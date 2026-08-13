@@ -86,10 +86,14 @@ public final class TimerPresets {
                 0xFFFFB300, 0xFFEF5350, "A meal just for me", 30));
         out.add(new TimerPreset("Ramen", ramen));
 
-        List<TimerInterval> spaghetti = new ArrayList<TimerInterval>();
-        spaghetti.add(new TimerInterval("Boil", 10 * 60_000L,
-                0xFFAED581, 0xFFFF8A65, "For your health and your wallet", 60));
-        out.add(new TimerPreset("Spaghetti", spaghetti));
+        // Pasta rather than spaghetti, and nine minutes: dried spaghetti is al dente at eight or
+        // nine and the packet usually says nine to eleven, but capellini is three and bucatini
+        // eleven, so no single number is right for a named shape. A broad name invites the number
+        // to be changed, which is the honest thing for a value nobody can pin down.
+        List<TimerInterval> pasta = new ArrayList<TimerInterval>();
+        pasta.add(new TimerInterval("Boil", 9 * 60_000L,
+                0xFFAED581, 0xFFFF8A65, "For your health and wallet", 60));
+        out.add(new TimerPreset("Pasta", pasta));
 
         return out;
     }
