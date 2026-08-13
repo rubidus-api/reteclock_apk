@@ -73,6 +73,7 @@
     <string name="settings_bold">B</string>
     <string name="settings_italic">I</string>
     <string name="settings_underline">U</string>
+    <string name="settings_outline">O</string>
     <string name="settings_image_ready">ready %1$s</string>
     <string name="settings_image_ready_detail">ready %1$s · %2$s</string>
     <string name="settings_image_live">played live</string>

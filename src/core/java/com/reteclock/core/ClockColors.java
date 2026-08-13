@@ -44,4 +44,15 @@ public final class ClockColors {
         int b = color & 0xFF;
         return (299 * r + 587 * g + 114 * b) / 1000;
     }
+
+    /**
+     * The opposite of a colour: each channel turned inside out, opacity kept.
+     *
+     * What an outline is drawn in. Against white writing it is black and against black writing it
+     * is white, so the outline is always the thing the text is not — which is the only way one
+     * rule can make writing legible over a picture nobody has seen.
+     */
+    public static int opposite(int color) {
+        return (color & 0xFF000000) | (~color & 0x00FFFFFF);
+    }
 }

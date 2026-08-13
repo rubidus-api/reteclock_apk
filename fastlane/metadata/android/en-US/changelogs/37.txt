@@ -1,0 +1,3 @@
+* Outline, next to bold, italic and underline, chosen line by line. It is drawn
+  in the opposite of your text colour, so writing keeps its edges over a picture
+  whatever colour that picture happens to be.

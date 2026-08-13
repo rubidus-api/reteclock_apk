@@ -481,6 +481,7 @@ public class SettingsActivity extends Activity {
         header.addView(toggle(role, Settings.KEY_BOLD, R.string.settings_bold));
         header.addView(toggle(role, Settings.KEY_ITALIC, R.string.settings_italic));
         header.addView(toggle(role, Settings.KEY_UNDERLINE, R.string.settings_underline));
+        header.addView(toggle(role, Settings.KEY_OUTLINE, R.string.settings_outline));
         block.addView(header);
 
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,

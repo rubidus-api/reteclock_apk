@@ -56,6 +56,11 @@ public class ClockView extends View {
     private final java.util.Set<String> boldRoles = new java.util.HashSet<String>();
     private final java.util.Set<String> italicRoles = new java.util.HashSet<String>();
     private final java.util.Set<String> underlineRoles = new java.util.HashSet<String>();
+    private final java.util.Set<String> outlineRoles = new java.util.HashSet<String>();
+    /** Whether the role last given to applyStyle asked for an outline. */
+    private boolean outlineNow;
+    /** The outline's own brush; the text's paint keeps its fill and its shader. */
+    private final Paint outlinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
     /** The background slideshow's files, in name order; empty for the plain black clock. */
     private final java.util.List<java.io.File> slides = new java.util.ArrayList<java.io.File>();
@@ -413,9 +418,9 @@ public class ClockView extends View {
 
         // The header: the month between two arrows, each given a whole column to be touched in.
         float headerBase = top + rowHeight / 2f - (paint.ascent() + paint.descent()) / 2f;
-        canvas.drawText(grid.header(headerStyle), left + width / 2f, headerBase, paint);
-        canvas.drawText("<", left + cellWidth / 2f, headerBase, paint);
-        canvas.drawText(">", left + width - cellWidth / 2f, headerBase, paint);
+        write(canvas, grid.header(headerStyle), left + width / 2f, headerBase);
+        write(canvas, "<", left + cellWidth / 2f, headerBase);
+        write(canvas, ">", left + width - cellWidth / 2f, headerBase);
         backArrow.set(left, top, left + cellWidth, top + rowHeight);
         forwardArrow.set(left + width - cellWidth, top, left + width, top + rowHeight);
 
@@ -434,7 +439,7 @@ public class ClockView extends View {
         paint.setTextAlign(Paint.Align.CENTER);
         float namesBase = top + rowHeight * 1.5f - (paint.ascent() + paint.descent()) / 2f;
         for (int column = 0; column < MonthGrid.COLUMNS; column++) {
-            canvas.drawText(names[column], left + cellWidth * (column + 0.5f), namesBase, paint);
+            write(canvas, names[column], left + cellWidth * (column + 0.5f), namesBase);
         }
         applyStyle(ClockLayout.ROLE_MONTH_DAY, size);
         paint.setTextAlign(Paint.Align.CENTER);
@@ -458,7 +463,7 @@ public class ClockView extends View {
                 paint.setTextAlign(Paint.Align.CENTER);
                 float centreX = left + cellWidth * (column + 0.5f);
                 if (!today) {
-                    canvas.drawText(String.valueOf(day), centreX, base, paint);
+                    write(canvas, String.valueOf(day), centreX, base);
                     continue;
                 }
                 // Today is knocked out of a filled box rather than underlined: the numerals are
@@ -554,7 +559,7 @@ public class ClockView extends View {
             paint.getFontMetrics(fontMetrics);
             float base = top + lineHeight * (i + 0.5f)
                     - (fontMetrics.ascent + fontMetrics.descent) / 2f;
-            canvas.drawText(best.get(i), left + width / 2f, base, paint);
+            write(canvas, best.get(i), left + width / 2f, base);
         }
         paint.setTextAlign(Paint.Align.LEFT);
     }
@@ -763,7 +768,7 @@ public class ClockView extends View {
                 float textWidth = paint.measureText(pieces[i]);
                 paint.getFontMetrics(fontMetrics);
                 float baseline = slot.centerY - (fontMetrics.ascent + fontMetrics.descent) / 2f;
-                canvas.drawText(pieces[i], cellStart + (cellWidth - textWidth) / 2f, baseline, paint);
+                write(canvas, pieces[i], cellStart + (cellWidth - textWidth) / 2f, baseline);
             }
         }
         if (layout.calendarRect() != null) {
@@ -1144,6 +1149,7 @@ public class ClockView extends View {
         boldRoles.clear();
         italicRoles.clear();
         underlineRoles.clear();
+        outlineRoles.clear();
         for (String role : Settings.FONT_ROLES) {
             if (Settings.bold(context, role)) {
                 boldRoles.add(role);
@@ -1153,6 +1159,9 @@ public class ClockView extends View {
             }
             if (Settings.underline(context, role)) {
                 underlineRoles.add(role);
+            }
+            if (Settings.outline(context, role)) {
+                outlineRoles.add(role);
             }
         }
 
@@ -1241,6 +1250,35 @@ public class ClockView extends View {
         paint.setTextSkewX(italicRoles.contains(role) ? ITALIC_SKEW : 0f);
         paint.setUnderlineText(underlineRoles.contains(role));
         paint.setTextSize(textSize);
+        outlineNow = outlineRoles.contains(role);
+    }
+
+    /**
+     * Draws a string in whatever style {@link #applyStyle} last set, outline and all.
+     *
+     * Every string the clock draws goes through here — the time, the calendar, the saying — because
+     * an outline cannot be a flag on the paint: it is the same string drawn twice, a wide stroke
+     * first and the fill over it. Having one place to do that is what makes the decoration
+     * available to all three rather than to whichever one it was written in.
+     *
+     * The stroke is the opposite of the text colour, so it shows against the text whatever the
+     * text is, and it is what makes writing legible over a picture that happens to match it.
+     */
+    private void write(Canvas canvas, String text, float x, float y) {
+        if (outlineNow) {
+            outlinePaint.setTypeface(paint.getTypeface());
+            outlinePaint.setTextSize(paint.getTextSize());
+            outlinePaint.setTextSkewX(paint.getTextSkewX());
+            outlinePaint.setTextAlign(paint.getTextAlign());
+            outlinePaint.setFakeBoldText(paint.isFakeBoldText());
+            outlinePaint.setUnderlineText(paint.isUnderlineText());
+            outlinePaint.setStyle(Paint.Style.STROKE);
+            outlinePaint.setStrokeJoin(Paint.Join.ROUND);
+            outlinePaint.setStrokeWidth(Math.max(1f, paint.getTextSize() * 0.09f));
+            outlinePaint.setColor(com.reteclock.core.ClockColors.opposite(textColor));
+            canvas.drawText(text, x, y, outlinePaint);
+        }
+        canvas.drawText(text, x, y, paint);
     }
 
     private static String textFor(String role, ClockText time) {

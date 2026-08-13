@@ -26,7 +26,7 @@ keep the screen awake, and one to vibrate, which only the timer uses.
 
 **[⬇ Get it on F-Droid](https://f-droid.org/packages/com.reteclock/)** — recommended.
 
-**[⬇ Download reteclock-0.19.3.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.19.3/reteclock-0.19.3.apk)**
+**[⬇ Download reteclock-0.20.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.20.0/reteclock-0.20.0.apk)**
 — 277 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
 render GitHub's release page can still fetch it.
 
@@ -88,7 +88,7 @@ sized to whatever is left, so nothing is ever cut off, whatever phone you run it
 background colours are yours to choose. Boldness is one of the decorations you set line by line:
 the hour and the minute start out bold, and you can turn that off.
 
-Every line can be drawn in a font of your own, each with its own bold, italic and underline. In the
+Every line can be drawn in a font of your own, each with its own bold, italic, underline and outline. In the
 picture below, the hour uses a TrueType font, the minute a font collection and the weekday and date
 an OpenType one; the year is italic and the seconds are underlined. Every size was worked out by
 the app.
@@ -131,7 +131,7 @@ beyond keeping the screen awake. Copy the APK to the phone, open it, and the pho
 
 ## Which phones it runs on
 
-Published on F-Droid; the latest release is 0.19.3.
+Published on F-Droid; the latest release is 0.20.0.
 
 | | |
 |---|---|

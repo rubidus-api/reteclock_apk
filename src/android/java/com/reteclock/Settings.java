@@ -25,6 +25,7 @@ public final class Settings {
     public static final String KEY_BOLD = "text_bold";
     public static final String KEY_ITALIC = "text_italic";
     public static final String KEY_UNDERLINE = "text_underline";
+    public static final String KEY_OUTLINE = "text_outline";
     public static final String KEY_HINT_SEEN = "hint_seen";
     public static final String KEY_BACKGROUND_FIT = "background_fit";
     public static final String KEY_BACKGROUND_STILL_SECONDS = "background_still_seconds";
@@ -577,6 +578,11 @@ public final class Settings {
 
     public static boolean underline(Context context, String role) {
         return decoration(context, KEY_UNDERLINE, role);
+    }
+
+    /** Whether the field is drawn with an outline in the opposite of the text colour. */
+    public static boolean outline(Context context, String role) {
+        return decoration(context, KEY_OUTLINE, role);
     }
 
     /**
