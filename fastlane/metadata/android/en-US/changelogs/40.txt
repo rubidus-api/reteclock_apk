@@ -1,0 +1,4 @@
+* The noon and midnight choices now show the instant they are about — 12:00 PM,
+  00:00, 0:00 AM — instead of some minute past it.
+* The note beside them said the AM/PM marker sits above the hour. It has been a
+  line under the minute since 0.21.1; the words now match the screen.
