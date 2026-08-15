@@ -342,6 +342,30 @@ A few things worth knowing about particular ones:
 - **Sighting-based Hijri** — the date depends on an observation that has not happened yet. The
   Islamic calendar above, with the offset, is the honest substitute.
 
+**Prayer times and the direction of Mecca — with my apologies.** These were considered for this app
+and they are not in it, and I would rather say why plainly than leave it looking like an oversight.
+
+A prayer timetable is not a clock face. It is worked out for the exact place you are standing, for
+that day's sun, and according to a calculation convention: the twilight angles that fix Fajr and
+Isha differ between the recognised authorities, Asr depends on which school's shadow length is
+followed, and the far north and south need further conventions again. The direction of Mecca is a
+bearing from where you stand to the Kaaba, and for a phone to point at it the compass has to be
+corrected for magnetic declination.
+
+This app knows none of that and asks for none of it. It requests two permissions — to keep the
+screen awake and to vibrate — and no location, no sensors and no network. Everything it shows, it
+works out from the date and the offset you set. The old phones it is built for often have no
+satellite fix and no magnetometer worth trusting.
+
+So it could only ever offer an approximation, and this is the wrong thing to approximate: a quietly
+wrong answer would cost the person praying, not the app. A simple clock for old devices is not the
+right tool for this, and I do not plan to add it later. The apps built for the purpose do it
+properly, and pointing at them is more use than doing it badly here.
+
+What this app does carry for Muslim users is three Hijri reckonings — the arithmetic one, Umm
+al-Qura, and MABIMS — and a two-day offset either way, for the months where the announcement and
+the calculation part company. My thanks for your understanding.
+
 | Landscape (wide) | Portrait (tall) |
 |---|---|
 | <img src="docs/screenshots/calendar-landscape.png" alt="Landscape: the hour and minute reading down the left with the seconds smaller beneath, the month filling the right-hand column, and a saying along the foot — all of it filled with a picture" width="420"> | <img src="docs/screenshots/calendar-portrait.png" alt="Portrait: the time on one line, the month beneath it, the seconds, and a saying at the foot, over a picture background with a second picture filling the digits" width="210"> |
