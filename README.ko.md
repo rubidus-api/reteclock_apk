@@ -152,7 +152,7 @@ F-Droid에 게시되어 있고, 최신 릴리즈는 0.20.0입니다.
 없으니, 넣어 두신 그림이나 글꼴 때문에 시계가 쓸 수 없게 되었을 때 돌아올 문이 필요하기 때문입니다.
 시계가 응답을 멈춘 적이 있다면, 다음 실행은 그림과 글꼴을 빼고 시작하며 그 사실을 알려 드립니다.
 
-<img src="docs/screenshots/settings.png" alt="설정: 초 표시, 날짜 형식, 글꼴별 용량과 합계를 보여 주는 글꼴 목록" width="240"> <img src="docs/screenshots/fields.png" alt="설정 아래쪽: 항목마다 두 줄 — 이름과 굵게·기울임·밑줄, 그 아래 글꼴 — 그리고 허용되는 파일 종류" width="240">
+<img src="docs/screenshots/settings.png" alt="설정: 초 표시, 12시간제 선택, 날짜 형식, 그리고 문구 표시 스위치" width="240"> <img src="docs/screenshots/fields.png" alt="설정 아래쪽: 글꼴별 용량과 합계를 보여 주는 글꼴 목록, 그 아래 항목마다 두 줄 — 이름과 굵게·기울임·밑줄·외곽선, 그리고 글꼴" width="240">
 
 화면에 나오는 순서대로 적었습니다.
 

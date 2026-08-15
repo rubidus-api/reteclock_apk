@@ -153,7 +153,7 @@ on its face, so if a picture or a font you added ever makes it unusable, this is
 And if the clock does stop answering, the next start leaves your images and fonts out and says so,
 so you can undo whatever caused it.
 
-<img src="docs/screenshots/settings.png" alt="Settings: show seconds, date format, and the font library listing each font's size and the total" width="240"> <img src="docs/screenshots/fields.png" alt="Settings, further down: each field on two lines — its name with bold, italic and underline, then its font — and the accepted file kinds" width="240">
+<img src="docs/screenshots/settings.png" alt="Settings: show seconds, the twelve-hour option, the date format and the saying switch" width="240"> <img src="docs/screenshots/fields.png" alt="Settings, further down: the font library with each font's size and the total, then each field on two lines — its name with bold, italic, underline and outline, and its font" width="240">
 
 In the order they appear on the screen.
 
