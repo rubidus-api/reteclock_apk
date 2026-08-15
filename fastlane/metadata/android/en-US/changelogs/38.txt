@@ -1,0 +1,7 @@
+* Sixteen calendars to count the date in, from Persian and Hebrew to the Chinese,
+  Korean and Vietnamese lunar ones, all verified across 1900-2200. Where a calendar
+  is read by people who spell its months differently, both spellings are offered.
+* A twelve-hour clock, with AM and PM — and settings for noon and midnight, which
+  no standard agrees on.
+* The clock can take its local time from an offset you set rather than from the
+  phone, for a phone whose time zone rules are too old to be right.
