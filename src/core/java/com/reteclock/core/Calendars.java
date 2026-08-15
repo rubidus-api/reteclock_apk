@@ -53,7 +53,8 @@ public final class Calendars {
     private static final String[] NAMES = {
         "Gregorian", "Persian", "Islamic", "Hebrew", "Ethiopian", "Coptic",
         "Indian", "Thai Buddhist", "Minguo", "Japanese", "Julian",
-        "Chinese", "Korean", "Vietnamese", "Islamic Umm al-Qura", "Islamic MABIMS",
+        "Chinese lunar", "Korean lunar", "Vietnamese lunar",
+        "Islamic Umm al-Qura", "Islamic MABIMS",
     };
 
     private static final String[] GREGORIAN_MONTHS = {

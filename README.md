@@ -255,8 +255,10 @@ nothing extra drawn.
   choice changes every date the app shows: the month grid, the date beside the time, and the
   screensaver. Names and numbers stay in Latin letters and ordinary digits throughout.
 - **Show the Gregorian date as a small badge** — with another calendar counting, the Gregorian month
-  and day appear as `08.15` reversed out of a small box at the lower left of the date. Off by
-  default, and never shown when the Gregorian calendar is the one counting.
+  and day appear as `08.15` reversed out of a small box at the lower left of the date, **and in the
+  corner of every square of the month grid**, which is where the translation is most wanted: it
+  answers "and which day of my own month is that" for the whole month at once. Off by default, and
+  never shown when the Gregorian calendar is the one counting.
 - **Shift the Islamic date by** — −2 to +2 days. An Islamic month begins when the new crescent is
   *seen*, so no computation is the announcement; set this once to match your own community and every
   date after it is right for you.
@@ -297,13 +299,13 @@ clock shows the Gregorian date rather than a guess, and the paging arrows stop.
 | **Islamic** | ~2.0 billion Muslims | religious, civil |
 | **Islamic Umm al-Qura** | Saudi Arabia and much of the Gulf — the reckoning most printed Hijri dates follow | religious, civil |
 | **Islamic MABIMS** | Malaysia, Indonesia, Brunei and Singapore — around 300 million, from 2021 onward | religious, civil |
-| **Chinese** | China ~1.4 billion, and the diaspora | cultural |
+| **Chinese lunar** | China ~1.4 billion, and the diaspora | cultural |
 | **Indian (Saka)** | India ~1.4 billion — the official civil calendar | civil |
 | **Japanese** | Japan ~123 million | civil |
 | **Ethiopian** | Ethiopia ~130 million | civil |
-| **Vietnamese** | Vietnam ~100 million | cultural |
+| **Vietnamese lunar** | Vietnam ~100 million | cultural |
 | **Persian** | Iran ~92 million | civil |
-| **Korean** | South Korea ~52 million, North Korea ~26 million | cultural |
+| **Korean lunar** | South Korea ~52 million, North Korea ~26 million | cultural |
 | **Thai Buddhist** | Thailand ~72 million | civil |
 | **Minguo** | Taiwan ~23 million | civil |
 | **Julian** | the Orthodox churches that keep it — Russian, Serbian, Georgian, Jerusalem | religious |

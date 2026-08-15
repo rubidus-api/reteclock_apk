@@ -43,6 +43,27 @@ public final class ClockLayout {
     public static final String ROLE_YEAR = "year";
     public static final String ROLE_WEEKDAY_DATE = "weekday_date";
     public static final String ROLE_SMALL_LINE = "small_line";
+    /**
+     * AM, PM, NN or MN on a twelve-hour clock — a field of its own, not a decoration.
+     *
+     * Where the hour and the minute share a line it is drawn just past the minute, sitting on the
+     * same baseline, and the line's box is narrowed to leave room for it. Where they are stacked it
+     * is a line of its own under the minute, and the layout gives it height like any other line.
+     * Either way the space is reserved rather than borrowed, so nothing it sits beside has to move
+     * when the marker changes from AM to PM.
+     */
+    public static final String ROLE_MERIDIEM = "meridiem";
+
+    /** How much of a stacked time's own height the marker line takes. */
+    private static final float MERIDIEM_SHARE = 0.22f;
+
+    /** And how much of a one-line time's width is kept back for it. */
+    private static final float MERIDIEM_WIDTH_SHARE = 0.15f;
+
+    /** The width a time on one line may use, once the marker has been allowed for. */
+    private static float timeBoxWidth(float boxWidth, ClockOptions options) {
+        return options.hour12 ? boxWidth * (1f - MERIDIEM_WIDTH_SHARE) : boxWidth;
+    }
     /** The saying along the bottom, which chooses its own font and decoration like any line. */
     public static final String ROLE_QUOTE = "quote";
     /**
@@ -479,7 +500,8 @@ public final class ClockLayout {
         // it would be wider than its share of the screen.
         out.add(new Slot(ROLE_HOUR_MINUTE,
                 parts(new String[] {ROLE_HOUR, ROLE_MINUTE}, new String[] {"", ":"}),
-                mainWidth / 2f, h / 2f, h - 2f * pad, mainWidth - 2f * pad));
+                mainWidth / 2f, h / 2f, h - 2f * pad,
+                timeBoxWidth(mainWidth - 2f * pad, options)));
 
         List<String> roles = new ArrayList<String>(4);
         List<Float> sizes = new ArrayList<Float>(4);
@@ -531,13 +553,23 @@ public final class ClockLayout {
         float content = h - 2f * pad - 2f * gap;
         float bigSize = content * (options.showSeconds ? 0.40f : 0.50f);
         float secondSize = content * 0.20f;
+        // The marker is a line, so it costs height: the digits give it up rather than the seconds.
+        float meridiemSize = options.hour12 ? bigSize * MERIDIEM_SHARE : 0f;
+        if (options.hour12) {
+            bigSize -= meridiemSize / 2f;
+        }
 
-        List<Slot> out = new ArrayList<Slot>(3);
+        List<Slot> out = new ArrayList<Slot>(4);
         float cursor = pad;
         out.add(new Slot(ROLE_HOUR, centerX, cursor + bigSize / 2f, bigSize, boxWidth));
         cursor += bigSize + gap;
         out.add(new Slot(ROLE_MINUTE, centerX, cursor + bigSize / 2f, bigSize, boxWidth));
         cursor += bigSize + gap;
+        if (options.hour12) {
+            out.add(new Slot(ROLE_MERIDIEM, centerX, cursor + meridiemSize / 2f,
+                    meridiemSize, boxWidth));
+            cursor += meridiemSize + gap;
+        }
         if (options.showSeconds) {
             out.add(new Slot(ROLE_SECOND, centerX, cursor + secondSize / 2f, secondSize, boxWidth));
         }
@@ -565,7 +597,13 @@ public final class ClockLayout {
             return tallWithCalendar(w, h, options, pad, boxWidth, centerX, gap, content);
         }
 
-        float mainSize = content * options.timeFractionTall / 2f;
+        // Two big lines, and a small one under them when the clock is on twelve hours. The marker
+        // comes out of the time's own share, so everything below it stays where it was.
+        float timeShare = content * options.timeFractionTall;
+        float mainSize = options.hour12
+                ? (timeShare - gap) / (2f + MERIDIEM_SHARE)
+                : timeShare / 2f;
+        float meridiemSize = options.hour12 ? mainSize * MERIDIEM_SHARE : 0f;
         float rest = content * (1f - options.timeFractionTall);
         float dateSize = rest * TALL_DATE_SHARE;
         float smallSize = rest * (1f - TALL_DATE_SHARE);
@@ -576,6 +614,11 @@ public final class ClockLayout {
         cursor += mainSize + gap;
         out.add(new Slot(ROLE_MINUTE, centerX, cursor + mainSize / 2f, mainSize, boxWidth));
         cursor += mainSize + gap;
+        if (options.hour12) {
+            out.add(new Slot(ROLE_MERIDIEM, centerX, cursor + meridiemSize / 2f,
+                    meridiemSize, boxWidth));
+            cursor += meridiemSize + gap;
+        }
         out.add(new Slot(ROLE_WEEKDAY_DATE,
                 parts(new String[] {ROLE_WEEKDAY, ROLE_MONTH_DAY}, new String[] {"", ", "}),
                 centerX, cursor + dateSize / 2f, dateSize, boxWidth));
@@ -610,7 +653,7 @@ public final class ClockLayout {
         float cursor = pad;
         out.add(new Slot(ROLE_HOUR_MINUTE,
                 parts(new String[] {ROLE_HOUR, ROLE_MINUTE}, new String[] {"", ":"}),
-                centerX, cursor + timeSize / 2f, timeSize, boxWidth));
+                centerX, cursor + timeSize / 2f, timeSize, timeBoxWidth(boxWidth, options)));
         cursor += timeSize + gap;
 
         float[] calendar = new float[] {pad, cursor, boxWidth, gridHeight};

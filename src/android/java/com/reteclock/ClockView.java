@@ -452,8 +452,11 @@ public class ClockView extends View {
         applyStyle(ClockLayout.ROLE_MONTH_DAY, size);
         paint.setTextAlign(Paint.Align.CENTER);
 
+        boolean showsCellDates = options.gregorianBadge
+                && grid.system() != com.reteclock.core.Calendars.GREGORIAN;
+
         // Today, as a day number rather than a year and a month: the grid may be drawing any of
-        // fourteen calendars, and a day number is the one thing they all agree about.
+        // sixteen calendars, and a day number is the one thing they all agree about.
         int todayJdn = todayJdn();
         boolean thisMonth = grid.holdsDay(todayJdn);
         int todayDay = todayJdn - grid.firstJdn() + 1;
@@ -468,6 +471,7 @@ public class ClockView extends View {
                 applyStyle(ClockLayout.ROLE_MONTH_DAY, size);
                 paint.setTextAlign(Paint.Align.CENTER);
                 float centreX = left + cellWidth * (column + 0.5f);
+
                 if (!today) {
                     write(canvas, String.valueOf(day), centreX, base);
                     continue;
@@ -477,7 +481,10 @@ public class ClockView extends View {
                 // GIF — shows through the digits themselves. On a layer of its own, because
                 // clearing pixels needs somewhere to clear them from.
                 float boxHalfW = Math.min(cellWidth, rowHeight) * 0.46f;
-                float boxHalfH = rowHeight * 0.44f;
+                // With the Gregorian dates in the corners, today's box gives up the bottom of its
+                // square so the badge under it has somewhere to be. White on white is not a subtle
+                // bug: the badge simply vanished on the one day of the month anybody looks at.
+                float boxHalfH = rowHeight * (showsCellDates ? 0.34f : 0.44f);
                 float centreY = top + rowHeight * (row + 2.5f);
                 android.graphics.RectF box = new android.graphics.RectF(
                         centreX - boxHalfW, centreY - boxHalfH,
@@ -494,6 +501,26 @@ public class ClockView extends View {
                 canvas.drawText(String.valueOf(day), centreX, base, paint);
                 paint.setXfermode(was);
                 canvas.restoreToCount(layer);
+            }
+        }
+        // The Gregorian date of every square, small, in its lower left — the same option that puts
+        // it under the big date (RFC-0003, D14). A month grid in another calendar is where somebody
+        // most wants the translation: it answers "and which day of my own month is that" for the
+        // whole month at once rather than only for today.
+        //
+        // In a pass of its own, after the numerals, because today is drawn as a filled box and a
+        // badge painted before it disappears underneath — which is exactly what happened the first
+        // time this was tried.
+        if (showsCellDates) {
+            for (int row = 0; row < MonthGrid.ROWS; row++) {
+                for (int column = 0; column < MonthGrid.COLUMNS; column++) {
+                    int day = grid.dayAt(row, column);
+                    if (day == 0) {
+                        continue;
+                    }
+                    drawCellDate(canvas, grid.firstJdn() + day - 1,
+                            left + cellWidth * column, top + rowHeight * (row + 3f), size);
+                }
             }
         }
         paint.setTextAlign(Paint.Align.LEFT);
@@ -831,14 +858,9 @@ public class ClockView extends View {
                 drawGregorianBadge(canvas, time.gregorianBadge, lineLeft, lineRight,
                         textLeftmost, textRightmost, lineBaseline, size);
             }
-            if (time.meridiem != null) {
-                if (ClockLayout.ROLE_HOUR_MINUTE.equals(slot.role)) {
-                    drawMeridiemBeside(canvas, time.meridiem, textRightmost, lineRight,
-                            lineBaseline, size);
-                } else if (ClockLayout.ROLE_HOUR.equals(slot.role)) {
-                    drawMeridiemAbove(canvas, time.meridiem,
-                            (textLeftmost + textRightmost) / 2f, lineBaseline, size);
-                }
+            if (time.meridiem != null && ClockLayout.ROLE_HOUR_MINUTE.equals(slot.role)) {
+                drawMeridiemBeside(canvas, time.meridiem, textRightmost, lineRight,
+                        lineBaseline, size);
             }
         }
         if (layout.calendarRect() != null) {
@@ -860,12 +882,15 @@ public class ClockView extends View {
     }
 
     /**
-     * AM or PM, small, tucked under the end of a time that reads across the line.
+     * AM or PM, small, just past the minute where the time reads across one line.
      *
-     * The marker is not part of the hour or the minute: those are fields with their own fonts,
-     * their own cells and their own sizing, and putting two characters inside one of them would
-     * make the digits shrink to make room. It is drawn afterwards, at a third of the height, sitting
-     * on the baseline of what it follows — which is where somebody reading "7:19 PM" expects it.
+     * On the **same baseline** as the digits, so the two sit flat together, and inside width the
+     * layout kept back for it — {@code ClockLayout} narrows the box a twelve-hour time may use, so
+     * this is drawn in reserved space rather than in whatever slack happened to be left. That
+     * matters: the first version borrowed the slack and landed on the date column beside it.
+     *
+     * Where the hour and the minute are stacked instead, this is not used at all: there the marker
+     * is a line of its own under the minute, placed by the layout like any other field.
      */
     private void drawMeridiemBeside(Canvas canvas, String text, float textRight, float lineRight,
             float baseline, float timeSize) {
@@ -876,41 +901,32 @@ public class ClockView extends View {
         mark.setTextSize(size);
         mark.setColor(textColor);
         mark.setShader(paint.getShader());
-        // A subscript, not a suffix. Set on the baseline just after the minute, it reaches into
-        // whatever is beside it — in the wide layout that is the date column, and "11:22" came out
-        // as "11:22PMAug 15" on the phone. Dropped below the baseline it sits in the digits' own
-        // descender space, which nothing else uses, and it stops touching the neighbour.
+        float gap = size * 0.35f;
         float width = mark.measureText(text);
-        float left = textRight - width * 0.1f;
+        float left = textRight + gap;
         if (left + width > lineRight) {
-            left = Math.max(textRight - width, lineRight - width);
+            left = Math.max(textRight, lineRight - width);
         }
-        canvas.drawText(text, left, baseline + size * 0.95f, mark);
+        canvas.drawText(text, left, baseline, mark);
     }
 
     /**
-     * And above the hour, where the hour and the minute are stacked.
+     * The Gregorian month and day of one square of the grid, written small in its lower left.
      *
-     * Three lines then: AM over 12 over 43, which is what was asked for. It sits above the digits'
-     * own ascent rather than at a fixed distance, so a tall font does not collide with it.
+     * Plain text rather than the knocked-out box the big badge uses: at this size a box would be a
+     * smudge, and there are up to thirty-one of them on the screen at once. It is drawn in the
+     * clock's own colour at a third of the numeral's size, which on the smallest screen this app
+     * runs on is still legible and, more importantly, still ignorable — it is an annotation on
+     * somebody else's calendar, not a second calendar.
      */
-    private void drawMeridiemAbove(Canvas canvas, String text, float centreX, float baseline,
-            float timeSize) {
-        float size = timeSize * 0.24f;
-        android.graphics.Paint mark =
-                new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
-        mark.setTypeface(paint.getTypeface());
-        mark.setTextSize(size);
-        mark.setColor(textColor);
-        mark.setShader(paint.getShader());
-        mark.setTextAlign(Paint.Align.CENTER);
-        paint.getFontMetrics(fontMetrics);
-        float top = baseline + fontMetrics.ascent;
-        // Above the digits, but never above the screen: on a tall layout the hour sits close to the
-        // top edge and there is not always a marker's worth of room over it. The first version drew
-        // it off the top of the display, where it was perfectly correct and completely invisible.
-        float y = Math.max(size * 1.05f, top - size * 0.25f);
-        canvas.drawText(text, centreX, y, mark);
+    private void drawCellDate(Canvas canvas, int jdn, float cellLeft, float cellBottom,
+            float numeralSize) {
+        int[] date = com.reteclock.core.Gregorian.parts(jdn);
+        String text = (date[1] < 10 ? "0" : "") + date[1] + "." + (date[2] < 10 ? "0" : "") + date[2];
+        float size = numeralSize * 0.34f;
+        applyStyle(ClockLayout.ROLE_MONTH_DAY, size);
+        paint.setTextAlign(Paint.Align.LEFT);
+        write(canvas, text, cellLeft + size * 0.15f, cellBottom - size * 0.15f);
     }
 
     /** Which fields the Gregorian badge belongs under: the ones that carry the date. */
@@ -1474,6 +1490,11 @@ public class ClockView extends View {
         }
         if (ClockLayout.ROLE_MINUTE.equals(role)) {
             return time.minute;
+        }
+        if (ClockLayout.ROLE_MERIDIEM.equals(role)) {
+            // Null on a 24-hour clock, and a null piece makes the whole line disappear, which is
+            // exactly right: there is no marker to draw and no space to hold for one.
+            return time.meridiem;
         }
         if (ClockLayout.ROLE_SECOND.equals(role)) {
             return time.secondLabel;

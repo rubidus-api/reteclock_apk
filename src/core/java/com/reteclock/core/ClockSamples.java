@@ -62,6 +62,11 @@ public final class ClockSamples {
             }
             return out;
         }
+        if (ClockLayout.ROLE_MERIDIEM.equals(role)) {
+            return options.hour12
+                    ? list(new String[] {"AM", "PM", "NN", "MN"})
+                    : Collections.<String>emptyList();
+        }
         if (ClockLayout.ROLE_WEEKDAY.equals(role)) {
             return list(Calendars.weekdayNames(options.calendarSystem, options.weekdayStyle));
         }

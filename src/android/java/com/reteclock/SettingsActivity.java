@@ -242,6 +242,13 @@ public class SettingsActivity extends Activity {
         });
         clock.addView(seconds);
 
+        // Everything the twelve-hour clock brings with it — the warning, what other countries do,
+        // and the two questions about noon and midnight — lives in one box that is only there when
+        // the twelve-hour clock is. On a 24-hour clock none of it applies: 00:00 and 12:00 say what
+        // they are, and a screen full of warning about an ambiguity you do not have is just noise.
+        final LinearLayout twelveHourExtras = new LinearLayout(this);
+        twelveHourExtras.setOrientation(LinearLayout.VERTICAL);
+
         final CheckBox twelveHour = new CheckBox(this);
         twelveHour.setText(R.string.settings_hour12);
         twelveHour.setTextColor(TEXT_WHITE);
@@ -250,17 +257,20 @@ public class SettingsActivity extends Activity {
             @Override
             public void onCheckedChanged(CompoundButton button, boolean checked) {
                 Settings.setHour12(SettingsActivity.this, checked);
+                twelveHourExtras.setVisibility(checked ? View.VISIBLE : View.GONE);
             }
         });
         clock.addView(twelveHour);
-        clock.addView(warning(getString(R.string.settings_hour12_warning)));
-        clock.addView(footer(getString(R.string.settings_hour12_countries)));
-        clock.addView(footer(getString(R.string.settings_hour12_note)));
+        clock.addView(twelveHourExtras);
+
+        twelveHourExtras.addView(warning(getString(R.string.settings_hour12_warning)));
+        twelveHourExtras.addView(footer(getString(R.string.settings_hour12_countries)));
+        twelveHourExtras.addView(footer(getString(R.string.settings_hour12_note)));
 
         // Noon and midnight are the one thing a twelve-hour clock cannot say plainly, and they are
         // two separate questions rather than one. Each option is labelled with the reading itself,
         // so nobody has to know which country's convention they are picking.
-        clock.addView(subheading(getString(R.string.settings_noon)));
+        twelveHourExtras.addView(subheading(getString(R.string.settings_noon)));
         RadioGroup noonStyle = new RadioGroup(this);
         noonStyle.setOrientation(RadioGroup.VERTICAL);
         String[] noons = {"12:43 PM", "12:43 AM", "12:43 NN", "0:43 PM"};
@@ -278,9 +288,9 @@ public class SettingsActivity extends Activity {
                 Settings.setNoonStyle(SettingsActivity.this, checkedId - 900);
             }
         });
-        clock.addView(noonStyle);
+        twelveHourExtras.addView(noonStyle);
 
-        clock.addView(subheading(getString(R.string.settings_midnight)));
+        twelveHourExtras.addView(subheading(getString(R.string.settings_midnight)));
         RadioGroup midnightStyle = new RadioGroup(this);
         midnightStyle.setOrientation(RadioGroup.VERTICAL);
         String[] midnights = {"12:43 AM", "12:43 PM", "00:43", "12:43 MN", "0:43 AM"};
@@ -298,8 +308,10 @@ public class SettingsActivity extends Activity {
                 Settings.setMidnightStyle(SettingsActivity.this, checkedId - 950);
             }
         });
-        clock.addView(midnightStyle);
-        clock.addView(footer(getString(R.string.settings_hour12_noon_note)));
+        twelveHourExtras.addView(midnightStyle);
+
+        twelveHourExtras.setVisibility(Settings.hour12(this) ? View.VISIBLE : View.GONE);
+
 
         clock.addView(subheading(getString(R.string.settings_date_format)));
         RadioGroup dateStyle = new RadioGroup(this);
