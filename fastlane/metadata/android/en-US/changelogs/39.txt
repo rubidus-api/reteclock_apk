@@ -1,0 +1,7 @@
+* The Gregorian date now appears in the corner of every square of the month grid,
+  not only under the big date — which is where the translation is most wanted.
+* AM and PM have a place of their own in the layout: beside the minute where the
+  time reads across one line, and a line under it where hour and minute are stacked.
+* The noon and midnight settings only appear when the 12-hour clock is on.
+* The lunar calendars say so in their names: Chinese lunar, Korean lunar,
+  Vietnamese lunar.
