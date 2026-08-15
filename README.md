@@ -163,8 +163,9 @@ In the order they appear on the screen.
   leave behind.
 - **Date format** — `Jul 12` (short month name) or `07-12` (numbers).
 - **12 hours, with AM and PM** — seven in the evening reads `7:19` rather than `19:19` (issue #24).
-  Where the hour and the minute share a line, the marker is tucked small under the end of it; where
-  they are stacked, it sits above the hour: `PM` over `11` over `21`.
+  Where the hour and the minute share a line, the marker sits small just after the minute on the
+  same baseline; where they are stacked, it takes a line of its own under the minute: `12` over `03`
+  over `AM`. Either way the layout keeps room for it, so nothing shifts when AM becomes PM.
 - **Noon is written / Midnight is written** — the one thing a twelve-hour clock cannot say plainly.
   AM means *before* midday and PM *after* it, so noon is neither, and midnight belongs to two days at
   once; American standards go as far as calling `12 a.m.` and `12 p.m.` ambiguous. Every clock uses

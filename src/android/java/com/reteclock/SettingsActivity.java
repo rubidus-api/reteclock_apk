@@ -273,7 +273,9 @@ public class SettingsActivity extends Activity {
         twelveHourExtras.addView(subheading(getString(R.string.settings_noon)));
         RadioGroup noonStyle = new RadioGroup(this);
         noonStyle.setOrientation(RadioGroup.VERTICAL);
-        String[] noons = {"12:43 PM", "12:43 AM", "12:43 NN", "0:43 PM"};
+        // The examples are the instant the setting is about — noon itself, not some minute past
+        // it. "12:43 PM" made the reader work out which of the five numbers was the one in question.
+        String[] noons = {"12:00 PM", "12:00 AM", "12:00 NN", "0:00 PM"};
         for (int style = 0; style < noons.length; style++) {
             RadioButton option = new RadioButton(this);
             option.setId(900 + style);
@@ -293,7 +295,7 @@ public class SettingsActivity extends Activity {
         twelveHourExtras.addView(subheading(getString(R.string.settings_midnight)));
         RadioGroup midnightStyle = new RadioGroup(this);
         midnightStyle.setOrientation(RadioGroup.VERTICAL);
-        String[] midnights = {"12:43 AM", "12:43 PM", "00:43", "12:43 MN", "0:43 AM"};
+        String[] midnights = {"12:00 AM", "12:00 PM", "00:00", "12:00 MN", "0:00 AM"};
         for (int style = 0; style < midnights.length; style++) {
             RadioButton option = new RadioButton(this);
             option.setId(950 + style);
