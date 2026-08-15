@@ -141,6 +141,27 @@ public class TimerSettingsActivity extends Activity {
                         save();
                     }
                 }));
+        // Back to the five the app ships with. Behind a question, because it throws away work: a
+        // preset somebody spent an evening tuning looks exactly like one they never touched, and
+        // this button cannot tell the difference.
+        sets.addView(actionButton(getString(R.string.timer_preset_reset),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        new AlertDialog.Builder(TimerSettingsActivity.this)
+                                .setTitle(R.string.timer_preset_reset)
+                                .setMessage(R.string.timer_preset_reset_ask)
+                                .setPositiveButton(R.string.timer_preset_reset_yes,
+                                        new DialogInterface.OnClickListener() {
+                                            @Override
+                                            public void onClick(DialogInterface dialog, int which) {
+                                                restoreStarters();
+                                            }
+                                        })
+                                .setNegativeButton(android.R.string.cancel, null)
+                                .show();
+                    }
+                }));
         sets.addView(footer(getString(R.string.timer_preset_note)));
         root.addView(sets);
 
@@ -158,6 +179,20 @@ public class TimerSettingsActivity extends Activity {
         button.setText(label);
         button.setTextColor(TEXT_WHITE);
         return button;
+    }
+
+    /**
+     * Puts the starter presets back, and nothing else.
+     *
+     * The chosen preset goes back to the first one because the positions have all changed underneath
+     * it, and no preset is left open: the row somebody was editing may not exist any more.
+     */
+    private void restoreStarters() {
+        presets.clear();
+        presets.addAll(com.reteclock.core.TimerPresets.starter());
+        openPreset = -1;
+        Settings.setTimerChosen(this, 0);
+        save();
     }
 
     /** Writes the presets back and redraws the list; every edit goes through here. */

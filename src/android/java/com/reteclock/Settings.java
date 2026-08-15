@@ -790,6 +790,33 @@ public final class Settings {
     }
 
     /**
+     * The nine numbers behind the user's own rule, or the European ones if none are stored yet.
+     *
+     * The editing screen needs the numbers themselves, not the rule they build: a rule can be asked
+     * what time it is, but not which Sunday of which month it was told about.
+     */
+    public static int[] customSummerNumbers(Context context) {
+        String[] parts = prefs(context).getString(KEY_DST_CUSTOM, "").split(",");
+        int[] n = new int[] {3, 0, SummerTime.LAST, 60, 10, 0, SummerTime.LAST, 60, 60};
+        if (parts.length != 9) {
+            return n;
+        }
+        try {
+            for (int i = 0; i < 9; i++) {
+                n[i] = Integer.parseInt(parts[i].trim());
+            }
+        } catch (NumberFormatException e) {
+            return new int[] {3, 0, SummerTime.LAST, 60, 10, 0, SummerTime.LAST, 60, 60};
+        }
+        return n;
+    }
+
+    /** Writes the nine numbers back in the order {@link #customSummerNumbers} returns them. */
+    public static void setCustomSummerNumbers(Context context, int[] n) {
+        setCustomSummerTime(context, n[0], n[1], n[2], n[3], n[4], n[5], n[6], n[7], n[8]);
+    }
+
+    /**
      * A summer-time rule the user stated, as nine numbers, or null.
      *
      * Stored as one string because a rule is meaningless in pieces: a half-written one that

@@ -46,6 +46,7 @@ public final class TimeDateSettingsActivity extends Activity {
     private TextView reconciliation;
     private LinearLayout nameStyles;
     private LinearLayout weekdayStyles;
+    private LinearLayout customSummer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -346,13 +347,18 @@ public final class TimeDateSettingsActivity extends Activity {
                 if (preset == SummerTime.PRESET_CUSTOM
                         && Settings.customSummerTime(TimeDateSettingsActivity.this) == null) {
                     // Somewhere to start from: the European dates, at an hour.
-                    Settings.setCustomSummerTime(TimeDateSettingsActivity.this,
-                            3, 0, SummerTime.LAST, 60, 10, 0, SummerTime.LAST, 60, 60);
+                    Settings.setCustomSummerNumbers(TimeDateSettingsActivity.this,
+                            Settings.customSummerNumbers(TimeDateSettingsActivity.this));
                 }
+                rebuildCustomSummer();
                 refresh();
             }
         });
         summer.addView(rules);
+        customSummer = new LinearLayout(this);
+        customSummer.setOrientation(LinearLayout.VERTICAL);
+        summer.addView(customSummer);
+        rebuildCustomSummer();
         summer.addView(note(getString(R.string.timedate_summer_note)));
         root.addView(summer);
 
@@ -406,6 +412,131 @@ public final class TimeDateSettingsActivity extends Activity {
                     }
                 })
                 .show();
+    }
+
+
+    // ---- the user's own summer time ------------------------------------------------------
+
+    /** 1..4 for the n-th such weekday, or {@link SummerTime#LAST}; the value is the index. */
+    private static final int[] ORDINALS = {SummerTime.LAST, 1, 2, 3, 4};
+    private static final int[] AMOUNTS = {30, 60, 120};
+
+    /**
+     * The dates behind *My own dates*, shown only when that is the rule chosen.
+     *
+     * Rebuilt rather than patched, for the reason the timer presets are: eight buttons whose labels
+     * must agree with what is stored, and rebuilding cannot leave one of them lying.
+     */
+    private void rebuildCustomSummer() {
+        if (customSummer == null) {
+            return;
+        }
+        customSummer.removeAllViews();
+        if (Settings.summerTimePreset(this) != SummerTime.PRESET_CUSTOM) {
+            customSummer.setVisibility(View.GONE);
+            return;
+        }
+        customSummer.setVisibility(View.VISIBLE);
+        int[] n = Settings.customSummerNumbers(this);
+        customSummer.addView(subheading(getString(R.string.timedate_summer_starts)));
+        customSummer.addView(transitionRow(n, 0));
+        customSummer.addView(subheading(getString(R.string.timedate_summer_ends)));
+        customSummer.addView(transitionRow(n, 4));
+
+        customSummer.addView(subheading(getString(R.string.timedate_summer_shift)));
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        String[] amounts = new String[AMOUNTS.length];
+        int chosen = 1;
+        for (int i = 0; i < AMOUNTS.length; i++) {
+            amounts[i] = amountLabel(AMOUNTS[i]);
+            if (AMOUNTS[i] == n[8]) {
+                chosen = i;
+            }
+        }
+        row.addView(picker(amounts[chosen], getString(R.string.timedate_summer_shift), amounts,
+                n, 8, AMOUNTS));
+        customSummer.addView(row);
+        customSummer.addView(note(getString(R.string.timedate_summer_custom_note)));
+    }
+
+    /** Month, which one, weekday and time — the four numbers that place one transition. */
+    private LinearLayout transitionRow(int[] n, int base) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+
+        String[] months = Calendars.monthNames(Calendars.GREGORIAN, 0);
+        int[] monthValues = new int[12];
+        for (int i = 0; i < 12; i++) {
+            monthValues[i] = i + 1;
+        }
+        row.addView(picker(months[n[base] - 1], getString(R.string.timedate_summer_month),
+                months, n, base, monthValues));
+
+        String[] ordinals = {
+            getString(R.string.timedate_summer_last), getString(R.string.timedate_summer_first),
+            getString(R.string.timedate_summer_second), getString(R.string.timedate_summer_third),
+            getString(R.string.timedate_summer_fourth)};
+        int ordinalIndex = 0;
+        for (int i = 0; i < ORDINALS.length; i++) {
+            if (ORDINALS[i] == n[base + 2]) {
+                ordinalIndex = i;
+            }
+        }
+        row.addView(picker(ordinals[ordinalIndex], getString(R.string.timedate_summer_which),
+                ordinals, n, base + 2, ORDINALS));
+
+        String[] weekdays = Calendars.weekdayNames(Calendars.GREGORIAN, 0);
+        int[] weekdayValues = new int[weekdays.length];
+        for (int i = 0; i < weekdays.length; i++) {
+            weekdayValues[i] = i;
+        }
+        row.addView(picker(weekdays[n[base + 1]], getString(R.string.timedate_summer_weekday),
+                weekdays, n, base + 1, weekdayValues));
+
+        String[] hours = new String[24];
+        int[] hourValues = new int[24];
+        for (int i = 0; i < 24; i++) {
+            hours[i] = two(i) + ":00";
+            hourValues[i] = i * 60;
+        }
+        row.addView(picker(two(n[base + 3] / 60) + ":" + two(n[base + 3] % 60),
+                getString(R.string.timedate_summer_at), hours, n, base + 3, hourValues));
+        return row;
+    }
+
+    /** A button showing one of the nine numbers, which opens the list of what it may be. */
+    private Button picker(String label, final String title, final String[] items, final int[] n,
+            final int slot, final int[] values) {
+        Button button = new Button(this);
+        button.setText(label);
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                new AlertDialog.Builder(TimeDateSettingsActivity.this)
+                        .setTitle(title)
+                        .setItems(items, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                n[slot] = values[which];
+                                Settings.setCustomSummerNumbers(
+                                        TimeDateSettingsActivity.this, n);
+                                rebuildCustomSummer();
+                                refresh();
+                            }
+                        })
+                        .show();
+            }
+        });
+        return button;
+    }
+
+    private String amountLabel(int minutes) {
+        if (minutes % 60 == 0) {
+            return getString(minutes == 60 ? R.string.timedate_summer_hour
+                    : R.string.timedate_summer_hours, minutes / 60);
+        }
+        return getString(R.string.timedate_summer_minutes, minutes);
     }
 
     /** Both numbers, live: what the phone says, and what this clock will show. */
