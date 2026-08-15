@@ -11,7 +11,7 @@ so the numbers never burn into an OLED screen.
 
 There is nothing to sign up for and nothing to configure. It needs no account, no network and no
 Play Store, so it still works on phones that can no longer install anything else. It is small —
-about 280 KB — and asks for two permissions, both granted at install and never at runtime: one to
+about 310 KB — and asks for two permissions, both granted at install and never at runtime: one to
 keep the screen awake, and one to vibrate, which only the timer uses.
 
 > **If the clock does not answer your touch, it is not the clock.** Android does not pass touches to
@@ -131,7 +131,7 @@ beyond keeping the screen awake. Copy the APK to the phone, open it, and the pho
 
 ## Which phones it runs on
 
-Published on F-Droid; the latest release is 0.20.0.
+Published on F-Droid; the latest release is 0.21.0.
 
 | | |
 |---|---|
@@ -162,6 +162,16 @@ In the order they appear on the screen.
 - **Show seconds** — on or off. With the seconds off, the hour and minute grow into the space they
   leave behind.
 - **Date format** — `Jul 12` (short month name) or `07-12` (numbers).
+- **12 hours, with AM and PM** — seven in the evening reads `7:19` rather than `19:19` (issue #24).
+  Where the hour and the minute share a line, the marker is tucked small under the end of it; where
+  they are stacked, it sits above the hour: `PM` over `11` over `21`.
+- **Noon is written / Midnight is written** — the one thing a twelve-hour clock cannot say plainly.
+  AM means *before* midday and PM *after* it, so noon is neither, and midnight belongs to two days at
+  once; American standards go as far as calling `12 a.m.` and `12 p.m.` ambiguous. Every clock uses
+  them anyway and so does this one by default, but the alternatives are here because they are all in
+  real use somewhere: `12:43 NN` and `12:43 MN` (the Philippines), `0:43 PM` and `0:43 AM` (Japan,
+  where the twelfth hour is written zero), and for midnight simply `00:43`, the 24-hour way. Each
+  choice is shown as the reading it produces, and applies to that hour only.
 - **Colours** — a text colour and a background colour, each chosen from a palette. The two can
   never be the same (a clock in its own background colour would be no clock at all), and the
   background colour shows wherever no picture covers it, including the bars at the edges when a
@@ -239,8 +249,17 @@ nothing extra drawn.
   other phone does not have are skipped, and it tells you how many. Neither direction asks for a
   storage permission.
 
-**Calendar** — its own screen, reached from the clock's menu.
+**Time and date** — its own screen, reached from the clock's menu.
 
+- **Count the date in** — the calendar the clock counts in. Fourteen of them, listed below. The
+  choice changes every date the app shows: the month grid, the date beside the time, and the
+  screensaver. Names and numbers stay in Latin letters and ordinary digits throughout.
+- **Show the Gregorian date as a small badge** — with another calendar counting, the Gregorian month
+  and day appear as `08.15` reversed out of a small box at the lower left of the date. Off by
+  default, and never shown when the Gregorian calendar is the one counting.
+- **Shift the Islamic date by** — −2 to +2 days. An Islamic month begins when the new crescent is
+  *seen*, so no computation is the announcement; set this once to match your own community and every
+  date after it is right for you.
 - **Show a calendar on the clock** — the month under the time, drawn as the clock's own writing: it
   takes the text colour, and the picture filling the digits fills it too. The month and a pair of
   arrows are on the first row, three-letter weekdays on the second, and six week rows always, so
@@ -248,8 +267,77 @@ nothing extra drawn.
   the numerals are cleared from the colour rather than painted over it, so a picture behind the
   clock shows through the digits themselves. The arrows page back and forth, and it returns to this
   month whenever the clock is opened again.
-- **The week starts on** — Sunday or Monday.
+- **The months are spelled** / **The weekdays are written** — where a calendar is read by people who
+  spell its months differently, both spellings are offered rather than one being picked as correct:
+  Cairo's Baramhat beside the liturgy's Paremhat, Jakarta's Zulkaedah beside Cairo's Dhu al-Qidah,
+  India's Ashwin beside the scholarly Asvina. The choices are shown as the abbreviations themselves.
+  The weekdays stay English unless you ask for the calendar's own — `Yek Dos Ses Cha Pan Jom Sha` for
+  the Persian calendar, `CN T2 T3 T4 T5 T6 T7` for the Vietnamese one, which is what Vietnam writes.
+- **The week starts on** — Sunday, Monday or Saturday. Iran and Israel begin the week on Saturday.
 - **The month is written as** — `Aug 2026` or `2026-08`.
+- **The clock takes its time from** — the phone, or an offset you set. Android carries its own table
+  of time zone rules, and on an old phone that table is frozen: in every country that has changed or
+  abolished summer time since — Brazil, Mexico, Iran, Turkey, Jordan, Egypt and others — the phone
+  is an hour out for part of the year, and no app can correct it from the outside. Setting the offset
+  here goes round it. The clock then asks the phone only *what moment it is*, which is a number that
+  owes nothing to the zone table, and works out the rest itself. There is a list of places to pick an
+  offset from, quarter-hour steps for the ones that are not whole hours (+5:30, +5:45, +12:45), a
+  summer-time rule — none, Europe, United States and Canada, southern hemisphere, or your own dates —
+  and, at the foot, both readings side by side so you can check them against your watch.
+
+### The calendars
+
+Every one of these is right for **every day from 1 January 1900 to 31 December 2200**, which is the
+span the app promises. Outside it, and at the two edges where a calendar has nothing to say, the
+clock shows the Gregorian date rather than a guess, and the paging arrows stop.
+
+| Calendar | Where it is used, and roughly how many people | Kind |
+|---|---|---|
+| **Gregorian** | worldwide | civil |
+| **Islamic** | ~2.0 billion Muslims | religious, civil |
+| **Islamic Umm al-Qura** | Saudi Arabia and much of the Gulf — the reckoning most printed Hijri dates follow | religious, civil |
+| **Islamic MABIMS** | Malaysia, Indonesia, Brunei and Singapore — around 300 million, from 2021 onward | religious, civil |
+| **Chinese** | China ~1.4 billion, and the diaspora | cultural |
+| **Indian (Saka)** | India ~1.4 billion — the official civil calendar | civil |
+| **Japanese** | Japan ~123 million | civil |
+| **Ethiopian** | Ethiopia ~130 million | civil |
+| **Vietnamese** | Vietnam ~100 million | cultural |
+| **Persian** | Iran ~92 million | civil |
+| **Korean** | South Korea ~52 million, North Korea ~26 million | cultural |
+| **Thai Buddhist** | Thailand ~72 million | civil |
+| **Minguo** | Taiwan ~23 million | civil |
+| **Julian** | the Orthodox churches that keep it — Russian, Serbian, Georgian, Jerusalem | religious |
+| **Coptic** | Egypt's Copts ~10–15 million, and the Coptic Orthodox Church | religious |
+| **Hebrew** | Israel ~10 million, and the Jewish diaspora ~6 million | civil, religious |
+
+A few things worth knowing about particular ones:
+
+- **The Chinese, Korean and Vietnamese calendars are three tables, not one.** They are the same
+  system computed at three different meridians, and that is enough to make them disagree: the same
+  new moon at 00:12 in Seoul is the previous evening in Beijing, so Korea's new year falls a day
+  after China's in 2027 and again in 2028. Vietnam's Tet fell a day before the Chinese new year in
+  2007 for the same reason. A month in these calendars has a number rather than a name, and a leap
+  month repeats the number before it: `M6` is the sixth month and `L6` the leap sixth.
+- **The Ethiopian and Coptic calendars have thirteen months**, twelve of thirty days and a short one
+  of five or six. The Hebrew calendar has twelve or thirteen depending on the year, and the lunisolar
+  ones have a leap month that can fall anywhere.
+- **The Japanese calendar cannot be computed forward.** An era ends when a reign does, on a date
+  nobody can know in advance, so the app counts Reiwa onward from 2019 — an assumption, not a
+  calculation. The dates before it are the real eras: Meiji, Taisho, Showa, Heisei.
+- **The Julian calendar drifts by design.** It is thirteen days behind now, fourteen from 1 March
+  2100 and fifteen from 2200, all of it inside the guaranteed span.
+- **Minguo has no year before 1912**, when the Republic was founded, so earlier dates read Gregorian.
+
+**Not included, and why.** These were looked at and left out rather than forgotten:
+
+- **Bikram Sambat (Nepal, ~30 million)** — its month lengths follow solar transitions and are
+  *published* year by year rather than derivable from a rule. It can be added the day authoritative
+  data for the whole span can be obtained and checked; guessing at it would be worse than not having
+  it.
+- **Hindu Panchang (India, regionally)** — not one calendar but many, varying by region and school,
+  each astronomical. There is no single answer to compute.
+- **Sighting-based Hijri** — the date depends on an observation that has not happened yet. The
+  Islamic calendar above, with the offset, is the honest substitute.
 
 | Landscape (wide) | Portrait (tall) |
 |---|---|
@@ -327,7 +415,7 @@ Nothing below is needed to use the app.
 Java and the Android framework, nothing else. Built with the Android SDK command-line tools
 (`aapt2`, `javac`, `d8`, `zipalign`, `apksigner`) driven by POSIX shell scripts. No Gradle. No
 AndroidX, no support library, no Kotlin runtime and no third-party dependency — a single
-`classes.dex` and an APK of about 280 KB. It is signed with the v1 (JAR) scheme so old phones
+`classes.dex` and an APK of about 310 KB. It is signed with the v1 (JAR) scheme so old phones
 accept it, plus v2 and v3 for current ones, and it holds two normal permissions (`WAKE_LOCK` and
 `VIBRATE`, the latter for the timer), both granted at install and never requested at runtime.
 

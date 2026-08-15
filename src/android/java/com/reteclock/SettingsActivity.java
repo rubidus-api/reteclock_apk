@@ -242,6 +242,65 @@ public class SettingsActivity extends Activity {
         });
         clock.addView(seconds);
 
+        final CheckBox twelveHour = new CheckBox(this);
+        twelveHour.setText(R.string.settings_hour12);
+        twelveHour.setTextColor(TEXT_WHITE);
+        twelveHour.setChecked(Settings.hour12(this));
+        twelveHour.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                Settings.setHour12(SettingsActivity.this, checked);
+            }
+        });
+        clock.addView(twelveHour);
+        clock.addView(warning(getString(R.string.settings_hour12_warning)));
+        clock.addView(footer(getString(R.string.settings_hour12_countries)));
+        clock.addView(footer(getString(R.string.settings_hour12_note)));
+
+        // Noon and midnight are the one thing a twelve-hour clock cannot say plainly, and they are
+        // two separate questions rather than one. Each option is labelled with the reading itself,
+        // so nobody has to know which country's convention they are picking.
+        clock.addView(subheading(getString(R.string.settings_noon)));
+        RadioGroup noonStyle = new RadioGroup(this);
+        noonStyle.setOrientation(RadioGroup.VERTICAL);
+        String[] noons = {"12:43 PM", "12:43 AM", "12:43 NN", "0:43 PM"};
+        for (int style = 0; style < noons.length; style++) {
+            RadioButton option = new RadioButton(this);
+            option.setId(900 + style);
+            option.setText(noons[style]);
+            option.setTextColor(TEXT_WHITE);
+            noonStyle.addView(option);
+        }
+        noonStyle.check(900 + Settings.noonStyle(this));
+        noonStyle.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                Settings.setNoonStyle(SettingsActivity.this, checkedId - 900);
+            }
+        });
+        clock.addView(noonStyle);
+
+        clock.addView(subheading(getString(R.string.settings_midnight)));
+        RadioGroup midnightStyle = new RadioGroup(this);
+        midnightStyle.setOrientation(RadioGroup.VERTICAL);
+        String[] midnights = {"12:43 AM", "12:43 PM", "00:43", "12:43 MN", "0:43 AM"};
+        for (int style = 0; style < midnights.length; style++) {
+            RadioButton option = new RadioButton(this);
+            option.setId(950 + style);
+            option.setText(midnights[style]);
+            option.setTextColor(TEXT_WHITE);
+            midnightStyle.addView(option);
+        }
+        midnightStyle.check(950 + Settings.midnightStyle(this));
+        midnightStyle.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                Settings.setMidnightStyle(SettingsActivity.this, checkedId - 950);
+            }
+        });
+        clock.addView(midnightStyle);
+        clock.addView(footer(getString(R.string.settings_hour12_noon_note)));
+
         clock.addView(subheading(getString(R.string.settings_date_format)));
         RadioGroup dateStyle = new RadioGroup(this);
         dateStyle.setOrientation(RadioGroup.VERTICAL);
@@ -1518,6 +1577,20 @@ public class SettingsActivity extends Activity {
         view.setTextColor(TEXT_DIM);
         view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f);
         view.setPadding(0, dp(12), 0, dp(2));
+        return view;
+    }
+
+    /**
+     * A note that is a warning rather than an explanation.
+     *
+     * Amber, and above the choice it is about. The screen has one of these and it is the twelve-hour
+     * clock, because that is the only setting here that can make the app state a time somebody
+     * reads as a different time.
+     */
+    private TextView warning(String text) {
+        TextView view = footer(text);
+        view.setTextColor(WARNING);
+        view.setPadding(0, dp(6), 0, dp(6));
         return view;
     }
 

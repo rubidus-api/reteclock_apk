@@ -164,8 +164,13 @@ public class ClockView extends View {
 
     /** How many months away from this one the calendar is being looked at. */
     private int monthOffset;
-    /** Whether the week is taken to begin on a Monday, and how the month is written. */
-    private boolean weekStartsMonday;
+    /** The day the week is taken to begin on — 0 Sunday, 1 Monday, 6 Saturday — and how the
+     * month is written. */
+    private int weekStart;
+    /** Where the clock's local time comes from, and the rule that shifts it in summer. */
+    private int timeSource = Settings.TIME_SOURCE_PHONE;
+    private int standardOffset;
+    private com.reteclock.core.SummerTime summerRule;
     private int headerStyle = MonthGrid.HEADER_NAME;
     /** Where the paging arrows last were, so a touch can be tested against them. */
     private final android.graphics.RectF backArrow = new android.graphics.RectF();
@@ -216,7 +221,10 @@ public class ClockView extends View {
 
     /** How the calendar is to be read: which day leads the week, and how the month is written. */
     private void loadCalendar(Context context) {
-        weekStartsMonday = Settings.calendarWeekStartsMonday(context);
+        weekStart = Settings.calendarWeekStart(context);
+        timeSource = Settings.timeSource(context);
+        standardOffset = Settings.utcOffsetMinutes(context);
+        summerRule = Settings.summerTimeRule(context);
         headerStyle = Settings.calendarHeaderStyle(context);
         monthOffset = 0;
     }
@@ -444,13 +452,11 @@ public class ClockView extends View {
         applyStyle(ClockLayout.ROLE_MONTH_DAY, size);
         paint.setTextAlign(Paint.Align.CENTER);
 
-        // Today's numbers, which ClockText does not carry: it holds the strings the clock draws,
-        // and a calendar needs to compare, not to print.
-        java.util.Calendar now = java.util.Calendar.getInstance();
-        int todayYear = now.get(java.util.Calendar.YEAR);
-        int todayMonth = now.get(java.util.Calendar.MONTH) + 1;
-        int todayDay = now.get(java.util.Calendar.DAY_OF_MONTH);
-        boolean thisMonth = grid.holds(todayYear, todayMonth);
+        // Today, as a day number rather than a year and a month: the grid may be drawing any of
+        // fourteen calendars, and a day number is the one thing they all agree about.
+        int todayJdn = todayJdn();
+        boolean thisMonth = grid.holdsDay(todayJdn);
+        int todayDay = todayJdn - grid.firstJdn() + 1;
         for (int row = 0; row < MonthGrid.ROWS; row++) {
             float base = top + rowHeight * (row + 2.5f) - (paint.ascent() + paint.descent()) / 2f;
             for (int column = 0; column < MonthGrid.COLUMNS; column++) {
@@ -586,9 +592,27 @@ public class ClockView extends View {
     }
 
     private long today() {
-        java.util.TimeZone zone = java.util.TimeZone.getDefault();
         long now = System.currentTimeMillis();
-        return com.reteclock.core.Quotes.dayNumber(now, zone.getOffset(now));
+        return com.reteclock.core.Quotes.dayNumber(now, offsetAt(now) * 60000);
+    }
+
+    /**
+     * The offset the clock reads an instant at.
+     *
+     * The phone's own zone unless the user said otherwise — which they would only do because the
+     * phone's zone rules are out of date, which on this app's oldest devices they are (RFC-0004).
+     */
+    private int offsetAt(long epochMillis) {
+        if (timeSource == Settings.TIME_SOURCE_PHONE) {
+            return java.util.TimeZone.getDefault().getOffset(epochMillis) / 60000;
+        }
+        return com.reteclock.core.SummerTime.offsetAt(epochMillis, standardOffset, summerRule);
+    }
+
+    /** The day number the clock is standing in. */
+    private int todayJdn() {
+        long now = System.currentTimeMillis();
+        return com.reteclock.core.CivilTime.jdnOf(now, offsetAt(now));
     }
 
     /**
@@ -611,10 +635,15 @@ public class ClockView extends View {
 
     /** The month being looked at: this one, or however far the arrows have been pressed. */
     private MonthGrid monthShown() {
-        java.util.Calendar now = java.util.Calendar.getInstance();
-        int months = now.get(java.util.Calendar.YEAR) * 12
-                + now.get(java.util.Calendar.MONTH) + monthOffset;
-        return MonthGrid.of(months / 12, months % 12 + 1, weekStartsMonday);
+        MonthGrid grid = MonthGrid.ofDay(options.calendarSystem, todayJdn(), weekStart,
+                options.nameStyle, options.weekdayStyle);
+        for (int step = 0; step < monthOffset; step++) {
+            grid = grid.next();
+        }
+        for (int step = 0; step > monthOffset; step--) {
+            grid = grid.previous();
+        }
+        return grid;
     }
 
     /**
@@ -630,8 +659,17 @@ public class ClockView extends View {
         float px = x - insetLeft;
         float py = y - insetTop;
         if (backArrow.contains(px, py)) {
+            // The arrows stop at the ends of the span this project promises to be right about:
+            // paging on would be a calendar claiming an accuracy nothing has checked (RFC-0004, E6).
+            if (monthShown().firstJdn() - 1 < com.reteclock.core.CivilTime.FIRST_JDN) {
+                return true;
+            }
             monthOffset--;
         } else if (forwardArrow.contains(px, py)) {
+            MonthGrid shown = monthShown();
+            if (shown.firstJdn() + shown.length() > com.reteclock.core.CivilTime.LAST_JDN) {
+                return true;
+            }
             monthOffset++;
         } else {
             return false;
@@ -693,7 +731,8 @@ public class ClockView extends View {
             rebuild(w, h);
         }
 
-        ClockText time = ClockText.of(System.currentTimeMillis(), options);
+        long instant = System.currentTimeMillis();
+        ClockText time = ClockText.at(instant, offsetAt(instant), options);
 
         int maxShift = BurnInShift.maxShiftPx(w, h);
         long elapsed = SystemClock.elapsedRealtime();
@@ -760,6 +799,14 @@ public class ClockView extends View {
             // to centre the text of the moment inside the cell reserved for its widest case, so a
             // narrow reading sits where a wide one would and nothing moves as the clock ticks.
             float size = plan.textSize(slot);
+            // The badge belongs to the line, not to one of its parts: "Sat, Mor 24" is two parts
+            // with no slack between them, and the room to put a badge in is at the line's ends.
+            boolean carriesDate = false;
+            float lineLeft = Float.MAX_VALUE;
+            float lineRight = -Float.MAX_VALUE;
+            float textLeftmost = Float.MAX_VALUE;
+            float textRightmost = -Float.MAX_VALUE;
+            float lineBaseline = 0f;
             for (int i = 0; i < slot.parts.size(); i++) {
                 ClockLayout.Part part = slot.parts.get(i);
                 applyStyle(part.role, size);
@@ -768,7 +815,30 @@ public class ClockView extends View {
                 float textWidth = paint.measureText(pieces[i]);
                 paint.getFontMetrics(fontMetrics);
                 float baseline = slot.centerY - (fontMetrics.ascent + fontMetrics.descent) / 2f;
-                write(canvas, pieces[i], cellStart + (cellWidth - textWidth) / 2f, baseline);
+                float textLeft = cellStart + (cellWidth - textWidth) / 2f;
+                write(canvas, pieces[i], textLeft, baseline);
+
+                if (isDateRole(part.role)) {
+                    carriesDate = true;
+                }
+                lineLeft = Math.min(lineLeft, cellStart);
+                lineRight = Math.max(lineRight, cellStart + cellWidth);
+                textLeftmost = Math.min(textLeftmost, textLeft);
+                textRightmost = Math.max(textRightmost, textLeft + textWidth);
+                lineBaseline = baseline;
+            }
+            if (time.gregorianBadge != null && carriesDate) {
+                drawGregorianBadge(canvas, time.gregorianBadge, lineLeft, lineRight,
+                        textLeftmost, textRightmost, lineBaseline, size);
+            }
+            if (time.meridiem != null) {
+                if (ClockLayout.ROLE_HOUR_MINUTE.equals(slot.role)) {
+                    drawMeridiemBeside(canvas, time.meridiem, textRightmost, lineRight,
+                            lineBaseline, size);
+                } else if (ClockLayout.ROLE_HOUR.equals(slot.role)) {
+                    drawMeridiemAbove(canvas, time.meridiem,
+                            (textLeftmost + textRightmost) / 2f, lineBaseline, size);
+                }
             }
         }
         if (layout.calendarRect() != null) {
@@ -787,6 +857,120 @@ public class ClockView extends View {
                 standDownAnimation();
             }
         }
+    }
+
+    /**
+     * AM or PM, small, tucked under the end of a time that reads across the line.
+     *
+     * The marker is not part of the hour or the minute: those are fields with their own fonts,
+     * their own cells and their own sizing, and putting two characters inside one of them would
+     * make the digits shrink to make room. It is drawn afterwards, at a third of the height, sitting
+     * on the baseline of what it follows — which is where somebody reading "7:19 PM" expects it.
+     */
+    private void drawMeridiemBeside(Canvas canvas, String text, float textRight, float lineRight,
+            float baseline, float timeSize) {
+        float size = timeSize * 0.30f;
+        android.graphics.Paint mark =
+                new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        mark.setTypeface(paint.getTypeface());
+        mark.setTextSize(size);
+        mark.setColor(textColor);
+        mark.setShader(paint.getShader());
+        // A subscript, not a suffix. Set on the baseline just after the minute, it reaches into
+        // whatever is beside it — in the wide layout that is the date column, and "11:22" came out
+        // as "11:22PMAug 15" on the phone. Dropped below the baseline it sits in the digits' own
+        // descender space, which nothing else uses, and it stops touching the neighbour.
+        float width = mark.measureText(text);
+        float left = textRight - width * 0.1f;
+        if (left + width > lineRight) {
+            left = Math.max(textRight - width, lineRight - width);
+        }
+        canvas.drawText(text, left, baseline + size * 0.95f, mark);
+    }
+
+    /**
+     * And above the hour, where the hour and the minute are stacked.
+     *
+     * Three lines then: AM over 12 over 43, which is what was asked for. It sits above the digits'
+     * own ascent rather than at a fixed distance, so a tall font does not collide with it.
+     */
+    private void drawMeridiemAbove(Canvas canvas, String text, float centreX, float baseline,
+            float timeSize) {
+        float size = timeSize * 0.24f;
+        android.graphics.Paint mark =
+                new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        mark.setTypeface(paint.getTypeface());
+        mark.setTextSize(size);
+        mark.setColor(textColor);
+        mark.setShader(paint.getShader());
+        mark.setTextAlign(Paint.Align.CENTER);
+        paint.getFontMetrics(fontMetrics);
+        float top = baseline + fontMetrics.ascent;
+        // Above the digits, but never above the screen: on a tall layout the hour sits close to the
+        // top edge and there is not always a marker's worth of room over it. The first version drew
+        // it off the top of the display, where it was perfectly correct and completely invisible.
+        float y = Math.max(size * 1.05f, top - size * 0.25f);
+        canvas.drawText(text, centreX, y, mark);
+    }
+
+    /** Which fields the Gregorian badge belongs under: the ones that carry the date. */
+    private static boolean isDateRole(String role) {
+        return ClockLayout.ROLE_MONTH_DAY.equals(role)
+                || ClockLayout.ROLE_WEEKDAY_DATE.equals(role);
+    }
+
+    /**
+     * The Gregorian month and day, reversed out of a small box beside the date.
+     *
+     * Knocked out rather than written, in the same idiom as today's square in the grid: the digits
+     * are cut clean through the colour, so a picture behind the clock shows through them.
+     *
+     * Where it goes was settled on a phone rather than on paper, and both of the obvious answers
+     * were wrong. **Under the date** lands squarely on the year line beneath — the lines are packed
+     * with no gap to sit in. **Beside one part of the line** lands on the next part, because
+     * "Sat, Mor 24" is two pieces with nothing between them. What works is beside the *line*: the
+     * text is centred in cells sized for the widest date it could ever show, so the slack is at the
+     * two ends. Left if it fits, right if it does not, and under it only if neither end has room —
+     * which is the case where the line is already as wide as the screen and something has to give.
+     */
+    private void drawGregorianBadge(Canvas canvas, String text, float lineLeft, float lineRight,
+            float textLeft, float textRight, float baseline, float dateSize) {
+        float size = dateSize * 0.34f;
+        android.graphics.Paint mark =
+                new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        mark.setTypeface(paint.getTypeface());
+        mark.setTextSize(size);
+        float width = mark.measureText(text);
+        android.graphics.Paint.FontMetrics metrics = mark.getFontMetrics();
+        float padX = size * 0.22f;
+        float padY = size * 0.10f;
+        float boxWidth = width + padX * 2f;
+        float boxHeight = -metrics.ascent + metrics.descent + padY * 2f;
+        float gap = size * 0.45f;
+
+        float left;
+        float top = baseline - boxHeight;
+        if (textLeft - lineLeft >= boxWidth + gap) {
+            left = textLeft - gap - boxWidth;
+        } else if (lineRight - textRight >= boxWidth + gap) {
+            left = textRight + gap;
+        } else {
+            left = lineLeft;
+            top = baseline + size * 0.25f;
+        }
+
+        android.graphics.RectF box =
+                new android.graphics.RectF(left, top, left + boxWidth, top + boxHeight);
+        int layer = canvas.saveLayer(box.left - 2f, box.top - 2f, box.right + 2f, box.bottom + 2f,
+                null, Canvas.ALL_SAVE_FLAG);
+        android.graphics.Paint fill =
+                new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        fill.setColor(textColor);
+        canvas.drawRoundRect(box, size * 0.18f, size * 0.18f, fill);
+        mark.setXfermode(new android.graphics.PorterDuffXfermode(
+                android.graphics.PorterDuff.Mode.CLEAR));
+        canvas.drawText(text, box.left + padX, box.top + padY - metrics.ascent, mark);
+        canvas.restoreToCount(layer);
     }
 
     /**

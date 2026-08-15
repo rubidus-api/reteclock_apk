@@ -75,13 +75,13 @@ final class ClockMenu {
                     }
                 }));
 
-        card.addView(choice(activity, activity.getString(R.string.menu_calendar_settings),
+        card.addView(choice(activity, activity.getString(R.string.menu_timedate_settings),
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         dialog.dismiss();
                         activity.startActivity(
-                                new Intent(activity, CalendarSettingsActivity.class));
+                                new Intent(activity, TimeDateSettingsActivity.class));
                     }
                 }));
 

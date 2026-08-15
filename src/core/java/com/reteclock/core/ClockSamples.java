@@ -32,6 +32,24 @@ public final class ClockSamples {
     /** Everything {@code role} can show, given these options. Empty for a role with no text. */
     public static List<String> of(String role, ClockOptions options) {
         if (ClockLayout.ROLE_HOUR.equals(role)) {
+            if (options.hour12) {
+                // One to twelve, and no leading zero — "7:19", not "07:19", which is the whole
+                // point of asking for a twelve-hour clock. The Japanese way of writing noon and
+                // midnight adds a thirteenth string, "0", and a field sized without it is a field
+                // that can be asked to draw something it was never measured for.
+                List<String> out = new ArrayList<String>(14);
+                for (int value = 1; value <= 12; value++) {
+                    out.add(Integer.toString(value));
+                }
+                if (options.noonStyle == ClockOptions.NOON_ZERO
+                        || options.midnightStyle == ClockOptions.MIDNIGHT_ZERO) {
+                    out.add("0");
+                }
+                if (options.midnightStyle == ClockOptions.MIDNIGHT_24H) {
+                    out.add("00");
+                }
+                return out;
+            }
             return twoDigitRange(0, 23);
         }
         if (ClockLayout.ROLE_MINUTE.equals(role)) {
@@ -45,17 +63,13 @@ public final class ClockSamples {
             return out;
         }
         if (ClockLayout.ROLE_WEEKDAY.equals(role)) {
-            return list(ClockText.WEEKDAYS);
+            return list(Calendars.weekdayNames(options.calendarSystem, options.weekdayStyle));
         }
         if (ClockLayout.ROLE_MONTH_DAY.equals(role)) {
             return monthDays(options);
         }
         if (ClockLayout.ROLE_YEAR.equals(role)) {
-            List<String> out = new ArrayList<String>(DIGITS.length);
-            for (String digit : DIGITS) {
-                out.add(digit + digit + digit + digit);
-            }
-            return out;
+            return years(options);
         }
         return Collections.emptyList();
     }
@@ -106,12 +120,42 @@ public final class ClockSamples {
             out.add("11-11");
             return out;
         }
-        for (String month : ClockText.MONTHS) {
+        for (String month : Calendars.monthNames(options.calendarSystem, options.nameStyle)) {
             out.add(month + " 1");
             out.add(month + " 8");
             out.add(month + " 28");
             out.add(month + " 30");
             out.add(month + " 31");
+        }
+        return out;
+    }
+
+    /**
+     * The year, in whichever calendar is counting.
+     *
+     * Four digits for almost all of them. Two are different and both would be clipped by a
+     * four-digit assumption: the Japanese year is an era and a number — "Reiwa 8", and "Reiwa 182"
+     * by the end of the guaranteed span — and Minguo is three digits and rising.
+     */
+    private static List<String> years(ClockOptions options) {
+        List<String> out = new ArrayList<String>();
+        if (options.calendarSystem == Calendars.JAPANESE) {
+            for (String era : new String[] {"Meiji", "Taisho", "Showa", "Heisei", "Reiwa"}) {
+                for (String digit : DIGITS) {
+                    out.add(era + " " + digit);
+                    out.add(era + " " + digit + digit);
+                    out.add(era + " " + digit + digit + digit);
+                }
+            }
+            return out;
+        }
+        for (String digit : DIGITS) {
+            out.add(digit + digit + digit + digit);
+            if (options.calendarSystem == Calendars.MINGUO) {
+                out.add(digit);
+                out.add(digit + digit);
+                out.add(digit + digit + digit);
+            }
         }
         return out;
     }

@@ -8,6 +8,7 @@ import java.io.File;
 import com.reteclock.core.ClockDefaults;
 import com.reteclock.core.ClockLayout;
 import com.reteclock.core.ClockOptions;
+import com.reteclock.core.SummerTime;
 import com.reteclock.core.FontLibrary;
 import com.reteclock.core.ImageFit;
 import com.reteclock.core.ImageRoles;
@@ -49,6 +50,17 @@ public final class Settings {
     public static final String KEY_CALENDAR_ON = "calendar_on";
     public static final String KEY_CALENDAR_MONDAY = "calendar_week_monday";
     public static final String KEY_CALENDAR_HEADER = "calendar_header";
+    public static final String KEY_CALENDAR_SYSTEM = "calendar_system";
+    public static final String KEY_CALENDAR_WEEK_START = "calendar_week_start";
+    public static final String KEY_CALENDAR_BADGE = "calendar_gregorian_badge";
+    public static final String KEY_HIJRI_OFFSET = "calendar_hijri_offset";
+    public static final String KEY_TIME_SOURCE = "time_source";
+    public static final String KEY_UTC_OFFSET = "time_utc_offset";
+    public static final String KEY_DST_PRESET = "time_dst_preset";
+    public static final String KEY_DST_CUSTOM = "time_dst_custom";
+    public static final String KEY_HOUR12 = "clock_hour12";
+    public static final String KEY_NOON_STYLE = "clock_noon_style";
+    public static final String KEY_MIDNIGHT_STYLE = "clock_midnight_style";
     public static final String KEY_QUOTE_ON = "quote_on";
     public static final String KEY_RUN_ORIGIN = "timer_run_origin";
     public static final String KEY_RUN_PAUSED_AT = "timer_run_paused_at";
@@ -650,10 +662,201 @@ public final class Settings {
     }
 
     /** The display options the clock draws with. */
+    /** The clock takes its local time from the phone, as it always has. */
+    public static final int TIME_SOURCE_PHONE = 0;
+    /** Or from an offset the user set, because the phone's zone rules are out of date (RFC-0004). */
+    public static final int TIME_SOURCE_MANUAL = 1;
+
+    /** Which calendar the dates are counted in. */
+    public static int calendarSystem(Context context) {
+        return prefs(context).getInt(KEY_CALENDAR_SYSTEM, com.reteclock.core.Calendars.GREGORIAN);
+    }
+
+    public static void setCalendarSystem(Context context, int system) {
+        prefs(context).edit().putInt(KEY_CALENDAR_SYSTEM, system).commit();
+    }
+
+    /**
+     * The day the week is taken to begin on: 0 for Sunday, 1 for Monday, 6 for Saturday.
+     *
+     * Migrated from the old boolean the first time it is asked for, because a phone upgrading must
+     * not have its week quietly rearranged.
+     */
+    public static int calendarWeekStart(Context context) {
+        SharedPreferences prefs = prefs(context);
+        if (!prefs.contains(KEY_CALENDAR_WEEK_START)) {
+            return prefs.getBoolean(KEY_CALENDAR_MONDAY, false) ? 1 : 0;
+        }
+        return prefs.getInt(KEY_CALENDAR_WEEK_START, 0);
+    }
+
+    public static void setCalendarWeekStart(Context context, int weekStart) {
+        prefs(context).edit().putInt(KEY_CALENDAR_WEEK_START, weekStart).commit();
+    }
+
+    /**
+     * Which spelling of the month names, for one calendar.
+     *
+     * Stored per calendar rather than once, because "style 1" means a different thing in each: the
+     * Coptic liturgical names, the Malay Hijri months, India's own spellings. One number shared
+     * between them would carry a choice from one calendar to another that never made it.
+     */
+    public static int calendarNameStyle(Context context, int system) {
+        return prefs(context).getInt(KEY_CALENDAR_SYSTEM + "_names_" + system, 0);
+    }
+
+    public static void setCalendarNameStyle(Context context, int system, int style) {
+        prefs(context).edit().putInt(KEY_CALENDAR_SYSTEM + "_names_" + system, style).commit();
+    }
+
+    /** Whether the clock reads 1 to 12 with AM or PM rather than 0 to 23 (issue #24). */
+    public static boolean hour12(Context context) {
+        return prefs(context).getBoolean(KEY_HOUR12, false);
+    }
+
+    public static void setHour12(Context context, boolean twelve) {
+        prefs(context).edit().putBoolean(KEY_HOUR12, twelve).commit();
+    }
+
+    /** How noon is written on a twelve-hour clock, and how midnight is — two questions. */
+    public static int noonStyle(Context context) {
+        return prefs(context).getInt(KEY_NOON_STYLE, ClockOptions.NOON_PM);
+    }
+
+    public static void setNoonStyle(Context context, int style) {
+        prefs(context).edit().putInt(KEY_NOON_STYLE, style).commit();
+    }
+
+    public static int midnightStyle(Context context) {
+        return prefs(context).getInt(KEY_MIDNIGHT_STYLE, ClockOptions.MIDNIGHT_AM);
+    }
+
+    public static void setMidnightStyle(Context context, int style) {
+        prefs(context).edit().putInt(KEY_MIDNIGHT_STYLE, style).commit();
+    }
+
+    /** Whether the weekdays are drawn in English or in the calendar's own names. */
+    public static int calendarWeekdayStyle(Context context, int system) {
+        return prefs(context).getInt(KEY_CALENDAR_SYSTEM + "_weekdays_" + system, 0);
+    }
+
+    public static void setCalendarWeekdayStyle(Context context, int system, int style) {
+        prefs(context).edit().putInt(KEY_CALENDAR_SYSTEM + "_weekdays_" + system, style).commit();
+    }
+
+    /** Whether the Gregorian month and day are shown as a small inverted badge. */
+    public static boolean gregorianBadge(Context context) {
+        return prefs(context).getBoolean(KEY_CALENDAR_BADGE, false);
+    }
+
+    public static void setGregorianBadge(Context context, boolean on) {
+        prefs(context).edit().putBoolean(KEY_CALENDAR_BADGE, on).commit();
+    }
+
+    /** What the user shifted the Islamic date by to match their own community: -2..+2 days. */
+    public static int hijriOffset(Context context) {
+        return prefs(context).getInt(KEY_HIJRI_OFFSET, 0);
+    }
+
+    public static void setHijriOffset(Context context, int days) {
+        prefs(context).edit().putInt(KEY_HIJRI_OFFSET, days).commit();
+    }
+
+    /** Whether the clock follows the phone's zone or an offset of its own. */
+    public static int timeSource(Context context) {
+        return prefs(context).getInt(KEY_TIME_SOURCE, TIME_SOURCE_PHONE);
+    }
+
+    public static void setTimeSource(Context context, int source) {
+        prefs(context).edit().putInt(KEY_TIME_SOURCE, source).commit();
+    }
+
+    /** Minutes east of UTC, when the clock is not following the phone. */
+    public static int utcOffsetMinutes(Context context) {
+        return prefs(context).getInt(KEY_UTC_OFFSET, phoneOffsetMinutes());
+    }
+
+    public static void setUtcOffsetMinutes(Context context, int minutes) {
+        prefs(context).edit().putInt(KEY_UTC_OFFSET, minutes).commit();
+    }
+
+    /** Which summer-time rule applies to that offset. */
+    public static int summerTimePreset(Context context) {
+        return prefs(context).getInt(KEY_DST_PRESET, SummerTime.PRESET_NONE);
+    }
+
+    public static void setSummerTimePreset(Context context, int preset) {
+        prefs(context).edit().putInt(KEY_DST_PRESET, preset).commit();
+    }
+
+    /**
+     * A summer-time rule the user stated, as nine numbers, or null.
+     *
+     * Stored as one string because a rule is meaningless in pieces: a half-written one that
+     * survived a crash would be a clock an hour out for half the year.
+     */
+    public static SummerTime customSummerTime(Context context) {
+        String stored = prefs(context).getString(KEY_DST_CUSTOM, "");
+        String[] parts = stored.split(",");
+        if (parts.length != 9) {
+            return null;
+        }
+        try {
+            int[] n = new int[9];
+            for (int i = 0; i < 9; i++) {
+                n[i] = Integer.parseInt(parts[i].trim());
+            }
+            return SummerTime.custom(n[0], n[1], n[2], n[3], n[4], n[5], n[6], n[7], n[8]);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    public static void setCustomSummerTime(Context context, int startMonth, int startWeekday,
+            int startOrdinal, int startMinutes, int endMonth, int endWeekday, int endOrdinal,
+            int endMinutes, int amount) {
+        prefs(context).edit().putString(KEY_DST_CUSTOM, startMonth + "," + startWeekday + ","
+                + startOrdinal + "," + startMinutes + "," + endMonth + "," + endWeekday + ","
+                + endOrdinal + "," + endMinutes + "," + amount).commit();
+    }
+
+    /** The rule in force: a preset, the user's own, or none. */
+    public static SummerTime summerTimeRule(Context context) {
+        int preset = summerTimePreset(context);
+        if (preset == SummerTime.PRESET_CUSTOM) {
+            return customSummerTime(context);
+        }
+        return SummerTime.preset(preset);
+    }
+
+    /** What the phone's own zone is on right now, which is the sensible starting offset. */
+    public static int phoneOffsetMinutes() {
+        long now = System.currentTimeMillis();
+        return java.util.TimeZone.getDefault().getOffset(now) / 60000;
+    }
+
+    /**
+     * The offset the clock should read an instant at.
+     *
+     * Following the phone means asking the platform, which is right on a phone whose time zone
+     * database is current. The manual path is arithmetic this project owns, and is the only answer
+     * available on an Android 4.4 device in a country that has changed its rules since (RFC-0004).
+     */
+    public static int offsetMinutes(Context context, long epochMillis) {
+        if (timeSource(context) == TIME_SOURCE_PHONE) {
+            return java.util.TimeZone.getDefault().getOffset(epochMillis) / 60000;
+        }
+        return SummerTime.offsetAt(epochMillis, utcOffsetMinutes(context), summerTimeRule(context));
+    }
+
     public static ClockOptions options(Context context) {
         return new ClockOptions(showSeconds(context), dateStyle(context),
                 timePercent(context, KEY_TIME_PERCENT_WIDE) / 100f,
                 timePercent(context, KEY_TIME_PERCENT_TALL) / 100f,
-                calendarOn(context), quoteOn(context));
+                calendarOn(context), quoteOn(context),
+                calendarSystem(context), gregorianBadge(context), hijriOffset(context),
+                calendarNameStyle(context, calendarSystem(context)),
+                calendarWeekdayStyle(context, calendarSystem(context)),
+                hour12(context), noonStyle(context), midnightStyle(context));
     }
 }
