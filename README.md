@@ -11,7 +11,7 @@ so the numbers never burn into an OLED screen.
 
 There is nothing to sign up for and nothing to configure. It needs no account, no network and no
 Play Store, so it still works on phones that can no longer install anything else. It is small —
-about 310 KB — and asks for two permissions, both granted at install and never at runtime: one to
+about 317 KB — and asks for two permissions, both granted at install and never at runtime: one to
 keep the screen awake, and one to vibrate, which only the timer uses.
 
 > **If the clock does not answer your touch, it is not the clock.** Android does not pass touches to
@@ -26,8 +26,8 @@ keep the screen awake, and one to vibrate, which only the timer uses.
 
 **[⬇ Get it on F-Droid](https://f-droid.org/packages/com.reteclock/)** — recommended.
 
-**[⬇ Download reteclock-0.20.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.20.0/reteclock-0.20.0.apk)**
-— 277 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
+**[⬇ Download reteclock-0.21.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.21.0/reteclock-0.21.0.apk)**
+— 317 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
 render GitHub's release page can still fetch it.
 
 The newest release is always at
@@ -415,7 +415,7 @@ Nothing below is needed to use the app.
 Java and the Android framework, nothing else. Built with the Android SDK command-line tools
 (`aapt2`, `javac`, `d8`, `zipalign`, `apksigner`) driven by POSIX shell scripts. No Gradle. No
 AndroidX, no support library, no Kotlin runtime and no third-party dependency — a single
-`classes.dex` and an APK of about 310 KB. It is signed with the v1 (JAR) scheme so old phones
+`classes.dex` and an APK of about 317 KB. It is signed with the v1 (JAR) scheme so old phones
 accept it, plus v2 and v3 for current ones, and it holds two normal permissions (`WAKE_LOCK` and
 `VIBRATE`, the latter for the timer), both granted at install and never requested at runtime.
 
