@@ -255,6 +255,14 @@ nothing extra drawn.
   first item there hides the timer. The strip empties, leaving the hourglass where it was, and the
   clock keeps exactly the shape and size it had. A timer that is running keeps running and keeps
   sounding; the same first item brings it back mid-count.
+- **A running timer blinks** — the hourglass goes on and faint, once a second, for as long as
+  something is counting. It blinks whether the strip is showing or put away, so a countdown
+  somebody else started on a clock left on a shelf says so from across the room. Paused, it holds
+  steady.
+- **Switching the timer off stops it, rather than parking it** — turning off *Show the timer on
+  the clock* takes the hourglass off the screen, and a countdown nobody can see is a countdown
+  nobody can stop. So the run is ended and forgotten, not paused: switching the timer back on
+  finds it at the beginning, not still going.
 
 **Import / Export**
 

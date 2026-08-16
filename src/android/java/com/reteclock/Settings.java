@@ -390,8 +390,18 @@ public final class Settings {
         return prefs(context).getBoolean(KEY_TIMER_ON, false);
     }
 
+    /**
+     * Switching the timer off stops whatever was running, rather than parking it.
+     *
+     * Off means the hourglass leaves the screen, and a countdown nobody can see is a countdown
+     * nobody can stop — it would come back, still going, whenever the timer was switched on again,
+     * and speak in the meantime. This is a stop, not a pause: the run is forgotten.
+     */
     public static void setTimerOn(Context context, boolean on) {
         prefs(context).edit().putBoolean(KEY_TIMER_ON, on).commit();
+        if (!on) {
+            forgetRun(context);
+        }
     }
 
     /**

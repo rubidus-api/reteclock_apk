@@ -55,6 +55,9 @@ public class TimerView extends View {
     private boolean running;
     /** Showing the hourglass alone, with the clock having the rest of the screen back. */
     private boolean hidden;
+    /** The blink of a running hourglass: a second long, lit for most of it. */
+    private static final long BLINK_MS = 1000L;
+    private static final long BLINK_LIT_MS = 600L;
     /** The clock's text colour, which the controls are drawn in. */
     private int chromeControl = CONTROL;
     /** Settled by {@link #settleReadouts()}; never recomputed while drawing. */
@@ -507,13 +510,29 @@ public class TimerView extends View {
             return;
         }
         paint.setStyle(Paint.Style.FILL);
-        paint.setColor(chromeControl);
+        paint.setColor(hourglassColor());
         float size = Math.min(bar.thickness() * 1.1f, shortEdge() * 0.7f);
         float along = bar.controlCenter(TimerBar.CONTROL_HOURGLASS);
         float middle = (bar.barNear() + bar.barFar()) / 2f;
         float cx = horizontal ? along : middle;
         float cy = horizontal ? middle : getHeight() - along;
         drawControl(canvas, TimerBar.CONTROL_HOURGLASS, cx, cy, size * 0.42f);
+    }
+
+    /**
+     * The hourglass while a run is going: on, then faint, once a second.
+     *
+     * A timer somebody else set going is otherwise invisible on a clock left on a shelf — the
+     * strip can be hidden, and the hourglass alone looks exactly like an hourglass at rest. A
+     * blink says "this is counting" from across the room, and says it whether the strip is showing
+     * or put away.
+     */
+    private int hourglassColor() {
+        if (!isRunning()) {
+            return chromeControl;
+        }
+        return SystemClock.elapsedRealtime() % BLINK_MS < BLINK_LIT_MS
+                ? chromeControl : dimmed(chromeControl);
     }
 
     /** The same colour, faded, for a control there is nothing to do with just now. */
@@ -531,7 +550,8 @@ public class TimerView extends View {
             boolean lit = i == TimerBar.CONTROL_PLAY ? !isRunning()
                     : i == TimerBar.CONTROL_PAUSE ? isRunning()
                     : true;
-            paint.setColor(lit ? chromeControl : dimmed(chromeControl));
+            paint.setColor(i == TimerBar.CONTROL_HOURGLASS ? hourglassColor()
+                    : lit ? chromeControl : dimmed(chromeControl));
             // Upright in both orientations. The readouts are turned with the strip because they
             // are words and must be read along it, but a symbol is not read that way: an hourglass
             // laid on its side stops being an hourglass and becomes a mourning ribbon, and play
