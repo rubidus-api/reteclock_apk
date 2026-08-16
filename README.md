@@ -403,12 +403,16 @@ A few things worth knowing about particular ones:
   moonset margin; the 2016 congress rule — a crescent 8° from the sun and 5° up seen anywhere on
   Earth — gets **32**, a day early on six; **Umm al-Qura, which this app already ships, gets 35**.
 
-  The count is not the whole story, though. Of the ten months in that span that Turkey actually
-  plans around — Ramazan, Şevval and Zilhicce, which fix the fast and the two festivals — the local
-  rule gets **ten of ten**, and Umm al-Qura gets nine: it puts Ramazan 1447 a day early. The four
-  months the local rule misses are ordinary ones nobody sets a date by. So the honest statement is
-  that the rule is right where it matters and a day out on four quiet months, which is why it is
-  worth building rather than dismissed — it simply is not in the app yet.
+  Those counts flatter the rules, because they ask the easy question: was the criterion met on the
+  evening before a date somebody else already told us about. A calendar cannot be built that way —
+  it has to be walked, month after month, each one deciding where the next begins — and walking the
+  local rule from its own beginning reproduces only **29 of the 38**, including Ramazan 1447 a day
+  early. Errors do not stay put: a month that ends a day late moves the evening the next month is
+  judged on.
+
+  So Turkey stays out, and the generator that would have baked the table refuses to write one while
+  a Ramazan is wrong. **Umm al-Qura, which this app already ships, is the closest thing available**
+  — 35 of 38 — and with the ±2 day offset it is what a Turkish user should reach for meanwhile.
 
 **Prayer times and the direction of Mecca — with my apologies.** These were considered for this app
 and they are not in it, and I would rather say why plainly than leave it looking like an oversight.
