@@ -35,10 +35,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.reteclock.core.CustomMarkers;
+import com.reteclock.core.SettingsIni;
 import com.reteclock.core.ClockOptions;
 import com.reteclock.core.FontLibrary;
 import com.reteclock.core.ImageFit;
@@ -156,6 +159,19 @@ public class SettingsActivity extends Activity {
     /** The two colour rows, rebuilt whenever a colour is picked so the swatches follow. */
     private LinearLayout colorSection;
 
+    /** What the export will contain: every page and both file kinds until the user says otherwise. */
+    private final Set<String> exportSections = new HashSet<String>(
+            java.util.Arrays.asList(SettingsIni.SECTIONS));
+    private boolean exportFonts = true;
+    private boolean exportImages = true;
+    /** And what an import will bring in, decided after the file has been read. */
+    private final Set<String> importSections = new HashSet<String>();
+    private boolean importFonts = true;
+    private boolean importImages = true;
+    /** The file that was chosen, read but not yet applied. */
+    private SettingsPackage.Preview pendingImport;
+    private LinearLayout importSection;
+
     /**
      * The colours on offer: greys and blacks first, then one ring of era-friendly hues. A grid
      * of swatches is the whole picker — an RGB dial would out-grow both the screen and the need.
@@ -180,6 +196,7 @@ public class SettingsActivity extends Activity {
     public static final int PAGE_MAIN = 0;
     public static final int PAGE_FONTS = 1;
     public static final int PAGE_PICTURES = 2;
+    public static final int PAGE_CARRY = 3;
 
     private int page;
 
@@ -210,6 +227,11 @@ public class SettingsActivity extends Activity {
         }
         if (page == PAGE_PICTURES) {
             buildPicturePage(root);
+            finishPage(root);
+            return;
+        }
+        if (page == PAGE_CARRY) {
+            buildCarryPage(root);
             finishPage(root);
             return;
         }
@@ -459,18 +481,11 @@ public class SettingsActivity extends Activity {
         // ---- Carrying the settings ----
         LinearLayout carry = card(getString(R.string.settings_card_carry));
         carry.addView(footer(getString(R.string.settings_carry_note)));
-        carry.addView(actionButton(getString(R.string.settings_export),
+        carry.addView(actionButton(getString(R.string.menu_carry),
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        exportSettings();
-                    }
-                }));
-        carry.addView(actionButton(getString(R.string.settings_import),
-                new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        pickSettings();
+                        openPage(PAGE_CARRY);
                     }
                 }));
         root.addView(carry);
@@ -540,6 +555,181 @@ public class SettingsActivity extends Activity {
         root.addView(fonts);
         rebuildFontSection();
         rebuildFieldSection();
+    }
+
+    /**
+     * Taking the whole arrangement off this phone, and bringing one onto it.
+     *
+     * Both halves ask the same question first — which pages, and whether to carry the font and
+     * picture files themselves — because "import my settings" almost never means all of them. The
+     * import side answers it *after* reading the file, so the boxes are ticked against what is
+     * actually in there rather than against a hope.
+     */
+    private void buildCarryPage(LinearLayout root) {
+        root.addView(title(getString(R.string.menu_carry)));
+
+        LinearLayout out = card(getString(R.string.carry_export));
+        out.addView(footer(getString(R.string.carry_export_note)));
+        for (int i = 0; i < SettingsIni.SECTIONS.length; i++) {
+            final String section = SettingsIni.SECTIONS[i];
+            out.addView(sectionBox(section, sectionLabel(section), exportSections, null));
+        }
+        out.addView(fileBox(R.string.carry_fonts, true, true));
+        out.addView(fileBox(R.string.carry_pictures, false, true));
+        out.addView(actionButton(getString(R.string.carry_export_do),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        exportPackage();
+                    }
+                }));
+        root.addView(out);
+
+        LinearLayout in = card(getString(R.string.carry_import));
+        in.addView(footer(getString(R.string.carry_import_note)));
+        in.addView(actionButton(getString(R.string.carry_import_pick),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        pickSettings();
+                    }
+                }));
+        importSection = new LinearLayout(this);
+        importSection.setOrientation(LinearLayout.VERTICAL);
+        in.addView(importSection);
+        root.addView(in);
+        rebuildImportSection();
+    }
+
+    private String sectionLabel(String section) {
+        if ("clock".equals(section)) {
+            return getString(R.string.carry_section_clock);
+        }
+        if ("fonts".equals(section)) {
+            return getString(R.string.carry_section_fonts);
+        }
+        if ("pictures".equals(section)) {
+            return getString(R.string.carry_section_pictures);
+        }
+        if ("timer".equals(section)) {
+            return getString(R.string.carry_section_timer);
+        }
+        return getString(R.string.carry_section_timedate);
+    }
+
+    /** One page's worth of settings, ticked or not, with what the file holds beside it. */
+    private CheckBox sectionBox(final String section, String label, final Set<String> into,
+            String detail) {
+        CheckBox box = new CheckBox(this);
+        box.setText(detail == null ? label : label + "  ·  " + detail);
+        box.setTextColor(TEXT_WHITE);
+        box.setChecked(into.contains(section));
+        box.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                if (checked) {
+                    into.add(section);
+                } else {
+                    into.remove(section);
+                }
+            }
+        });
+        return box;
+    }
+
+    private CheckBox fileBox(int label, final boolean fonts, final boolean forExport) {
+        CheckBox box = new CheckBox(this);
+        box.setText(label);
+        box.setTextColor(TEXT_WHITE);
+        box.setChecked(forExport ? (fonts ? exportFonts : exportImages)
+                : (fonts ? importFonts : importImages));
+        box.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                if (forExport) {
+                    if (fonts) {
+                        exportFonts = checked;
+                    } else {
+                        exportImages = checked;
+                    }
+                } else if (fonts) {
+                    importFonts = checked;
+                } else {
+                    importImages = checked;
+                }
+            }
+        });
+        return box;
+    }
+
+    /** What the chosen file turned out to hold — nothing at all until one has been read. */
+    private void rebuildImportSection() {
+        if (importSection == null) {
+            return;
+        }
+        importSection.removeAllViews();
+        if (pendingImport == null) {
+            return;
+        }
+        importSection.addView(divider());
+        importSection.addView(subheading(getString(R.string.carry_import_found)));
+        for (int i = 0; i < SettingsIni.SECTIONS.length; i++) {
+            String section = SettingsIni.SECTIONS[i];
+            int count = pendingImport.settings.countIn(section);
+            CheckBox box = sectionBox(section, sectionLabel(section), importSections,
+                    getString(R.string.carry_import_count, count));
+            box.setEnabled(count > 0);
+            importSection.addView(box);
+        }
+        if (!pendingImport.fonts.isEmpty()) {
+            importSection.addView(fileBox(R.string.carry_fonts, true, false));
+            importSection.addView(footer(namesOf(pendingImport.fonts)));
+        }
+        if (!pendingImport.images.isEmpty()) {
+            importSection.addView(fileBox(R.string.carry_pictures, false, false));
+            importSection.addView(footer(namesOf(pendingImport.images)));
+        }
+        for (int i = 0; i < pendingImport.refused.size(); i++) {
+            importSection.addView(warning(getString(R.string.carry_refused,
+                    pendingImport.refused.get(i))));
+        }
+        for (int i = 0; i < pendingImport.settings.complaints.size(); i++) {
+            importSection.addView(warning(pendingImport.settings.complaints.get(i)));
+        }
+        if (pendingImport.isEmpty()) {
+            importSection.addView(footer(getString(R.string.carry_import_nothing)));
+            return;
+        }
+        importSection.addView(actionButton(getString(R.string.carry_import_do),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        applyImport();
+                    }
+                }));
+    }
+
+    private String namesOf(java.util.List<SettingsPackage.Carried> files) {
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < files.size(); i++) {
+            if (i > 0) {
+                out.append(", ");
+            }
+            out.append(files.get(i).name);
+        }
+        return out.toString();
+    }
+
+    private void applyImport() {
+        if (pendingImport == null) {
+            return;
+        }
+        SettingsPackage.Result result = SettingsPackage.apply(this, pendingImport,
+                importSections, importFonts, importImages);
+        pendingImport = null;
+        rebuildImportSection();
+        toast(getString(R.string.carry_import_done, result.settingsApplied,
+                result.fontsAdded + result.imagesAdded, result.dropped));
     }
 
     /** The picture pool and what each picture is for. */
@@ -1431,53 +1621,46 @@ public class SettingsActivity extends Activity {
      * with — mail, notes, a file manager — which also needs no permission and is the only way to
      * get a file off a 2011 phone without asking for the whole of external storage.
      */
-    private void exportSettings() {
-        String text = SettingsPortability.export(this);
+    private void exportPackage() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
             intent.addCategory(Intent.CATEGORY_OPENABLE);
-            intent.setType("text/plain");
+            intent.setType("application/zip");
             intent.putExtra(Intent.EXTRA_TITLE, exportName());
             try {
-                pendingExport = text;
                 startActivityForResult(intent, REQUEST_SAVE_SETTINGS);
                 return;
             } catch (ActivityNotFoundException e) {
-                pendingExport = null;
+                // Falls through to sharing the settings as text, which is all an old phone can do.
             }
         }
         Intent share = new Intent(Intent.ACTION_SEND);
         share.setType("text/plain");
         share.putExtra(Intent.EXTRA_SUBJECT, exportName());
-        share.putExtra(Intent.EXTRA_TEXT, text);
+        share.putExtra(Intent.EXTRA_TEXT, SettingsPackage.settingsText(this, exportSections));
         try {
-            startActivity(Intent.createChooser(share, getString(R.string.settings_export)));
+            startActivity(Intent.createChooser(share, getString(R.string.carry_export)));
         } catch (ActivityNotFoundException e) {
             toast(getString(R.string.settings_carry_no_picker));
         }
     }
 
-    /** reteclock-settings-20260812-2130.txt — the date is what tells two backups apart. */
+    /** reteclock-20260812-2130.zip — the date is what tells two backups apart. */
     private String exportName() {
-        return "reteclock-settings-"
+        return "reteclock-"
                 + new java.text.SimpleDateFormat("yyyyMMdd-HHmm", java.util.Locale.US)
                         .format(new java.util.Date())
-                + ".txt";
+                + ".zip";
     }
 
     private void writeSettings(Uri uri) {
-        String text = pendingExport;
-        pendingExport = null;
-        if (text == null) {
-            return;
-        }
         java.io.OutputStream out = null;
         try {
             out = getContentResolver().openOutputStream(uri);
             if (out == null) {
                 throw new IOException("cannot write " + uri);
             }
-            out.write(text.getBytes("UTF-8"));
+            SettingsPackage.write(this, out, exportSections, exportFonts, exportImages);
             toast(getString(R.string.settings_export_done));
         } catch (IOException e) {
             toast(getString(R.string.settings_export_failed));
@@ -1508,31 +1691,48 @@ public class SettingsActivity extends Activity {
         }
     }
 
+    /**
+     * Reads the chosen file and shows what is in it. Nothing is applied here.
+     *
+     * That separation is the feature: an import that goes straight in is an import nobody can
+     * refuse once they have seen it.
+     */
     private void importSettings(Uri uri) {
-        String text;
+        java.io.InputStream in = null;
         try {
-            text = new String(readAll(uri, MAX_SETTINGS_BYTES), "UTF-8");
+            in = getContentResolver().openInputStream(uri);
+            if (in == null) {
+                throw new IOException("cannot read " + uri);
+            }
+            pendingImport = SettingsPackage.read(in);
         } catch (IOException e) {
             toast(getString(R.string.settings_import_failed));
             return;
-        }
-        SettingsPortability.Result result = SettingsPortability.importFrom(this, text);
-        if (!result.readable) {
+        } catch (RuntimeException e) {
+            // A zip that is not a zip, or one built by something that disagrees about zips.
             toast(getString(R.string.settings_import_not_ours));
             return;
+        } finally {
+            if (in != null) {
+                try {
+                    in.close();
+                } catch (IOException ignored) {
+                    // Read or not, there is nothing left to do with it.
+                }
+            }
         }
-        toast(result.droppedNames > 0
-                ? getString(R.string.settings_import_done_partial, result.applied,
-                        result.droppedNames)
-                : getString(R.string.settings_import_done, result.applied));
-        // Everything on screen was built from the old values; the sections that can be rebuilt
-        // are, and a restart of the screen catches the rest.
-        rebuildFontSection();
-        rebuildFieldSection();
-        rebuildImageSection();
-        rebuildColorSection();
-        finish();
-        startActivity(new Intent(this, SettingsActivity.class));
+        importSections.clear();
+        for (int i = 0; i < SettingsIni.SECTIONS.length; i++) {
+            if (pendingImport.settings.countIn(SettingsIni.SECTIONS[i]) > 0) {
+                importSections.add(SettingsIni.SECTIONS[i]);
+            }
+        }
+        importFonts = !pendingImport.fonts.isEmpty();
+        importImages = !pendingImport.images.isEmpty();
+        rebuildImportSection();
+        if (pendingImport.isEmpty()) {
+            toast(getString(R.string.settings_import_not_ours));
+        }
     }
 
     private void importFont(Uri uri) {

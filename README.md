@@ -258,10 +258,23 @@ nothing extra drawn.
 
 **Settings file**
 
-- **Export / Import** — everything you have arranged can be written to a file and read back on
-  another phone, or kept as a backup. Pictures and fonts are not carried in it: names of ones the
-  other phone does not have are skipped, and it tells you how many. Neither direction asks for a
-  storage permission.
+Its own screen, reached from the clock's menu.
+
+- **Export** — writes one zip: `settings.ini` plus, if you want them, the font and picture files
+  themselves under `fonts/` and `img/`. The ini is plain text, one key to a line, in sections that
+  match the settings pages — you can read it, edit it and hand it to another program. Tick which
+  pages to include before writing.
+- **Import** — the file is **read first and applied second**. You are shown what is in it — how
+  many settings for each page, which fonts and pictures came along, and anything that could not be
+  understood — and you tick what to bring in. A zip written here, a zip you built by hand, or a
+  bare `settings.ini` all work, and so does the tab-separated file older versions wrote.
+- **What is refused, and why.** Names inside a package come from another machine, so they are
+  checked before a byte of the file is read: at most 127 bytes, letters of any script, digits, `_`,
+  `-`, `.` and the plain space, at most two combining marks in a row, and nothing invisible — no
+  control or formatting characters, no bidi overrides (the trick that makes `evil‮gnp.ttf` read as
+  a picture), no annotation characters, nothing outside `fonts/` and `img/`. A name that fails is
+  refused whole and named on screen with the reason. Neither direction asks for a storage
+  permission.
 
 **Time and date** — its own screen, reached from the clock's menu.
 
