@@ -37,6 +37,14 @@
     <string name="settings_burn_in">Let the clock wander, to spare the screen</string>
     <string name="settings_burn_in_note">Everything on screen drifts a few pixels at a time around a circle it takes hours to complete, so that no bright shape sits on the same pixels all day. It never leaves the margin, so nothing is clipped. Leave this on for a phone left showing the time — an OLED panel that has drawn the same numerals in the same place for months keeps them faintly forever. Turn it off if you would rather the clock held perfectly still; an LCD has nothing to burn in.</string>
     <string name="settings_markers">What the marker says</string>
+    <string name="settings_markers_preset">Use a country\'s way of writing it…</string>
+    <string name="marker_preset_default">Most clocks and phones — AM, PM, 12:00 PM, 12:00 AM (the default)</string>
+    <string name="marker_preset_philippines">The Philippines — AM, PM, 12:00 NN, 12:00 MN</string>
+    <string name="marker_preset_japan">Japan — 午前, 午後, 0:00 午後, 0:00 午前</string>
+    <string name="marker_preset_korea">Korea — 오전, 오후, 12:00 오후, 12:00 오전</string>
+    <string name="marker_preset_china">China — 上午, 下午, 12:00 下午, 12:00 上午</string>
+    <string name="marker_preset_written">Written English — 12:00 noon, 12:00 midnight</string>
+    <string name="marker_preset_midnight_24h">Midnight as 00:00 — twelve-hour all day, except that</string>
     <string name="settings_marker_am">Before noon</string>
     <string name="settings_marker_pm">After noon</string>
     <string name="settings_marker_noon">At noon</string>

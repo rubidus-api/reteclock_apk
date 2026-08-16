@@ -288,6 +288,9 @@ public class SettingsActivity extends Activity {
         });
         start.addView(direct);
         start.addView(footer(getString(R.string.settings_direct_start_note)));
+        // The screensaver is another way the clock starts, so it belongs with the other two rather
+        // than at the foot of the page under the dock settings, where it read as an afterthought.
+        addScreensaverRow(start);
         root.addView(start);
 
         // ---- Clock ----
@@ -334,87 +337,68 @@ public class SettingsActivity extends Activity {
         // whatever is typed here, so the options keep showing the reading they produce.
         final CustomMarkers marks = Settings.markers(this);
         twelveHourExtras.addView(subheading(getString(R.string.settings_markers)));
-        twelveHourExtras.addView(markerRow(R.string.settings_marker_am, "AM", marks.amEntry(), 0));
-        twelveHourExtras.addView(markerRow(R.string.settings_marker_pm, "PM", marks.pmEntry(), 1));
-        twelveHourExtras.addView(markerRow(R.string.settings_marker_noon, "PM", marks.noonEntry(),
-                2));
-        twelveHourExtras.addView(markerRow(R.string.settings_marker_midnight, "AM",
+        FlowLayout markerRow = new FlowLayout(this, dp(6), dp(4));
+        markerRow.addView(markerButton(R.string.settings_marker_am, "AM", marks.amEntry(), 0));
+        markerRow.addView(markerButton(R.string.settings_marker_pm, "PM", marks.pmEntry(), 1));
+        markerRow.addView(markerButton(R.string.settings_marker_noon, "NN", marks.noonEntry(), 2));
+        markerRow.addView(markerButton(R.string.settings_marker_midnight, "MN",
                 marks.midnightEntry(), 3));
+        twelveHourExtras.addView(markerRow);
+        twelveHourExtras.addView(actionButton(getString(R.string.settings_markers_preset),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        chooseMarkerPreset();
+                    }
+                }));
         twelveHourExtras.addView(footer(getString(R.string.settings_markers_note)));
 
         // Noon and midnight are the one thing a twelve-hour clock cannot say plainly, and they are
         // two separate questions rather than one. Each option is labelled with the reading itself,
         // so nobody has to know which country's convention they are picking.
         twelveHourExtras.addView(subheading(getString(R.string.settings_noon)));
-        RadioGroup noonStyle = new RadioGroup(this);
-        noonStyle.setOrientation(RadioGroup.VERTICAL);
         // The examples are the instant the setting is about — noon itself, not some minute past
-        // it. "12:43 PM" made the reader work out which of the five numbers was the one in question.
-        String[] noons = {"12:00 " + marks.atNoon("PM"), "12:00 " + marks.atNoon("AM"),
-            "12:00 " + marks.atNoon("NN"), "0:00 " + marks.atNoon("PM")};
-        for (int style = 0; style < noons.length; style++) {
-            RadioButton option = new RadioButton(this);
-            option.setId(900 + style);
-            option.setText(noons[style]);
-            option.setTextColor(TEXT_WHITE);
-            noonStyle.addView(option);
-        }
-        noonStyle.check(900 + Settings.noonStyle(this));
-        noonStyle.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(RadioGroup group, int checkedId) {
-                Settings.setNoonStyle(SettingsActivity.this, checkedId - 900);
-            }
-        });
-        twelveHourExtras.addView(noonStyle);
+        // it. "12:43 PM" made the reader work out which of the five numbers was the one in
+        // question. Side by side rather than one to a line: four short readings do not need four
+        // lines of screen.
+        twelveHourExtras.addView(inlineChoice(
+                new String[] {"12:00 " + marks.atNoon("PM"), "12:00 " + marks.atNoon("AM"),
+                    "12:00 " + marks.atNoon("NN"), "0:00 " + marks.atNoon("PM")},
+                Settings.noonStyle(this), new OnChoice() {
+                    @Override
+                    public void chose(int which) {
+                        Settings.setNoonStyle(SettingsActivity.this, which);
+                    }
+                }));
 
         twelveHourExtras.addView(subheading(getString(R.string.settings_midnight)));
-        RadioGroup midnightStyle = new RadioGroup(this);
-        midnightStyle.setOrientation(RadioGroup.VERTICAL);
-        String[] midnights = {"12:00 " + marks.atMidnight("AM"), "12:00 " + marks.atMidnight("PM"),
-            "00:00", "12:00 " + marks.atMidnight("MN"), "0:00 " + marks.atMidnight("AM")};
-        for (int style = 0; style < midnights.length; style++) {
-            RadioButton option = new RadioButton(this);
-            option.setId(950 + style);
-            option.setText(midnights[style]);
-            option.setTextColor(TEXT_WHITE);
-            midnightStyle.addView(option);
-        }
-        midnightStyle.check(950 + Settings.midnightStyle(this));
-        midnightStyle.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(RadioGroup group, int checkedId) {
-                Settings.setMidnightStyle(SettingsActivity.this, checkedId - 950);
-            }
-        });
-        twelveHourExtras.addView(midnightStyle);
+        twelveHourExtras.addView(inlineChoice(
+                new String[] {"12:00 " + marks.atMidnight("AM"), "12:00 " + marks.atMidnight("PM"),
+                    "00:00", "12:00 " + marks.atMidnight("MN"),
+                    "0:00 " + marks.atMidnight("AM")},
+                Settings.midnightStyle(this), new OnChoice() {
+                    @Override
+                    public void chose(int which) {
+                        Settings.setMidnightStyle(SettingsActivity.this, which);
+                    }
+                }));
 
         twelveHourExtras.setVisibility(Settings.hour12(this) ? View.VISIBLE : View.GONE);
 
 
         clock.addView(subheading(getString(R.string.settings_date_format)));
-        RadioGroup dateStyle = new RadioGroup(this);
-        dateStyle.setOrientation(RadioGroup.VERTICAL);
-        RadioButton byName = new RadioButton(this);
-        byName.setId(1);
-        byName.setText(R.string.settings_date_name);
-        byName.setTextColor(TEXT_WHITE);
-        RadioButton byNumber = new RadioButton(this);
-        byNumber.setId(2);
-        byNumber.setText(R.string.settings_date_numeric);
-        byNumber.setTextColor(TEXT_WHITE);
-        dateStyle.addView(byName);
-        dateStyle.addView(byNumber);
-        dateStyle.check(Settings.dateStyle(this) == ClockOptions.DATE_STYLE_NUMERIC ? 2 : 1);
-        dateStyle.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(RadioGroup group, int checkedId) {
-                Settings.setDateStyle(SettingsActivity.this, checkedId == 2
-                        ? ClockOptions.DATE_STYLE_NUMERIC
-                        : ClockOptions.DATE_STYLE_NAME);
-            }
-        });
-        clock.addView(dateStyle);
+        clock.addView(inlineChoice(
+                new String[] {getString(R.string.settings_date_name),
+                    getString(R.string.settings_date_numeric)},
+                Settings.dateStyle(this) == ClockOptions.DATE_STYLE_NUMERIC ? 1 : 0,
+                new OnChoice() {
+                    @Override
+                    public void chose(int which) {
+                        Settings.setDateStyle(SettingsActivity.this,
+                                which == 1 ? ClockOptions.DATE_STYLE_NUMERIC
+                                        : ClockOptions.DATE_STYLE_NAME);
+                    }
+                }));
 
         final CheckBox wander = new CheckBox(this);
         wander.setText(R.string.settings_burn_in);
@@ -479,7 +463,6 @@ public class SettingsActivity extends Activity {
         });
         dock.addView(charging);
 
-        addScreensaverRow(dock);
         root.addView(dock);
 
         TextView about = footer(getString(R.string.settings_about,
@@ -1893,16 +1876,56 @@ public class SettingsActivity extends Activity {
     }
 
     /** A quieter heading inside a card, for its second thought. */
+    /** Told which of a short list of alternatives was picked. */
+    private interface OnChoice {
+        void chose(int which);
+    }
+
     /**
-     * One of the four markers, shown as "AM  →  오전" once it has been given a word of its own.
+     * A short list of alternatives, side by side, wrapping when they run out of room.
      *
-     * Editing one rebuilds the screen rather than the row, because the noon and midnight options
-     * below are labelled with the reading they produce and that reading has just changed.
+     * A RadioGroup can only manage a straight line — horizontal clips, vertical spends a line on
+     * each — so the exclusivity is kept here instead: a press clears the others. There are never
+     * more than five in a group and each is one reading long.
      */
-    private Button markerRow(final int label, final String built, String typed, final int which) {
+    private View inlineChoice(final String[] labels, int chosen, final OnChoice listener) {
+        FlowLayout row = new FlowLayout(this, dp(4), dp(2));
+        final RadioButton[] buttons = new RadioButton[labels.length];
+        for (int i = 0; i < labels.length; i++) {
+            final int which = i;
+            RadioButton option = new RadioButton(this);
+            option.setText(labels[i]);
+            option.setTextColor(TEXT_WHITE);
+            option.setChecked(i == chosen);
+            option.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    for (int j = 0; j < buttons.length; j++) {
+                        buttons[j].setChecked(j == which);
+                    }
+                    listener.chose(which);
+                }
+            });
+            buttons[i] = option;
+            row.addView(option);
+        }
+        return row;
+    }
+
+    /**
+     * One of the four markers as a short button: what it says now, and nothing else.
+     *
+     * Four of them across one line rather than four lines of "Before noon → 오전". Once a marker
+     * has a word of its own, that word is the only useful label — what the built-in name used to
+     * be is of no interest to somebody reading their own clock's settings.
+     *
+     * Editing one rebuilds the screen rather than the button, because the noon and midnight
+     * options below are labelled with the reading they produce and that reading has just changed.
+     */
+    private Button markerButton(final int label, final String built, String typed,
+            final int which) {
         Button row = new Button(this);
-        row.setText(typed.length() == 0
-                ? getString(label) : getString(label) + "  \u2192  " + typed);
+        row.setText(typed.length() == 0 ? built : typed);
         row.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -1910,6 +1933,30 @@ public class SettingsActivity extends Activity {
             }
         });
         return row;
+    }
+
+    /**
+     * The conventions that are actually in use, as a list to pick from.
+     *
+     * Four markers and two conventions is six decisions, and almost nobody wants an arrangement of
+     * their own — they want the one their country uses. The first entry is the default this app
+     * ships with, so the list is also the way back to it.
+     */
+    private void chooseMarkerPreset() {
+        final String[] labels = new String[MarkerPresets.COUNT];
+        for (int i = 0; i < labels.length; i++) {
+            labels[i] = MarkerPresets.label(this, i);
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.settings_markers_preset)
+                .setItems(labels, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        MarkerPresets.apply(SettingsActivity.this, which);
+                        recreate();
+                    }
+                })
+                .show();
     }
 
     private void askForMarker(int label, final int which) {
