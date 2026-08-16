@@ -465,8 +465,8 @@ v2와 v3도 함께 붙이며, 일반 권한 둘(`WAKE_LOCK`과 타이머용 `VIB
 
 ### 빌드
 
-이 체크아웃이 ai-share 작업 공간 안에 있으면 `scripts/build.sh`가 옆 `usr/` 디렉터리의 공용 JDK와
-안드로이드 SDK를 알아서 씁니다. 그 밖의 곳에서는 도구 위치를 지정해 주십시오.
+옆에 `usr/` 디렉터리를 둔 작업 공간 안에 이 체크아웃이 있으면 `scripts/build.sh`가 거기의
+공용 JDK와 안드로이드 SDK를 알아서 씁니다. 그 밖의 곳에서는 도구 위치를 지정해 주십시오.
 
 ```sh
 export JAVA_HOME=/path/to/jdk-21              # --release 만 이 메이저 버전을 정확히 요구합니다

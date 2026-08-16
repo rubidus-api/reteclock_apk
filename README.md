@@ -503,8 +503,8 @@ accept it, plus v2 and v3 for current ones, and it holds two normal permissions 
 
 ### Build
 
-When this checkout sits inside the ai-share workspace, `scripts/build.sh` picks up the shared JDK
-and Android SDK from the sibling `usr/` directory by itself. Anywhere else, point it at your tools:
+When this checkout sits in a workspace that has a sibling `usr/` directory, `scripts/build.sh`
+picks up the shared JDK and Android SDK from it by itself. Anywhere else, point it at your tools:
 
 ```sh
 export JAVA_HOME=/path/to/jdk-21              # only --release insists on this exact major version
