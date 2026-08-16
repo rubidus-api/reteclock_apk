@@ -568,6 +568,20 @@ public class SettingsActivity extends Activity {
     private void buildCarryPage(LinearLayout root) {
         root.addView(title(getString(R.string.menu_carry)));
 
+        LinearLayout in = card(getString(R.string.carry_import));
+        in.addView(footer(getString(R.string.carry_import_note)));
+        in.addView(actionButton(getString(R.string.carry_import_pick),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        pickSettings();
+                    }
+                }));
+        importSection = new LinearLayout(this);
+        importSection.setOrientation(LinearLayout.VERTICAL);
+        in.addView(importSection);
+        root.addView(in);
+
         LinearLayout out = card(getString(R.string.carry_export));
         out.addView(footer(getString(R.string.carry_export_note)));
         for (int i = 0; i < SettingsIni.SECTIONS.length; i++) {
@@ -585,19 +599,6 @@ public class SettingsActivity extends Activity {
                 }));
         root.addView(out);
 
-        LinearLayout in = card(getString(R.string.carry_import));
-        in.addView(footer(getString(R.string.carry_import_note)));
-        in.addView(actionButton(getString(R.string.carry_import_pick),
-                new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        pickSettings();
-                    }
-                }));
-        importSection = new LinearLayout(this);
-        importSection.setOrientation(LinearLayout.VERTICAL);
-        in.addView(importSection);
-        root.addView(in);
         rebuildImportSection();
     }
 

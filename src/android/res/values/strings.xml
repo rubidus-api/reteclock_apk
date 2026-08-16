@@ -7,7 +7,7 @@
     <string name="settings_hour12_warning">Warning: did you know there is no settled agreement on how midnight and noon should be written, with AM and PM or in any other way? Different countries and different standards do it differently. A 12-hour clock brings confusion into communication, it can cause misunderstandings and disputes in contracts, and that can lead to loss and to accidents. If you want to use it anyway, please also decide below how midnight and noon should be shown — AM, PM, 0, NN, MN, or the 24-hour way.</string>
     <string name="settings_hour12_countries">How it is done elsewhere. Most clocks and phones: 12 PM at noon, 12 AM at midnight — which the United States\' own standards body calls ambiguous and advises against. The Philippines: 12 NN and 12 MN, which cannot be misread. Japan: the twelfth hour is written 0, so half past noon is 0:30 PM and midnight is 0:00 AM. Britain and the United States in writing: \"12 noon\" and \"12 midnight\" spelled out. Korea and China: the part of the day is named instead — daytime twelve, night twelve. Much of Europe and Latin America: the 24-hour clock for anything official, where 00:00 and 12:00 need no marker at all.</string>
     <string name="settings_hour12_note">Seven in the evening reads 7:19 rather than 19:19. Where the hour and the minute are on one line, AM or PM sits small just after the minute, on the same baseline; where they are stacked, it takes a line of its own under the minute.</string>
-    <string name="menu_carry">Settings file</string>
+    <string name="menu_carry">Import / Export</string>
     <string name="carry_export">EXPORT</string>
     <string name="carry_export_note">Writes one zip holding settings.ini — plain text, one key to a line, in sections you can read and edit — and, if you want them, the font and picture files themselves under fonts/ and img/. Tick what to put in it.</string>
     <string name="carry_export_do">Write the file…</string>
@@ -229,8 +229,8 @@
     <string name="calendar_paging_note">On the clock, the arrows either side of the month page through it. It returns to this month whenever the clock is opened again.</string>
     <string name="timer_hide">Hide the timer</string>
     <string name="timer_unhide">Show the timer again</string>
-    <string name="settings_card_carry">Settings file</string>
-    <string name="settings_carry_note">Carry this arrangement to another phone, or keep it as a backup. Images and fonts are not included; names of ones this phone does not have are skipped.</string>
+    <string name="settings_card_carry">IMPORT / EXPORT</string>
+    <string name="settings_carry_note">Carry this arrangement to another phone, or keep it as a backup — the settings as plain text, and the fonts and pictures with them if you want them.</string>
     <string name="settings_export">Export settings…</string>
     <string name="settings_import">Import settings…</string>
     <string name="settings_export_done">Settings written.</string>

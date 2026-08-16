@@ -256,7 +256,7 @@ nothing extra drawn.
   clock keeps exactly the shape and size it had. A timer that is running keeps running and keeps
   sounding; the same first item brings it back mid-count.
 
-**Settings file**
+**Import / Export**
 
 Its own screen, reached from the clock's menu.
 
