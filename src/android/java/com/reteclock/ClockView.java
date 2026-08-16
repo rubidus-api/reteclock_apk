@@ -57,6 +57,8 @@ public class ClockView extends View {
     private final java.util.Set<String> italicRoles = new java.util.HashSet<String>();
     private final java.util.Set<String> underlineRoles = new java.util.HashSet<String>();
     private final java.util.Set<String> outlineRoles = new java.util.HashSet<String>();
+    /** Whether the clock wanders to spare the panel; off leaves it dead centre. */
+    private boolean burnInShift = true;
     /** Whether the role last given to applyStyle asked for an outline. */
     private boolean outlineNow;
     /** The outline's own brush; the text's paint keeps its fill and its shader. */
@@ -221,6 +223,7 @@ public class ClockView extends View {
 
     /** How the calendar is to be read: which day leads the week, and how the month is written. */
     private void loadCalendar(Context context) {
+        burnInShift = Settings.burnInShift(context);
         weekStart = Settings.calendarWeekStart(context);
         timeSource = Settings.timeSource(context);
         standardOffset = Settings.utcOffsetMinutes(context);
@@ -774,7 +777,7 @@ public class ClockView extends View {
         long instant = System.currentTimeMillis();
         ClockText time = ClockText.at(instant, offsetAt(instant), options);
 
-        int maxShift = BurnInShift.maxShiftPx(w, h);
+        int maxShift = burnInShift ? BurnInShift.maxShiftPx(w, h) : 0;
         long elapsed = SystemClock.elapsedRealtime();
         // Timed only while something moves: on a still clock this would be one syscall a second
         // spent measuring a frame nobody is worried about.

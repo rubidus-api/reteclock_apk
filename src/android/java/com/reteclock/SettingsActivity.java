@@ -363,6 +363,19 @@ public class SettingsActivity extends Activity {
         });
         clock.addView(dateStyle);
 
+        final CheckBox wander = new CheckBox(this);
+        wander.setText(R.string.settings_burn_in);
+        wander.setTextColor(TEXT_WHITE);
+        wander.setChecked(Settings.burnInShift(this));
+        wander.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                Settings.setBurnInShift(SettingsActivity.this, checked);
+            }
+        });
+        clock.addView(wander);
+        clock.addView(footer(getString(R.string.settings_burn_in_note)));
+
         final CheckBox saying = new CheckBox(this);
         saying.setText(R.string.settings_quote);
         saying.setTextColor(TEXT_WHITE);

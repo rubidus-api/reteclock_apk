@@ -180,6 +180,12 @@ In the order they appear on the screen.
   real use somewhere: `12:43 NN` and `12:43 MN` (the Philippines), `0:43 PM` and `0:43 AM` (Japan,
   where the twelfth hour is written zero), and for midnight simply `00:43`, the 24-hour way. Each
   choice is shown as the reading it produces, and applies to that hour only.
+- **Let the clock wander, to spare the screen** — on unless you turn it off. Everything drifts a
+  few pixels at a time around a circle it takes hours to complete, so no bright shape sits on the
+  same pixels all day; it never leaves the margin, so nothing is clipped. Leave it on for a phone
+  left showing the time, since an OLED that has drawn the same numerals in the same place for
+  months keeps them faintly forever. Turn it off if you would rather the clock held still — an LCD
+  has nothing to burn in.
 - **Colours** — a text colour and a background colour, each chosen from a palette. The two can
   never be the same (a clock in its own background colour would be no clock at all), and the
   background colour shows wherever no picture covers it, including the bars at the edges when a

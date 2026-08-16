@@ -69,6 +69,8 @@ public final class Settings {
     public static final String KEY_NOON_STYLE = "clock_noon_style";
     public static final String KEY_MIDNIGHT_STYLE = "clock_midnight_style";
     public static final String KEY_QUOTE_ON = "quote_on";
+    /** Whether the clock wanders a few pixels to spare the panel. On unless turned off. */
+    public static final String KEY_BURN_IN_SHIFT = "burn_in_shift";
     public static final String KEY_RUN_ORIGIN = "timer_run_origin";
     public static final String KEY_RUN_PAUSED_AT = "timer_run_paused_at";
     public static final String KEY_RUN_PRESET = "timer_run_preset";
@@ -640,6 +642,22 @@ public final class Settings {
     }
 
     /** Whether a saying is shown along the bottom. */
+    /**
+     * Whether the slow wander that spares the panel is running.
+     *
+     * On by default, and it should stay on for a phone left showing this for months — an OLED that
+     * has drawn the same bright numerals in the same pixels does not recover. It is a setting
+     * because a few pixels of movement is not what everybody wants on a phone they only glance at,
+     * and because an LCD has nothing to burn in.
+     */
+    public static boolean burnInShift(Context context) {
+        return prefs(context).getBoolean(KEY_BURN_IN_SHIFT, true);
+    }
+
+    public static void setBurnInShift(Context context, boolean on) {
+        prefs(context).edit().putBoolean(KEY_BURN_IN_SHIFT, on).commit();
+    }
+
     public static boolean quoteOn(Context context) {
         return prefs(context).getBoolean(KEY_QUOTE_ON, false);
     }
