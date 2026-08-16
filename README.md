@@ -266,7 +266,10 @@ Its own screen, reached from the clock's menu.
   pages to include before writing.
 - **Import** — the file is **read first and applied second**. You are shown what is in it — how
   many settings for each page, which fonts and pictures came along, and anything that could not be
-  understood — and you tick what to bring in. A zip written here, a zip you built by hand, or a
+  understood — and you tick what to bring in. What it shows is not the file's own text but the
+  file **as this app read it**: rebuilt from what was understood, with values in the form they will
+  be stored in, keys under the page they really belong to, and anything unreadable left out and
+  listed separately. Your own comments are kept, above the lines they stood above. A zip written here, a zip you built by hand, or a
   bare `settings.ini` all work, and so does the tab-separated file older versions wrote.
 - **What is refused, and why.** Names inside a package come from another machine, so they are
   checked before a byte of the file is read: at most 127 bytes, letters of any script, digits, `_`,

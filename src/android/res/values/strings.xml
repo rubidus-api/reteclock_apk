@@ -15,6 +15,7 @@
     <string name="carry_import_note">Choose a file and it is read first, not applied: you see what is in it and tick what to bring in. A zip made here, a zip you built by hand, or a bare settings.ini all work.</string>
     <string name="carry_import_pick">Choose a file…</string>
     <string name="carry_import_found">What is in the file</string>
+    <string name="carry_import_as_read">As this app reads it</string>
     <string name="carry_import_count">%1$d settings</string>
     <string name="carry_import_do">Bring in what is ticked</string>
     <string name="carry_import_nothing">Nothing in this file could be read as settings.</string>

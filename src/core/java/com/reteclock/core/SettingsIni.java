@@ -124,12 +124,26 @@ public final class SettingsIni {
         public final String value;
         /** Which page it belongs to, and so which checkbox governs it. */
         public final String section;
+        /**
+         * The note lines that stood above this setting in the file, kept as they were written.
+         *
+         * A comment is the one thing in the file that carries no meaning to the program and all of
+         * its meaning to the person: "the ones I actually use", "do not turn this on". Rebuilding
+         * the file without them would hand somebody back their own arrangement with their own
+         * remarks deleted.
+         */
+        public final List<String> notes;
 
         public Entry(String key, char kind, String value, String section) {
+            this(key, kind, value, section, null);
+        }
+
+        public Entry(String key, char kind, String value, String section, List<String> notes) {
             this.key = key;
             this.kind = kind;
             this.value = value == null ? "" : value;
             this.section = section;
+            this.notes = notes == null ? new ArrayList<String>() : notes;
         }
     }
 
@@ -138,10 +152,17 @@ public final class SettingsIni {
         public final List<Entry> entries;
         /** One sentence per line that was skipped; empty when the file was wholly understood. */
         public final List<String> complaints;
+        /** Notes at the foot of the file, with no setting under them to belong to. */
+        public final List<String> trailingNotes;
 
         Reading(List<Entry> entries, List<String> complaints) {
+            this(entries, complaints, new ArrayList<String>());
+        }
+
+        Reading(List<Entry> entries, List<String> complaints, List<String> trailingNotes) {
             this.entries = entries;
             this.complaints = complaints;
+            this.trailingNotes = trailingNotes;
         }
 
         /** How many settings this file holds for one page. */
@@ -255,6 +276,50 @@ public final class SettingsIni {
     }
 
     /**
+     * The file as it was understood, written out again.
+     *
+     * This is what the import screen shows instead of the bytes it was handed. Anything it could
+     * not read is not here — which is the point: a preview of the raw text shows what somebody
+     * *wrote*, and the question in front of them is what this app is about to *do*. Values appear
+     * in the form they will be stored in (`YES` having become `true`), keys are filed under the
+     * page they really belong to, and the notes are kept where they stood.
+     */
+    public static String rebuild(Reading reading) {
+        StringBuilder out = new StringBuilder();
+        for (int s = 0; s < SECTIONS.length; s++) {
+            List<Entry> mine = new ArrayList<Entry>();
+            for (int i = 0; i < reading.entries.size(); i++) {
+                if (SECTIONS[s].equals(reading.entries.get(i).section)) {
+                    mine.add(reading.entries.get(i));
+                }
+            }
+            if (mine.isEmpty()) {
+                continue;
+            }
+            if (out.length() > 0) {
+                out.append('\n');
+            }
+            out.append('[').append(SECTIONS[s]).append(']').append('\n');
+            for (int i = 0; i < mine.size(); i++) {
+                Entry entry = mine.get(i);
+                for (int n = 0; n < entry.notes.size(); n++) {
+                    out.append(entry.notes.get(n)).append('\n');
+                }
+                out.append(entry.key).append(" = ").append(escape(entry.value)).append('\n');
+            }
+        }
+        if (!reading.trailingNotes.isEmpty()) {
+            if (out.length() > 0) {
+                out.append('\n');
+            }
+            for (int i = 0; i < reading.trailingNotes.size(); i++) {
+                out.append(reading.trailingNotes.get(i)).append('\n');
+            }
+        }
+        return out.toString();
+    }
+
+    /**
      * Reads a file back, forgiving everything that can be forgiven.
      *
      * The section headers are read for nothing but company: a key is filed where this build says it
@@ -266,10 +331,19 @@ public final class SettingsIni {
         if (text == null) {
             return new Reading(entries, complaints);
         }
+        List<String> notes = new ArrayList<String>();
         String[] lines = text.split("\n", -1);
         for (int i = 0; i < lines.length; i++) {
             String line = lines[i].replace("\r", "").trim();
-            if (line.length() == 0 || line.charAt(0) == '#' || line.charAt(0) == ';') {
+            if (line.length() == 0) {
+                continue;
+            }
+            if (line.charAt(0) == '#' || line.charAt(0) == ';') {
+                // The three lines this format writes about itself are not the user's notes, and
+                // repeating them inside the rebuilt file would double them every round trip.
+                if (!isOurOwnNote(line)) {
+                    notes.add(line);
+                }
                 continue;
             }
             if (line.charAt(0) == '[') {
@@ -297,9 +371,16 @@ public final class SettingsIni {
                         + "\"");
                 continue;
             }
-            entries.add(new Entry(key, kind, fixed, sectionOf(key)));
+            entries.add(new Entry(key, kind, fixed, sectionOf(key), notes));
+            notes = new ArrayList<String>();
         }
-        return new Reading(entries, complaints);
+        return new Reading(entries, complaints, notes);
+    }
+
+    /** Whether a note is one of the three this format writes at the top of every file. */
+    private static boolean isOurOwnNote(String line) {
+        return line.equals(HEADER) || line.startsWith("# One key to a line")
+                || line.startsWith("# In a value");
     }
 
     /** The value as it must be stored, or null if it cannot be read as this kind. */

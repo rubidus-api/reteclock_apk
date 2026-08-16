@@ -689,6 +689,14 @@ public class SettingsActivity extends Activity {
             importSection.addView(fileBox(R.string.carry_pictures, false, false));
             importSection.addView(footer(namesOf(pendingImport.images)));
         }
+        // What the file amounts to, as this app understood it — not the bytes it was handed. A
+        // preview of the raw text would show what somebody wrote; the question here is what is
+        // about to be done. Their own notes are kept where they stood.
+        String rebuilt = SettingsIni.rebuild(pendingImport.settings);
+        if (rebuilt.length() > 0) {
+            importSection.addView(subheading(getString(R.string.carry_import_as_read)));
+            importSection.addView(monospace(rebuilt));
+        }
         for (int i = 0; i < pendingImport.refused.size(); i++) {
             importSection.addView(warning(getString(R.string.carry_refused,
                     pendingImport.refused.get(i))));
@@ -1931,6 +1939,22 @@ public class SettingsActivity extends Activity {
                 })
                 .setNegativeButton(android.R.string.cancel, null)
                 .show();
+    }
+
+    /** A block of the settings file, laid out as a file rather than as a paragraph. */
+    private TextView monospace(String text) {
+        TextView view = new TextView(this);
+        view.setText(text);
+        view.setTextColor(TEXT_WHITE);
+        view.setTypeface(android.graphics.Typeface.MONOSPACE);
+        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f);
+        view.setLineSpacing(0f, 1.15f);
+        view.setPadding(dp(8), dp(6), dp(8), dp(6));
+        view.setBackgroundColor(0xFF101010);
+        // One long line — a preset, a list of names — scrolls rather than wrapping into a mess.
+        view.setHorizontallyScrolling(true);
+        view.setMovementMethod(new android.text.method.ScrollingMovementMethod());
+        return view;
     }
 
     private TextView subheading(String text) {
