@@ -63,9 +63,17 @@ public final class ClockSamples {
             return out;
         }
         if (ClockLayout.ROLE_MERIDIEM.equals(role)) {
-            return options.hour12
-                    ? list(new String[] {"AM", "PM", "NN", "MN"})
-                    : Collections.<String>emptyList();
+            if (!options.hour12) {
+                return Collections.<String>emptyList();
+            }
+            // The user's own markers as well as the built-in ones: the room kept for the marker is
+            // measured from this list, and a word is wider than "AM".
+            List<String> out = list(new String[] {"AM", "PM", "NN", "MN"});
+            add(out, options.markers.amEntry());
+            add(out, options.markers.pmEntry());
+            add(out, options.markers.noonEntry());
+            add(out, options.markers.midnightEntry());
+            return out;
         }
         if (ClockLayout.ROLE_WEEKDAY.equals(role)) {
             return named(Calendars.weekdayNames(options.calendarSystem, options.weekdayStyle),
@@ -88,6 +96,12 @@ public final class ClockSamples {
      * line to fit rather than run off the edge of it — the settings screen still warns that a long
      * name costs size, because it does.
      */
+    private static void add(List<String> out, String value) {
+        if (value != null && value.length() > 0) {
+            out.add(value);
+        }
+    }
+
     private static List<String> named(String[] built, ClockOptions options, boolean months) {
         List<String> out = new ArrayList<String>();
         for (int i = 0; i < built.length; i++) {

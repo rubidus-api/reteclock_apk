@@ -8,6 +8,7 @@ import java.io.File;
 import com.reteclock.core.ClockDefaults;
 import com.reteclock.core.ClockLayout;
 import com.reteclock.core.ClockOptions;
+import com.reteclock.core.CustomMarkers;
 import com.reteclock.core.CustomNames;
 import com.reteclock.core.SummerTime;
 import com.reteclock.core.FontLibrary;
@@ -60,6 +61,8 @@ public final class Settings {
     public static final String KEY_DST_PRESET = "time_dst_preset";
     public static final String KEY_DST_CUSTOM = "time_dst_custom";
     /** One key per calendar: the user's own month names, and their own weekday names. */
+    /** What the twelve-hour clock writes after the time, as the user typed it. */
+    public static final String KEY_MARKERS = "markers";
     public static final String KEY_NAMES_MONTHS = "names_months_";
     public static final String KEY_NAMES_WEEKDAYS = "names_weekdays_";
     public static final String KEY_HOUR12 = "clock_hour12";
@@ -896,7 +899,8 @@ public final class Settings {
                 calendarNameStyle(context, calendarSystem(context)),
                 calendarWeekdayStyle(context, calendarSystem(context)),
                 hour12(context), noonStyle(context), midnightStyle(context),
-                customNames(context, calendarSystem(context)));
+                customNames(context, calendarSystem(context)))
+                .withMarkers(markers(context));
     }
 
     /**
@@ -906,6 +910,14 @@ public final class Settings {
      * the third month of the Gregorian one, and somebody who renames both should not have the two
      * fight over one slot.
      */
+    public static CustomMarkers markers(Context context) {
+        return CustomMarkers.parse(prefs(context).getString(KEY_MARKERS, ""));
+    }
+
+    public static void setMarkers(Context context, CustomMarkers markers) {
+        prefs(context).edit().putString(KEY_MARKERS, markers.text()).commit();
+    }
+
     public static CustomNames customNames(Context context, int system) {
         return CustomNames.parse(
                 prefs(context).getString(KEY_NAMES_MONTHS + system, ""),

@@ -1,7 +1,9 @@
 package com.reteclock;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Color;
@@ -17,8 +19,10 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
@@ -34,6 +38,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.reteclock.core.CustomMarkers;
 import com.reteclock.core.ClockOptions;
 import com.reteclock.core.FontLibrary;
 import com.reteclock.core.ImageFit;
@@ -271,6 +276,19 @@ public class SettingsActivity extends Activity {
         twelveHourExtras.addView(footer(getString(R.string.settings_hour12_countries)));
         twelveHourExtras.addView(footer(getString(R.string.settings_hour12_note)));
 
+        // Before the conventions: what the marker actually says. AM and PM are Latin abbreviations
+        // that much of the world does not write in Latin, and the labels below are built from
+        // whatever is typed here, so the options keep showing the reading they produce.
+        final CustomMarkers marks = Settings.markers(this);
+        twelveHourExtras.addView(subheading(getString(R.string.settings_markers)));
+        twelveHourExtras.addView(markerRow(R.string.settings_marker_am, "AM", marks.amEntry(), 0));
+        twelveHourExtras.addView(markerRow(R.string.settings_marker_pm, "PM", marks.pmEntry(), 1));
+        twelveHourExtras.addView(markerRow(R.string.settings_marker_noon, "PM", marks.noonEntry(),
+                2));
+        twelveHourExtras.addView(markerRow(R.string.settings_marker_midnight, "AM",
+                marks.midnightEntry(), 3));
+        twelveHourExtras.addView(footer(getString(R.string.settings_markers_note)));
+
         // Noon and midnight are the one thing a twelve-hour clock cannot say plainly, and they are
         // two separate questions rather than one. Each option is labelled with the reading itself,
         // so nobody has to know which country's convention they are picking.
@@ -279,7 +297,8 @@ public class SettingsActivity extends Activity {
         noonStyle.setOrientation(RadioGroup.VERTICAL);
         // The examples are the instant the setting is about — noon itself, not some minute past
         // it. "12:43 PM" made the reader work out which of the five numbers was the one in question.
-        String[] noons = {"12:00 PM", "12:00 AM", "12:00 NN", "0:00 PM"};
+        String[] noons = {"12:00 " + marks.atNoon("PM"), "12:00 " + marks.atNoon("AM"),
+            "12:00 " + marks.atNoon("NN"), "0:00 " + marks.atNoon("PM")};
         for (int style = 0; style < noons.length; style++) {
             RadioButton option = new RadioButton(this);
             option.setId(900 + style);
@@ -299,7 +318,8 @@ public class SettingsActivity extends Activity {
         twelveHourExtras.addView(subheading(getString(R.string.settings_midnight)));
         RadioGroup midnightStyle = new RadioGroup(this);
         midnightStyle.setOrientation(RadioGroup.VERTICAL);
-        String[] midnights = {"12:00 AM", "12:00 PM", "00:00", "12:00 MN", "0:00 AM"};
+        String[] midnights = {"12:00 " + marks.atMidnight("AM"), "12:00 " + marks.atMidnight("PM"),
+            "00:00", "12:00 " + marks.atMidnight("MN"), "0:00 " + marks.atMidnight("AM")};
         for (int style = 0; style < midnights.length; style++) {
             RadioButton option = new RadioButton(this);
             option.setId(950 + style);
@@ -1589,6 +1609,52 @@ public class SettingsActivity extends Activity {
     }
 
     /** A quieter heading inside a card, for its second thought. */
+    /**
+     * One of the four markers, shown as "AM  →  오전" once it has been given a word of its own.
+     *
+     * Editing one rebuilds the screen rather than the row, because the noon and midnight options
+     * below are labelled with the reading they produce and that reading has just changed.
+     */
+    private Button markerRow(final int label, final String built, String typed, final int which) {
+        Button row = new Button(this);
+        row.setText(typed.length() == 0
+                ? getString(label) : getString(label) + "  \u2192  " + typed);
+        row.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                askForMarker(label, which);
+            }
+        });
+        return row;
+    }
+
+    private void askForMarker(int label, final int which) {
+        CustomMarkers now = Settings.markers(this);
+        final EditText input = new EditText(this);
+        input.setSingleLine(true);
+        input.setText(which == 0 ? now.amEntry() : which == 1 ? now.pmEntry()
+                : which == 2 ? now.noonEntry() : now.midnightEntry());
+        input.setSelection(input.getText().length());
+        new AlertDialog.Builder(this)
+                .setTitle(getString(label))
+                .setView(input)
+                .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int ignored) {
+                        CustomMarkers marks = Settings.markers(SettingsActivity.this);
+                        String typed = input.getText().toString();
+                        Settings.setMarkers(SettingsActivity.this,
+                                which == 0 ? marks.withAm(typed)
+                                        : which == 1 ? marks.withPm(typed)
+                                        : which == 2 ? marks.withNoon(typed)
+                                        : marks.withMidnight(typed));
+                        recreate();
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
     private TextView subheading(String text) {
         TextView view = new TextView(this);
         view.setText(text);

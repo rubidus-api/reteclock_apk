@@ -64,6 +64,19 @@ public final class ClockLayout {
     private static float timeBoxWidth(float boxWidth, ClockOptions options) {
         return options.hour12 ? boxWidth * (1f - MERIDIEM_WIDTH_SHARE) : boxWidth;
     }
+
+    /**
+     * How far right the AM/PM marker may reach on a one-line time.
+     *
+     * The time's own box stops short of it: {@link #timeBoxWidth} narrows the box precisely so the
+     * marker has somewhere to go. The marker is therefore drawn *outside* the box, and the edge it
+     * must not cross is the box plus the strip that was kept back — not the box, which is where the
+     * digits end.
+     */
+    public static float meridiemLimit(Slot slot) {
+        return slot.centerX + slot.maxWidth / 2f
+                + slot.maxWidth * MERIDIEM_WIDTH_SHARE / (1f - MERIDIEM_WIDTH_SHARE);
+    }
     /** The saying along the bottom, which chooses its own font and decoration like any line. */
     public static final String ROLE_QUOTE = "quote";
 

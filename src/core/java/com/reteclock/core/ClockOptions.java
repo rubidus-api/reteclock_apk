@@ -64,6 +64,8 @@ public final class ClockOptions {
      * not.
      */
     public final CustomNames names;
+    /** What the twelve-hour clock writes after the time, where the user wrote their own. */
+    public final CustomMarkers markers;
 
     /** Noon reads `12 PM` — what nearly every clock does. */
     public static final int NOON_PM = 0;
@@ -96,28 +98,28 @@ public final class ClockOptions {
     public ClockOptions withCalendar(boolean showCalendar) {
         return new ClockOptions(showSeconds, dateStyle, timeFractionWide, timeFractionTall,
                 showCalendar, quote, calendarSystem, gregorianBadge, hijriOffsetDays, nameStyle,
-                weekdayStyle, hour12, noonStyle, midnightStyle, names);
+                weekdayStyle, hour12, noonStyle, midnightStyle, names, markers);
     }
 
     /** The same options counting in another calendar. */
     public ClockOptions withCalendarSystem(int system, boolean badge, int hijriOffset) {
         return new ClockOptions(showSeconds, dateStyle, timeFractionWide, timeFractionTall,
                 calendar, quote, system, badge, hijriOffset, nameStyle, weekdayStyle, hour12,
-                noonStyle, midnightStyle, names);
+                noonStyle, midnightStyle, names, markers);
     }
 
     /** The same options with the months spelled another way. */
     public ClockOptions withNameStyle(int style) {
         return new ClockOptions(showSeconds, dateStyle, timeFractionWide, timeFractionTall,
                 calendar, quote, calendarSystem, gregorianBadge, hijriOffsetDays, style,
-                weekdayStyle, hour12, noonStyle, midnightStyle, names);
+                weekdayStyle, hour12, noonStyle, midnightStyle, names, markers);
     }
 
     /** The same options with the weekdays named the other way. */
     public ClockOptions withWeekdayStyle(int style) {
         return new ClockOptions(showSeconds, dateStyle, timeFractionWide, timeFractionTall,
                 calendar, quote, calendarSystem, gregorianBadge, hijriOffsetDays, nameStyle,
-                style, hour12, noonStyle, midnightStyle, names);
+                style, hour12, noonStyle, midnightStyle, names, markers);
     }
 
     /** The same options on a twelve-hour clock, or back on a twenty-four hour one. */
@@ -129,14 +131,21 @@ public final class ClockOptions {
     public ClockOptions withHour12(boolean twelve, int noon, int midnight) {
         return new ClockOptions(showSeconds, dateStyle, timeFractionWide, timeFractionTall,
                 calendar, quote, calendarSystem, gregorianBadge, hijriOffsetDays, nameStyle,
-                weekdayStyle, twelve, noon, midnight, names);
+                weekdayStyle, twelve, noon, midnight, names, markers);
+    }
+
+    /** The same options with the user's own AM, PM, noon and midnight markers. */
+    public ClockOptions withMarkers(CustomMarkers markers) {
+        return new ClockOptions(showSeconds, dateStyle, timeFractionWide, timeFractionTall,
+                calendar, quote, calendarSystem, gregorianBadge, hijriOffsetDays, nameStyle,
+                weekdayStyle, hour12, noonStyle, midnightStyle, names, markers);
     }
 
     /** The same options with the user's own month and weekday names. */
     public ClockOptions withNames(CustomNames names) {
         return new ClockOptions(showSeconds, dateStyle, timeFractionWide, timeFractionTall,
                 calendar, quote, calendarSystem, gregorianBadge, hijriOffsetDays, nameStyle,
-                weekdayStyle, hour12, noonStyle, midnightStyle, names);
+                weekdayStyle, hour12, noonStyle, midnightStyle, names, markers);
     }
 
     public ClockOptions(boolean showSeconds, int dateStyle) {
@@ -195,14 +204,25 @@ public final class ClockOptions {
             boolean hour12, int noonStyle, int midnightStyle) {
         this(showSeconds, dateStyle, timeFractionWide, timeFractionTall, calendar, quote,
                 calendarSystem, gregorianBadge, hijriOffsetDays, nameStyle, weekdayStyle, hour12,
-                noonStyle, midnightStyle, CustomNames.NONE);
+                noonStyle, midnightStyle, CustomNames.NONE, CustomMarkers.NONE);
     }
 
     public ClockOptions(boolean showSeconds, int dateStyle, float timeFractionWide,
             float timeFractionTall, boolean calendar, boolean quote, int calendarSystem,
             boolean gregorianBadge, int hijriOffsetDays, int nameStyle, int weekdayStyle,
             boolean hour12, int noonStyle, int midnightStyle, CustomNames names) {
+        this(showSeconds, dateStyle, timeFractionWide, timeFractionTall, calendar, quote,
+                calendarSystem, gregorianBadge, hijriOffsetDays, nameStyle, weekdayStyle, hour12,
+                noonStyle, midnightStyle, names, CustomMarkers.NONE);
+    }
+
+    public ClockOptions(boolean showSeconds, int dateStyle, float timeFractionWide,
+            float timeFractionTall, boolean calendar, boolean quote, int calendarSystem,
+            boolean gregorianBadge, int hijriOffsetDays, int nameStyle, int weekdayStyle,
+            boolean hour12, int noonStyle, int midnightStyle, CustomNames names,
+            CustomMarkers markers) {
         this.names = names == null ? CustomNames.NONE : names;
+        this.markers = markers == null ? CustomMarkers.NONE : markers;
         this.noonStyle = noonStyle < 0 || noonStyle > NOON_ZERO ? NOON_PM : noonStyle;
         this.midnightStyle = midnightStyle < 0 || midnightStyle > MIDNIGHT_ZERO
                 ? MIDNIGHT_AM : midnightStyle;   // a stored 4 from the build that had five falls back

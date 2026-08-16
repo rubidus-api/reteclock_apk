@@ -872,8 +872,8 @@ public class ClockView extends View {
                         textLeftmost, textRightmost, lineBaseline, size);
             }
             if (time.meridiem != null && ClockLayout.ROLE_HOUR_MINUTE.equals(slot.role)) {
-                drawMeridiemBeside(canvas, time.meridiem, textRightmost, lineRight,
-                        lineBaseline, size);
+                drawMeridiemBeside(canvas, time.meridiem, textRightmost,
+                        ClockLayout.meridiemLimit(slot), lineBaseline, size);
             }
         }
         if (layout.calendarRect() != null) {

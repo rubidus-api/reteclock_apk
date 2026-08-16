@@ -166,6 +166,13 @@ In the order they appear on the screen.
   Where the hour and the minute share a line, the marker sits small just after the minute on the
   same baseline; where they are stacked, it takes a line of its own under the minute: `12` over `03`
   over `AM`. Either way the layout keeps room for it, so nothing shifts when AM becomes PM.
+- **What the marker says** — AM and PM are Latin abbreviations, and much of the world does not
+  write them in Latin. Write your own for before noon, after noon, noon itself and midnight — 오전
+  and 오후, 午前 and 午後, a dot, an arrow, nothing at all. Nothing is checked, so a long marker takes
+  room from the time and a missing glyph comes out as a box. Blank means the built-in AM, PM, NN or
+  MN; noon and midnight follow the after-noon and before-noon markers unless given their own; and
+  the `00:43` reading stays bare whatever is typed. The options below are labelled with the reading
+  your markers produce.
 - **Noon is written / Midnight is written** — the one thing a twelve-hour clock cannot say plainly.
   AM means *before* midday and PM *after* it, so noon is neither, and midnight belongs to two days at
   once; American standards go as far as calling `12 a.m.` and `12 p.m.` ambiguous. Every clock uses

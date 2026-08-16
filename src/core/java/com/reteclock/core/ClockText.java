@@ -69,59 +69,63 @@ public final class ClockText {
         jdn = time.jdn;
         // Midnight is twelve in the morning and noon is twelve at midday: the only two hours a
         // twelve-hour clock cannot get by dividing.
+        String shownHour;
+        String mark;
         if (!options.hour12) {
-            hour = pad2(time.hour);
-            meridiem = null;
+            shownHour = pad2(time.hour);
+            mark = null;
         } else {
             boolean twelfth = time.hour % 12 == 0;
             boolean morning = time.hour < 12;
             if (!twelfth) {
-                hour = Integer.toString(time.hour % 12);
-                meridiem = morning ? "AM" : "PM";
+                shownHour = Integer.toString(time.hour % 12);
+                mark = options.markers.ordinary(morning ? "AM" : "PM");
             } else if (morning) {
                 switch (options.midnightStyle) {
                     case ClockOptions.MIDNIGHT_PM:
-                        hour = "12";
-                        meridiem = "PM";
+                        shownHour = "12";
+                        mark = options.markers.atMidnight("PM");
                         break;
                     case ClockOptions.MIDNIGHT_24H:
-                        hour = pad2(time.hour);   // the one hour written the 24-hour way
-                        meridiem = null;
+                        shownHour = pad2(time.hour);   // the one hour written the 24-hour way
+                        mark = options.markers.atMidnight(null);
                         break;
                     case ClockOptions.MIDNIGHT_MN:
-                        hour = "12";
-                        meridiem = "MN";
+                        shownHour = "12";
+                        mark = options.markers.atMidnight("MN");
                         break;
                     case ClockOptions.MIDNIGHT_ZERO:
-                        hour = "0";
-                        meridiem = "AM";
+                        shownHour = "0";
+                        mark = options.markers.atMidnight("AM");
                         break;
                     default:
-                        hour = "12";
-                        meridiem = "AM";
+                        shownHour = "12";
+                        mark = options.markers.atMidnight("AM");
                         break;
                 }
             } else {
                 switch (options.noonStyle) {
                     case ClockOptions.NOON_AM:
-                        hour = "12";
-                        meridiem = "AM";
+                        shownHour = "12";
+                        mark = options.markers.atNoon("AM");
                         break;
                     case ClockOptions.NOON_NN:
-                        hour = "12";
-                        meridiem = "NN";
+                        shownHour = "12";
+                        mark = options.markers.atNoon("NN");
                         break;
                     case ClockOptions.NOON_ZERO:
-                        hour = "0";
-                        meridiem = "PM";
+                        shownHour = "0";
+                        mark = options.markers.atNoon("PM");
                         break;
                     default:
-                        hour = "12";
-                        meridiem = "PM";
+                        shownHour = "12";
+                        mark = options.markers.atNoon("PM");
                         break;
                 }
             }
         }
+        hour = shownHour;
+        meridiem = mark;
         minute = pad2(time.minute);
         second = pad2(time.second);
         secondLabel = second + "s";
