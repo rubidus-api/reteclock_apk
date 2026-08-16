@@ -323,11 +323,17 @@ final class SettingsPackage {
     static Result apply(Context context, Preview preview, Set<String> sections,
             boolean withFonts, boolean withImages) {
         Result result = new Result();
+        // A file whose name is already taken by different content lands under a new name, and the
+        // settings that came with it still say the old one. Left alone, that is a package that
+        // brings the pictures and loses the arrangement: the picture inside the digits simply stops
+        // being there. So the renames are collected and the names in the settings follow them.
+        java.util.Map<String, String> renamedFonts = new java.util.HashMap<String, String>();
+        java.util.Map<String, String> renamedImages = new java.util.HashMap<String, String>();
         if (withFonts) {
-            result.fontsAdded = install(Settings.fonts(context), preview.fonts);
+            result.fontsAdded = install(Settings.fonts(context), preview.fonts, renamedFonts);
         }
         if (withImages) {
-            result.imagesAdded = install(Settings.images(context), preview.images);
+            result.imagesAdded = install(Settings.images(context), preview.images, renamedImages);
         }
 
         Set<String> fontNames = names(Settings.fonts(context));
@@ -345,6 +351,9 @@ final class SettingsPackage {
                 String[] lines = value.split("\n");
                 for (int j = 0; j < lines.length; j++) {
                     String name = lines[j].trim();
+                    if (renamedImages.containsKey(name)) {
+                        name = renamedImages.get(name);
+                    }
                     if (name.length() == 0) {
                         continue;
                     }
@@ -356,6 +365,10 @@ final class SettingsPackage {
                 }
                 value = join(kept);
             } else if (entry.kind == SettingsIni.STRING && isFontChoice(entry.key)
+                    && renamedFonts.containsKey(value)) {
+                value = renamedFonts.get(value);
+            }
+            if (entry.kind == SettingsIni.STRING && isFontChoice(entry.key)
                     && value.length() > 0 && !fontNames.contains(value)) {
                 // The clock falls back to its own face; a setting naming a font that is not here
                 // would be a setting nobody can see the effect of.
@@ -386,14 +399,20 @@ final class SettingsPackage {
         return result;
     }
 
-    private static int install(FontLibrary library, List<Carried> files) {
+    private static int install(FontLibrary library, List<Carried> files,
+            java.util.Map<String, String> renamed) {
         int added = 0;
         for (int i = 0; i < files.size(); i++) {
             try {
                 // absorb moves the staged file in, reading one file at a time rather than all of
-                // them: a hundred pictures cost one picture's worth of memory.
-                if (library.absorb(files.get(i).file) != null) {
+                // them: a hundred pictures cost one picture's worth of memory. It also gives the
+                // file a free name if the one it wants is taken by something else, and says which.
+                String landed = library.absorb(files.get(i).file);
+                if (landed != null) {
                     added++;
+                    if (!landed.equals(files.get(i).name)) {
+                        renamed.put(files.get(i).name, landed);
+                    }
                 }
             } catch (IOException e) {
                 // One file that cannot be written is not a reason to abandon the rest; the count

@@ -689,6 +689,14 @@ public final class Settings {
         if (KEY_BOLD.equals(key) && ClockDefaults.boldByDefault(role)) {
             return true;
         }
+        // A field that was split out of another one inherits it. The calendar used to be drawn in
+        // the date's style and AM/PM in the hour's; when they became fields of their own, falling
+        // back to the old single flag instead would have changed how an existing clock looks —
+        // switching an outline on where there was none, or off where there was one.
+        String parent = ClockDefaults.splitFrom(role);
+        if (parent != null && prefs(context).contains(key + "_" + parent)) {
+            return prefs(context).getBoolean(key + "_" + parent, false);
+        }
         return prefs(context).getBoolean(key, false);
     }
 
