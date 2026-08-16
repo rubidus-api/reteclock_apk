@@ -275,7 +275,10 @@ Its own screen, reached from the clock's menu.
   checked before a byte of the file is read: at most 127 bytes, letters of any script, digits, `_`,
   `-`, `.` and the plain space, at most two combining marks in a row, and nothing invisible — no
   control or formatting characters, no bidi overrides (the trick that makes `evil‮gnp.ttf` read as
-  a picture), no annotation characters, nothing outside `fonts/` and `img/`. A name that fails is
+  a picture), no annotation characters, no enclosing marks or variation selectors, none of the
+  letters that draw nothing at all (the Hangul fillers, the Khmer inherent vowels), and nothing
+  outside `fonts/` and `img/`. Two marks is what Vietnamese needs and what the wall of dripping
+  accents does not get. A name that fails is
   refused whole and named on screen with the reason. Neither direction asks for a storage
   permission.
 

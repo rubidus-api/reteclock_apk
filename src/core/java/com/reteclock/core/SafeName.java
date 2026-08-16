@@ -16,10 +16,15 @@ package com.reteclock.core;
  *
  * What is allowed: letters of any script, digits, `_`, `-`, `.` and the plain space. Combining
  * marks are allowed — plenty of scripts cannot write a word without them — but at most
- * {@link #MAX_MARKS} in a row, which is enough for any real orthography and not enough to build a
- * tower. Everything else is refused, in particular every control and format character, the bidi
- * overrides, the interlinear-annotation (ruby) characters, private-use and unassigned code points,
- * and any space that is not U+0020.
+ * {@link #MAX_MARKS} in a row, which is enough for any real orthography (Vietnamese needs exactly
+ * two) and not enough to build a tower.
+ *
+ * Everything else is refused: every control and format character, the bidi overrides, the
+ * interlinear-annotation (ruby) characters, private-use and unassigned code points, any space that
+ * is not U+0020, the enclosing marks that draw a ring around the letter before them, the variation
+ * selectors that silently change how one is drawn, and the handful of letters and marks that draw
+ * nothing at all — the Hangul fillers and the Khmer inherent vowels, which are letters to every
+ * category test and blank on every screen.
  *
  * Pure Java: no android.*.
  */
@@ -28,8 +33,30 @@ public final class SafeName {
     /** The longest a name may be, in UTF-8 bytes. Shorter than any filesystem's limit, on purpose. */
     public static final int MAX_BYTES = 127;
 
-    /** How many combining marks may follow one base character. */
+    /**
+     * How many combining marks may follow one base character.
+     *
+     * Two, because Vietnamese needs two — ế is e with a circumflex and an acute — and because
+     * stacking twenty of them is the whole trick behind the wall of dripping accents people paste
+     * into chat rooms to break a list. Two marks are a letter; twenty are a picture of a letter
+     * falling over.
+     */
     public static final int MAX_MARKS = 2;
+
+    /**
+     * Letters and marks that draw nothing at all.
+     *
+     * These pass every category test — the Hangul fillers are letters, the Khmer inherent vowels
+     * are marks — and render as empty space or as nothing. A name may not be built out of them:
+     * two files whose names look identical are two files nobody can tell apart, which is the same
+     * problem as the bidi override in a quieter coat.
+     */
+    private static final int[] INVISIBLE = {
+        0x115F, 0x1160,          // Hangul choseong and jungseong fillers
+        0x17B4, 0x17B5,          // Khmer inherent vowels AQ and AA
+        0x3164,                  // Hangul filler
+        0xFFA0,                  // halfwidth Hangul filler
+    };
 
     private SafeName() {
     }
@@ -74,6 +101,19 @@ public final class SafeName {
                 // only of it is not a name.
                 marks = 0;
                 continue;
+            }
+            if (isInvisible(code)) {
+                return "the name contains a character that draws nothing (U+" + hex(code) + ")";
+            }
+            if (isEnclosing(code)) {
+                // A circle or a box drawn around the letter before it: nothing writes a filename
+                // this way, and it grows the glyph in every direction at once.
+                return "the name contains an enclosing mark (U+" + hex(code) + ")";
+            }
+            if (code >= 0xFE00 && code <= 0xFE0F) {
+                // Variation selectors: invisible, and they change how the character before them is
+                // drawn — including into a full-size emoji.
+                return "the name contains a variation selector (U+" + hex(code) + ")";
             }
             if (isMark(code)) {
                 // A mark with nothing to sit on is a mark pretending to be a letter.
@@ -129,8 +169,20 @@ public final class SafeName {
     private static boolean isMark(int code) {
         int type = Character.getType(code);
         return type == Character.NON_SPACING_MARK
-                || type == Character.COMBINING_SPACING_MARK
-                || type == Character.ENCLOSING_MARK;
+                || type == Character.COMBINING_SPACING_MARK;
+    }
+
+    private static boolean isEnclosing(int code) {
+        return Character.getType(code) == Character.ENCLOSING_MARK;
+    }
+
+    private static boolean isInvisible(int code) {
+        for (int i = 0; i < INVISIBLE.length; i++) {
+            if (INVISIBLE[i] == code) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Enough of a description that somebody can find the character in their own file. */
