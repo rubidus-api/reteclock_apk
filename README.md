@@ -396,15 +396,19 @@ A few things worth knowing about particular ones:
   each astronomical. There is no single answer to compute.
 - **Sighting-based Hijri** — the date depends on an observation that has not happened yet. The
   Islamic calendar above, with the offset, is the honest substitute.
-- **The Turkish (Diyanet) reckoning** — measured, and left out on the measurement. Diyanet computes
-  its calendar rather than sighting it, so it ought to be reproducible; the two rules that are
-  published for it are not what it prints. Against 38 month starts taken from Diyanet's own pages
-  (2023–2026), the local rule — conjunction before sunset and moonset after sunset, reckoned for
-  Ankara — gets 34, and is a day late on the other four by margins of a quarter of an hour. The
-  2016 congress rule — a crescent 8° from the sun and 5° up, seen anywhere on Earth — gets 32, and
-  is a day early on six. Shipping either would mean printing a Turkish calendar that is not
-  Turkey's. **Umm al-Qura, which this app already has, matched 35 of those 38**, so that with the
-  offset is the better answer for a Turkish user until the actual rule can be pinned down.
+- **The Turkish (Diyanet) reckoning** — measured, and still out, but not by much. Diyanet computes
+  its calendar rather than sighting it, so it ought to be reproducible. Against 38 month starts
+  taken from Diyanet's own pages (2023–2026): the local rule — conjunction before sunset and moonset
+  after sunset, reckoned for Ankara — gets **34**, a day late on four by a quarter of an hour of
+  moonset margin; the 2016 congress rule — a crescent 8° from the sun and 5° up seen anywhere on
+  Earth — gets **32**, a day early on six; **Umm al-Qura, which this app already ships, gets 35**.
+
+  The count is not the whole story, though. Of the ten months in that span that Turkey actually
+  plans around — Ramazan, Şevval and Zilhicce, which fix the fast and the two festivals — the local
+  rule gets **ten of ten**, and Umm al-Qura gets nine: it puts Ramazan 1447 a day early. The four
+  months the local rule misses are ordinary ones nobody sets a date by. So the honest statement is
+  that the rule is right where it matters and a day out on four quiet months, which is why it is
+  worth building rather than dismissed — it simply is not in the app yet.
 
 **Prayer times and the direction of Mecca — with my apologies.** These were considered for this app
 and they are not in it, and I would rather say why plainly than leave it looking like an oversight.
