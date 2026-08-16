@@ -163,6 +163,8 @@ public class SettingsActivity extends Activity {
     private final Set<String> exportSections = new HashSet<String>(
             java.util.Arrays.asList(SettingsIni.SECTIONS));
     private boolean exportFonts = true;
+    /** Which of the two buttons was pressed: the package, or the settings on their own. */
+    private boolean exportAsZip;
     private boolean exportImages = true;
     /** And what an import will bring in, decided after the file has been read. */
     private final Set<String> importSections = new HashSet<String>();
@@ -588,13 +590,22 @@ public class SettingsActivity extends Activity {
             final String section = SettingsIni.SECTIONS[i];
             out.addView(sectionBox(section, sectionLabel(section), exportSections, null));
         }
-        out.addView(fileBox(R.string.carry_fonts, true, true));
-        out.addView(fileBox(R.string.carry_pictures, false, true));
-        out.addView(actionButton(getString(R.string.carry_export_do),
+        out.addView(actionButton(getString(R.string.carry_export_text),
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        exportPackage();
+                        exportSettings(false);
+                    }
+                }));
+        out.addView(divider());
+        out.addView(subheading(getString(R.string.carry_export_files)));
+        out.addView(fileBox(R.string.carry_fonts, true, true));
+        out.addView(fileBox(R.string.carry_pictures, false, true));
+        out.addView(actionButton(getString(R.string.carry_export_zip),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        exportSettings(true);
                     }
                 }));
         root.addView(out);
@@ -1630,11 +1641,20 @@ public class SettingsActivity extends Activity {
      * with — mail, notes, a file manager — which also needs no permission and is the only way to
      * get a file off a 2011 phone without asking for the whole of external storage.
      */
-    private void exportPackage() {
+    /**
+     * Writes the arrangement out, as a text file or as a package.
+     *
+     * Two ways because there are two errands. Carrying the settings to a second phone that already
+     * has the same fonts and pictures — or keeping a backup to read and edit — wants a text file
+     * you can open anywhere. Moving to a phone that has nothing wants the files as well, and that
+     * has to be a zip.
+     */
+    private void exportSettings(boolean asZip) {
+        exportAsZip = asZip;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
             intent.addCategory(Intent.CATEGORY_OPENABLE);
-            intent.setType("application/zip");
+            intent.setType(asZip ? "application/zip" : "text/plain");
             intent.putExtra(Intent.EXTRA_TITLE, exportName());
             try {
                 startActivityForResult(intent, REQUEST_SAVE_SETTINGS);
@@ -1659,7 +1679,7 @@ public class SettingsActivity extends Activity {
         return "reteclock-"
                 + new java.text.SimpleDateFormat("yyyyMMdd-HHmm", java.util.Locale.US)
                         .format(new java.util.Date())
-                + ".zip";
+                + (exportAsZip ? ".zip" : ".txt");
     }
 
     private void writeSettings(Uri uri) {
@@ -1669,7 +1689,11 @@ public class SettingsActivity extends Activity {
             if (out == null) {
                 throw new IOException("cannot write " + uri);
             }
-            SettingsPackage.write(this, out, exportSections, exportFonts, exportImages);
+            if (exportAsZip) {
+                SettingsPackage.write(this, out, exportSections, exportFonts, exportImages);
+            } else {
+                out.write(SettingsPackage.settingsText(this, exportSections).getBytes("UTF-8"));
+            }
             toast(getString(R.string.settings_export_done));
         } catch (IOException e) {
             toast(getString(R.string.settings_export_failed));

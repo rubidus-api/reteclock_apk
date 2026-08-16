@@ -9,8 +9,10 @@
     <string name="settings_hour12_note">Seven in the evening reads 7:19 rather than 19:19. Where the hour and the minute are on one line, AM or PM sits small just after the minute, on the same baseline; where they are stacked, it takes a line of its own under the minute.</string>
     <string name="menu_carry">Import / Export</string>
     <string name="carry_export">EXPORT</string>
-    <string name="carry_export_note">Writes one zip holding settings.ini — plain text, one key to a line, in sections you can read and edit — and, if you want them, the font and picture files themselves under fonts/ and img/. Tick what to put in it.</string>
-    <string name="carry_export_do">Write the file…</string>
+    <string name="carry_export_note">Tick which pages to carry. A settings file is plain text, one key to a line, in sections you can read and edit anywhere. A package is that same file with the fonts and pictures beside it, under fonts/ and img/ — what you want when the other phone has none of them.</string>
+    <string name="carry_export_text">Write a settings file (.txt)…</string>
+    <string name="carry_export_files">With the files themselves (.zip)</string>
+    <string name="carry_export_zip">Write a package (.zip)…</string>
     <string name="carry_import">IMPORT</string>
     <string name="carry_import_note">Choose a file and it is read first, not applied: you see what is in it and tick what to bring in. A zip made here, a zip you built by hand, or a bare settings.ini all work.</string>
     <string name="carry_import_pick">Choose a file…</string>
@@ -167,7 +169,7 @@
     <string name="settings_quote_source2">[Preston, Thomas], comp. A Dictionary of English Proverbs and Proverbial Phrases, with a Copious Index of Principal Words. London: Whittaker &amp; Co., [n.d.]. The title page names neither author nor year; the attribution is Project Gutenberg\'s. Public domain. Transcription: Project Gutenberg ebook 39281.</string>
     <string name="settings_quote_source3">Bohn, Henry G., comp. A Polyglot of Foreign Proverbs. London: Henry G. Bohn, 1857. Public domain. Transcription: Project Gutenberg ebook 51090.</string>
     <string name="settings_quote_rights">All three were published before 1900 and their compilers are long dead, so the texts are in the public domain worldwide. Project Gutenberg\'s header, footer, licence and trademark have been removed, so no Project Gutenberg Licence attaches to anything in this app.</string>
-    <string name="menu_timedate_settings">Time and date</string>
+    <string name="menu_timedate_settings">Time and date settings</string>
     <string name="timedate_title">Time and date</string>
     <string name="timedate_count_in">Count the date in</string>
     <string name="timedate_count_in_note">The calendar every date is counted in: the month under the time, the date beside it, and the screensaver. The names that ship are Latin letters and ordinary digits; rename any of them below. Every calendar here is right from 1900 to 2200; outside that the clock shows the Gregorian date.</string>

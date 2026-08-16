@@ -268,10 +268,12 @@ nothing extra drawn.
 
 Its own screen, reached from the clock's menu.
 
-- **Export** — writes one zip: `settings.ini` plus, if you want them, the font and picture files
-  themselves under `fonts/` and `img/`. The ini is plain text, one key to a line, in sections that
-  match the settings pages — you can read it, edit it and hand it to another program. Tick which
-  pages to include before writing.
+- **Export** — two buttons, because there are two errands. **A settings file (`.txt`)** is plain
+  text, one key to a line, in sections that match the settings pages: read it, edit it, hand it to
+  another program, keep it as a backup. **A package (`.zip`)** is that same file with the fonts and
+  the pictures beside it under `fonts/` and `img/` — what you want when the other phone has none of
+  them. Either way you tick which pages to carry first, and the package has its own two ticks for
+  the fonts and the pictures.
 - **Import** — the file is **read first and applied second**. You are shown what is in it — how
   many settings for each page, which fonts and pictures came along, and anything that could not be
   understood — and you tick what to bring in. What it shows is not the file's own text but the
