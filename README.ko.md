@@ -26,7 +26,7 @@
 
 **[⬇ F-Droid에서 받기](https://f-droid.org/packages/com.reteclock/)** — 권장합니다.
 
-**[⬇ reteclock-0.22.0.apk 내려받기](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.22.0/reteclock-0.22.0.apk)**
+**[⬇ reteclock-0.23.0.apk 내려받기](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.23.0/reteclock-0.23.0.apk)**
 — 317 KB이고 안드로이드 2.3 이상에 설치됩니다. 파일로 곧장 이어지는 링크라, 깃허브의 릴리즈
 페이지를 제대로 그리지 못하는 오래된 브라우저에서도 내려받으실 수 있습니다.
 
