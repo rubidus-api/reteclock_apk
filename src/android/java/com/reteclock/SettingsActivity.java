@@ -167,13 +167,31 @@ public class SettingsActivity extends Activity {
         0xFF9575CD, 0xFFF06292, 0xFF8D6E63, 0xFF37474F, 0xFF263238,
     };
 
+    /**
+     * Which page of the settings this is.
+     *
+     * The fonts and the pictures are long enough to be screens of their own — scrolling past forty
+     * rows of somebody else's photographs to reach the dock is not a settings screen, it is a
+     * corridor. They are pages of one activity rather than three activities because every row of
+     * all three is built by the same furniture, and because the way back is the same Back button
+     * either way.
+     */
+    public static final String EXTRA_PAGE = "page";
+    public static final int PAGE_MAIN = 0;
+    public static final int PAGE_FONTS = 1;
+    public static final int PAGE_PICTURES = 2;
+
+    private int page;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         // The page carries its own title; the window frame repeating it is clutter.
         requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
 
-        if (bounceToClock()) {
+        page = getIntent() == null ? PAGE_MAIN : getIntent().getIntExtra(EXTRA_PAGE, PAGE_MAIN);
+
+        if (page == PAGE_MAIN && bounceToClock()) {
             return;
         }
 
@@ -184,6 +202,17 @@ public class SettingsActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         int pad = dp(12);
         root.setPadding(pad, dp(16), pad, dp(16));
+
+        if (page == PAGE_FONTS) {
+            buildFontPage(root);
+            finishPage(root);
+            return;
+        }
+        if (page == PAGE_PICTURES) {
+            buildPicturePage(root);
+            finishPage(root);
+            return;
+        }
 
         root.addView(title(getString(R.string.settings_title)));
 
@@ -408,32 +437,24 @@ public class SettingsActivity extends Activity {
         clock.addView(footer(getString(R.string.settings_ratio_note)));
         root.addView(clock);
 
-        // ---- Fonts ----
-        LinearLayout fonts = card(getString(R.string.settings_font));
-        fontSection = new LinearLayout(this);
-        fontSection.setOrientation(LinearLayout.VERTICAL);
-        fonts.addView(fontSection);
-        fonts.addView(actionButton(getString(R.string.settings_font_add),
+        // ---- Fonts and pictures, each on a page of its own ----
+        LinearLayout elsewhere = card(getString(R.string.settings_card_look));
+        elsewhere.addView(actionButton(getString(R.string.settings_open_fonts),
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        pickFont();
+                        openPage(PAGE_FONTS);
                     }
                 }));
-        fonts.addView(footer(getString(R.string.settings_font_kinds)));
-        fonts.addView(divider());
-        fonts.addView(subheading(getString(R.string.settings_font_per_field)));
-        fieldSection = new LinearLayout(this);
-        fieldSection.setOrientation(LinearLayout.VERTICAL);
-        fonts.addView(fieldSection);
-        root.addView(fonts);
-
-        // ---- Images ----
-        LinearLayout images = card(getString(R.string.settings_images));
-        imageSection = new LinearLayout(this);
-        imageSection.setOrientation(LinearLayout.VERTICAL);
-        images.addView(imageSection);
-        root.addView(images);
+        elsewhere.addView(actionButton(getString(R.string.settings_open_pictures),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        openPage(PAGE_PICTURES);
+                    }
+                }));
+        elsewhere.addView(footer(getString(R.string.settings_card_look_note)));
+        root.addView(elsewhere);
 
         // ---- Carrying the settings ----
         LinearLayout carry = card(getString(R.string.settings_card_carry));
@@ -477,15 +498,59 @@ public class SettingsActivity extends Activity {
         about.setPadding(0, dp(8), 0, dp(4));
         root.addView(about);
 
-        rebuildFontSection();
-        rebuildFieldSection();
-        rebuildImageSection();
         rebuildColorSection();
 
+        finishPage(root);
+    }
+
+    /** Every page ends the same way: black behind it, and the whole of it scrollable. */
+    private void finishPage(LinearLayout root) {
         ScrollView scroll = new ScrollView(this);
         scroll.setBackgroundColor(Color.BLACK);
         scroll.addView(root);
         setContentView(scroll);
+    }
+
+    private void openPage(int which) {
+        Intent intent = new Intent(this, SettingsActivity.class);
+        intent.putExtra(EXTRA_PAGE, which);
+        startActivity(intent);
+    }
+
+    /** The font library and the per-field choices: everything about what the clock is written in. */
+    private void buildFontPage(LinearLayout root) {
+        root.addView(title(getString(R.string.settings_open_fonts)));
+        LinearLayout fonts = card(getString(R.string.settings_font));
+        fontSection = new LinearLayout(this);
+        fontSection.setOrientation(LinearLayout.VERTICAL);
+        fonts.addView(fontSection);
+        fonts.addView(actionButton(getString(R.string.settings_font_add),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        pickFont();
+                    }
+                }));
+        fonts.addView(footer(getString(R.string.settings_font_kinds)));
+        fonts.addView(divider());
+        fonts.addView(subheading(getString(R.string.settings_font_per_field)));
+        fieldSection = new LinearLayout(this);
+        fieldSection.setOrientation(LinearLayout.VERTICAL);
+        fonts.addView(fieldSection);
+        root.addView(fonts);
+        rebuildFontSection();
+        rebuildFieldSection();
+    }
+
+    /** The picture pool and what each picture is for. */
+    private void buildPicturePage(LinearLayout root) {
+        root.addView(title(getString(R.string.settings_open_pictures)));
+        LinearLayout images = card(getString(R.string.settings_images));
+        imageSection = new LinearLayout(this);
+        imageSection.setOrientation(LinearLayout.VERTICAL);
+        images.addView(imageSection);
+        root.addView(images);
+        rebuildImageSection();
     }
 
 

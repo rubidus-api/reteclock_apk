@@ -85,6 +85,26 @@ final class ClockMenu {
                     }
                 }));
 
+        // The fonts and the pictures are two more of these categories rather than two buttons
+        // buried in the first one: this menu is where the app says what its settings are divided
+        // into, and a list of forty photographs is not a paragraph of the clock's own screen.
+        card.addView(choice(activity, activity.getString(R.string.menu_fonts),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        dialog.dismiss();
+                        activity.startActivity(page(activity, SettingsActivity.PAGE_FONTS));
+                    }
+                }));
+        card.addView(choice(activity, activity.getString(R.string.menu_pictures),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        dialog.dismiss();
+                        activity.startActivity(page(activity, SettingsActivity.PAGE_PICTURES));
+                    }
+                }));
+
         View rule = new View(activity);
         rule.setBackgroundColor(CARD_STROKE);
         rule.setLayoutParams(new LinearLayout.LayoutParams(
@@ -103,6 +123,13 @@ final class ClockMenu {
         dialog.setContentView(card);
         dialog.setCanceledOnTouchOutside(true);
         dialog.show();
+    }
+
+    /** One page of the settings, addressed by name rather than by scrolling to it. */
+    private static Intent page(Activity activity, int which) {
+        Intent intent = new Intent(activity, SettingsActivity.class);
+        intent.putExtra(SettingsActivity.EXTRA_PAGE, which);
+        return intent;
     }
 
     /** One line of the menu: large, in the accent, and pressable across the whole card. */
