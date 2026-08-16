@@ -894,20 +894,28 @@ public class ClockView extends View {
      */
     private void drawMeridiemBeside(Canvas canvas, String text, float textRight, float lineRight,
             float baseline, float timeSize) {
+        // Its own field, drawn the way every other field is drawn. It used to be a paint built here
+        // that copied the hour's typeface and nothing else, so the marker could not be given a font
+        // of its own and no decoration ever reached it.
         float size = timeSize * 0.30f;
-        android.graphics.Paint mark =
-                new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
-        mark.setTypeface(paint.getTypeface());
-        mark.setTextSize(size);
-        mark.setColor(textColor);
-        mark.setShader(paint.getShader());
+        applyStyle(ClockLayout.ROLE_MERIDIEM, size);
+        paint.setTextAlign(Paint.Align.LEFT);
         float gap = size * 0.35f;
-        float width = mark.measureText(text);
+        float width = paint.measureText(text);
+        // The layout keeps back a fixed slice of the line for this. A user font can be far wider
+        // than the system one at the same size, so if the marker does not fit the room reserved
+        // for it, it gives up size rather than climbing over the minute beside it.
+        float room = lineRight - textRight - gap;
+        if (room > 0 && width > room) {
+            applyStyle(ClockLayout.ROLE_MERIDIEM, size * room / width);
+            paint.setTextAlign(Paint.Align.LEFT);
+            width = paint.measureText(text);
+        }
         float left = textRight + gap;
         if (left + width > lineRight) {
             left = Math.max(textRight, lineRight - width);
         }
-        canvas.drawText(text, left, baseline, mark);
+        write(canvas, text, left, baseline);
     }
 
     /**

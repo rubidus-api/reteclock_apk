@@ -510,6 +510,10 @@ public final class Settings {
     public static final String[] FONT_ROLES = {
         ClockLayout.ROLE_HOUR,
         ClockLayout.ROLE_MINUTE,
+        // AM or PM is a field like any other. It used to be drawn in whatever the hour happened to
+        // be wearing, which meant it could not be styled and, where the time stacks, could not even
+        // keep the hour's font.
+        ClockLayout.ROLE_MERIDIEM,
         ClockLayout.ROLE_SECOND,
         ClockLayout.ROLE_WEEKDAY,
         ClockLayout.ROLE_MONTH_DAY,

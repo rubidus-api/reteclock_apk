@@ -64,6 +64,7 @@
     <string name="settings_font_per_field">Each field: font and decoration</string>
     <string name="settings_field_hour">Hour</string>
     <string name="settings_field_minute">Minute</string>
+    <string name="settings_field_meridiem">AM / PM</string>
     <string name="settings_field_second">Seconds</string>
     <string name="settings_field_weekday">Weekday</string>
     <string name="settings_field_month_day">Month and day</string>

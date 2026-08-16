@@ -22,6 +22,10 @@ public final class ClockDefaults {
      * it is what makes the time read as the time at a glance. Everything else starts light.
      */
     public static boolean boldByDefault(String role) {
-        return ClockLayout.ROLE_HOUR.equals(role) || ClockLayout.ROLE_MINUTE.equals(role);
+        return ClockLayout.ROLE_HOUR.equals(role) || ClockLayout.ROLE_MINUTE.equals(role)
+                // The marker belonged to the hour's paint before it had a field of its own, so it
+                // was bold wherever the hour was. Keeping that as the default means upgrading does
+                // not quietly change how anybody's clock reads.
+                || ClockLayout.ROLE_MERIDIEM.equals(role);
     }
 }

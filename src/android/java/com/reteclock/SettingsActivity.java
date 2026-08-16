@@ -125,6 +125,7 @@ public class SettingsActivity extends Activity {
     private static final int[] FIELD_LABELS = {
         R.string.settings_field_hour,
         R.string.settings_field_minute,
+        R.string.settings_field_meridiem,
         R.string.settings_field_second,
         R.string.settings_field_weekday,
         R.string.settings_field_month_day,
