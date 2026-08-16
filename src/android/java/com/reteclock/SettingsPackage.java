@@ -57,14 +57,24 @@ final class SettingsPackage {
     /** A backstop against a zip that claims to hold a million files. */
     private static final int MAX_ENTRIES = 500;
 
-    /** One file found inside a package. */
+    /**
+     * One file found inside a package, staged on disk rather than held in memory.
+     *
+     * The first version of this kept every carried file as a byte array until the user pressed the
+     * button. That is fine for two fonts and hopeless for the thing people actually want to do with
+     * a package — bring a hundred photographs in at once. An old phone gets 48 MB of heap; a folder
+     * of pictures is bigger than that, and the import would have died holding them all. So each
+     * entry goes straight to a scratch file as it is read, and only its name and its size are kept.
+     */
     static final class Carried {
         final String name;
-        final byte[] content;
+        final File file;
+        final long bytes;
 
-        Carried(String name, byte[] content) {
+        Carried(String name, File file, long bytes) {
             this.name = name;
-            this.content = content;
+            this.file = file;
+            this.bytes = bytes;
         }
     }
 
@@ -77,6 +87,18 @@ final class SettingsPackage {
         final List<String> refused = new ArrayList<String>();
         /** Whether this was a package rather than a bare settings file. */
         boolean packaged;
+
+        /** What the carried files add up to, for showing before anything is brought in. */
+        long carriedBytes() {
+            long total = 0;
+            for (int i = 0; i < fonts.size(); i++) {
+                total += fonts.get(i).bytes;
+            }
+            for (int i = 0; i < images.size(); i++) {
+                total += images.get(i).bytes;
+            }
+            return total;
+        }
 
         Preview(SettingsIni.Reading settings) {
             this.settings = settings;
@@ -184,7 +206,29 @@ final class SettingsPackage {
      * shown what is inside and picks what to bring in, and a package that turns out to be somebody
      * else's holiday photographs can be walked away from.
      */
-    static Preview read(InputStream raw) throws IOException {
+    /** Where entries are staged while the user decides. Emptied before each read and after each. */
+    static File staging(Context context) {
+        return new File(context.getCacheDir(), "import");
+    }
+
+    static void clearStaging(Context context) {
+        deleteTree(staging(context));
+    }
+
+    private static void deleteTree(File path) {
+        if (path == null || !path.exists()) {
+            return;
+        }
+        File[] children = path.listFiles();
+        if (children != null) {
+            for (int i = 0; i < children.length; i++) {
+                deleteTree(children[i]);
+            }
+        }
+        path.delete();
+    }
+
+    static Preview read(Context context, InputStream raw) throws IOException {
         byte[] head = new byte[4];
         java.io.PushbackInputStream in = new java.io.PushbackInputStream(raw, head.length);
         int got = 0;
@@ -206,7 +250,12 @@ final class SettingsPackage {
                     ? SettingsIni.fromOldFormat(text) : SettingsIni.parse(text));
         }
 
-        Preview preview = new Preview(SettingsIni.parse(""));
+        clearStaging(context);
+        File fontsDir = new File(staging(context), "fonts");
+        File imagesDir = new File(staging(context), "img");
+        if (!fontsDir.mkdirs() || !imagesDir.mkdirs()) {
+            throw new IOException("cannot make room for the package under " + staging(context));
+        }
         ZipInputStream zip = new ZipInputStream(in);
         List<Carried> fonts = new ArrayList<Carried>();
         List<Carried> images = new ArrayList<Carried>();
@@ -238,13 +287,15 @@ final class SettingsPackage {
                 refused.add(name + " — " + wrong);
                 continue;
             }
-            byte[] content = readAll(zip, MAX_FILE_BYTES);
-            if (content.length >= MAX_FILE_BYTES) {
+            File staged = new File(font != null ? fontsDir : imagesDir, name);
+            long written = drain(zip, staged, MAX_FILE_BYTES);
+            if (written >= MAX_FILE_BYTES) {
+                staged.delete();
                 refused.add(name + " — larger than "
                         + FontLibrary.humanBytes(MAX_FILE_BYTES));
                 continue;
             }
-            (font != null ? fonts : images).add(new Carried(name, content));
+            (font != null ? fonts : images).add(new Carried(name, staged, written));
         }
         Preview out = new Preview(settings == null ? SettingsIni.parse("") : settings);
         out.packaged = true;
@@ -338,8 +389,11 @@ final class SettingsPackage {
         int added = 0;
         for (int i = 0; i < files.size(); i++) {
             try {
-                library.add(files.get(i).name, files.get(i).content);
-                added++;
+                // absorb moves the staged file in, reading one file at a time rather than all of
+                // them: a hundred pictures cost one picture's worth of memory.
+                if (library.absorb(files.get(i).file) != null) {
+                    added++;
+                }
             } catch (IOException e) {
                 // One file that cannot be written is not a reason to abandon the rest; the count
                 // the user is shown is of what actually arrived.
@@ -384,6 +438,26 @@ final class SettingsPackage {
         } catch (NumberFormatException e) {
             return 0L;
         }
+    }
+
+    /** Copies a stream into a file, up to the limit, and says how many bytes landed. */
+    private static long drain(InputStream in, File target, long limit) throws IOException {
+        java.io.OutputStream out = new java.io.FileOutputStream(target);
+        long total = 0;
+        try {
+            byte[] buffer = new byte[16384];
+            while (total < limit) {
+                int read = in.read(buffer, 0, (int) Math.min(buffer.length, limit - total));
+                if (read < 0) {
+                    break;
+                }
+                out.write(buffer, 0, read);
+                total += read;
+            }
+        } finally {
+            out.close();
+        }
+        return total;
     }
 
     /**

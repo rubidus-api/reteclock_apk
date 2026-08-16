@@ -191,6 +191,12 @@ In the order they appear on the screen.
   left showing the time, since an OLED that has drawn the same numerals in the same place for
   months keeps them faintly forever. Turn it off if you would rather the clock held still — an LCD
   has nothing to burn in.
+- **A different picture every morning** — set the pictures to *shuffled, a new order each day* and
+  the hold to *a day*, and the clock shows one of them from midnight to midnight and another
+  tomorrow. The shuffle is decided by the date rather than by chance, so it survives a restart and
+  the settings list shows what the clock is actually showing. Asked for in issue #26, and done this
+  way because the alternative — reading a folder of yours — would mean a storage permission this
+  app does not ask for; the pictures come in through *Import / Export* instead, a zip at a time.
 - **Colours** — a text colour and a background colour, each chosen from a palette. The two can
   never be the same (a clock in its own background colour would be no clock at all), and the
   background colour shows wherever no picture covers it, including the bars at the edges when a

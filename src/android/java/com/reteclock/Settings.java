@@ -245,10 +245,22 @@ public final class Settings {
         return out.toString();
     }
 
-    /** The pool in the order the settings screen shows and the shows play. */
+    /**
+     * The pool in the order the settings screen shows and the shows play.
+     *
+     * The shuffle is seeded with today's day number, so a random order is the same order all day —
+     * the settings list and the clock agree, and it changes when the date does rather than when the
+     * clock happens to restart.
+     */
     public static java.util.List<FontLibrary.Entry> orderedImages(Context context) {
         return SlideOrder.apply(images(context).list(),
-                backgroundOrderMode(context), backgroundCustomOrder(context));
+                backgroundOrderMode(context), backgroundCustomOrder(context), today(context));
+    }
+
+    /** Today as a day number, in the offset the clock is set to. */
+    public static int today(Context context) {
+        long now = System.currentTimeMillis();
+        return com.reteclock.core.CivilTime.jdnOf(now, offsetMinutes(context, now));
     }
 
     /** The files serving one role, in pool order. */

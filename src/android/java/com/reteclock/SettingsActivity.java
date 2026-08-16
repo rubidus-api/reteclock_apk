@@ -89,6 +89,7 @@ public class SettingsActivity extends Activity {
         SlideOrder.DATE_ASC,
         SlideOrder.DATE_DESC,
         SlideOrder.CUSTOM,
+        SlideOrder.RANDOM,
     };
     private static final int[] ORDER_LABELS = {
         R.string.settings_order_name_asc,
@@ -96,19 +97,24 @@ public class SettingsActivity extends Activity {
         R.string.settings_order_date_asc,
         R.string.settings_order_date_desc,
         R.string.settings_order_custom,
+        R.string.settings_order_random,
     };
 
     /** The images ticked for a group action. Checked names only; pruned as files go. */
     private final java.util.Set<String> selectedImages = new java.util.HashSet<String>();
 
     /** How long a still slide can hold, in the order the spinner offers them. */
-    private static final int[] SLIDE_SECONDS = {5, 10, 30, 60, 300};
+    private static final int[] SLIDE_SECONDS = {5, 10, 30, 60, 300, 1800, 3600, 21600, 86400};
     private static final int[] SLIDE_LABELS = {
         R.string.settings_slide_5s,
         R.string.settings_slide_10s,
         R.string.settings_slide_30s,
         R.string.settings_slide_1m,
         R.string.settings_slide_5m,
+        R.string.settings_slide_30m,
+        R.string.settings_slide_1h,
+        R.string.settings_slide_6h,
+        R.string.settings_slide_day,
     };
 
     /** The fit modes, in the order the spinner offers them; the sensible default first. */
@@ -685,13 +691,31 @@ public class SettingsActivity extends Activity {
                 }));
     }
 
+    /**
+     * What came along, said in one line rather than in forty.
+     *
+     * A package for one phone carries two fonts; a package of somebody's photographs carries a
+     * hundred, and listing them all pushed the button that brings them in several screens below
+     * the fold. The count and the size are what the reader is deciding on; a few names are enough
+     * to recognise the package by.
+     */
     private String namesOf(java.util.List<SettingsPackage.Carried> files) {
-        StringBuilder out = new StringBuilder();
+        long bytes = 0;
         for (int i = 0; i < files.size(); i++) {
+            bytes += files.get(i).bytes;
+        }
+        StringBuilder out = new StringBuilder();
+        out.append(files.size()).append("  ·  ")
+                .append(com.reteclock.core.FontLibrary.humanBytes(bytes)).append("  ·  ");
+        int shown = Math.min(files.size(), 3);
+        for (int i = 0; i < shown; i++) {
             if (i > 0) {
                 out.append(", ");
             }
             out.append(files.get(i).name);
+        }
+        if (files.size() > shown) {
+            out.append(getString(R.string.carry_and_more, files.size() - shown));
         }
         return out.toString();
     }
@@ -702,6 +726,7 @@ public class SettingsActivity extends Activity {
         }
         SettingsPackage.Result result = SettingsPackage.apply(this, pendingImport,
                 importSections, importFonts, importImages);
+        SettingsPackage.clearStaging(this);
         pendingImport = null;
         rebuildImportSection();
         toast(getString(R.string.carry_import_done, result.settingsApplied,
@@ -1693,7 +1718,7 @@ public class SettingsActivity extends Activity {
             if (in == null) {
                 throw new IOException("cannot read " + uri);
             }
-            pendingImport = SettingsPackage.read(in);
+            pendingImport = SettingsPackage.read(this, in);
         } catch (IOException e) {
             toast(getString(R.string.settings_import_failed));
             return;

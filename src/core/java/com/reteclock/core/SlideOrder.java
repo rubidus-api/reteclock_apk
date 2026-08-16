@@ -24,6 +24,15 @@ public final class SlideOrder {
     public static final int DATE_DESC = 3;
     /** The user's own arrangement, made by moving entries in the settings screen. */
     public static final int CUSTOM = 4;
+    /**
+     * Shuffled — but the same shuffle all day.
+     *
+     * Asked for by somebody running the clock in a lobby who wanted a different picture every
+     * morning (issue #26). Random per frame would be a slot machine; random per day is a calendar
+     * of photographs. The seed is the day, so the order is settled the moment the day is, which
+     * means it survives the clock being restarted and does not need anything remembered.
+     */
+    public static final int RANDOM = 5;
 
     private SlideOrder() {
     }
@@ -38,6 +47,18 @@ public final class SlideOrder {
      */
     public static List<FontLibrary.Entry> apply(List<FontLibrary.Entry> entries, int mode,
             List<String> custom) {
+        return apply(entries, mode, custom, 0);
+    }
+
+    /**
+     * The same, with the day to shuffle by.
+     *
+     * Only {@link #RANDOM} looks at the seed. Two calls with the same seed give the same order —
+     * the settings screen and the slideshow must agree about what is showing, and a shuffle that
+     * differed between them would list one picture and draw another.
+     */
+    public static List<FontLibrary.Entry> apply(List<FontLibrary.Entry> entries, int mode,
+            List<String> custom, int seed) {
         List<FontLibrary.Entry> out = new ArrayList<FontLibrary.Entry>(entries);
         Collections.sort(out, byName(false));
         switch (mode) {
@@ -52,10 +73,40 @@ public final class SlideOrder {
                 return out;
             case CUSTOM:
                 return customOrder(out, custom);
+            case RANDOM:
+                Collections.sort(out, byShuffle(seed));
+                return out;
             case NAME_ASC:
             default:
                 return out;
         }
+    }
+
+    /**
+     * An order that looks random and is not: a hash of the name and the day.
+     *
+     * A shuffle proper would need a random number generator and a remembered state; this needs
+     * neither, and gives the same answer to everyone who asks on the same day. Ties fall back to
+     * the name so the result is a total order however the hash collides.
+     */
+    private static Comparator<FontLibrary.Entry> byShuffle(final int seed) {
+        return new Comparator<FontLibrary.Entry>() {
+            @Override
+            public int compare(FontLibrary.Entry a, FontLibrary.Entry b) {
+                int ha = hash(a.name, seed);
+                int hb = hash(b.name, seed);
+                return ha != hb ? (ha < hb ? -1 : 1) : a.name.compareTo(b.name);
+            }
+        };
+    }
+
+    private static int hash(String name, int seed) {
+        int h = seed * 0x9E3779B1;
+        for (int i = 0; i < name.length(); i++) {
+            h = (h ^ name.charAt(i)) * 16777619;
+        }
+        h ^= h >>> 15;
+        return h & 0x7FFFFFFF;
     }
 
     private static List<FontLibrary.Entry> customOrder(List<FontLibrary.Entry> nameSorted,

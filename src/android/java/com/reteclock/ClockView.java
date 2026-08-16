@@ -57,6 +57,14 @@ public class ClockView extends View {
     private final java.util.Set<String> italicRoles = new java.util.HashSet<String>();
     private final java.util.Set<String> underlineRoles = new java.util.HashSet<String>();
     private final java.util.Set<String> outlineRoles = new java.util.HashSet<String>();
+    /**
+     * The day the slide order was worked out for.
+     *
+     * A shuffled order is shuffled by the day, and the longest hold is a day, so both of them need
+     * the list rebuilt when the date turns. Nothing else does: the pool has not changed, only what
+     * the order of it should be this morning.
+     */
+    private int slidesDay;
     /** Whether the clock wanders to spare the panel; off leaves it dead centre. */
     private boolean burnInShift = true;
     /** Whether the role last given to applyStyle asked for an outline. */
@@ -275,6 +283,7 @@ public class ClockView extends View {
             slides.addAll(Settings.filesFor(context, roles.background));
             textSlides.addAll(Settings.filesFor(context, roles.text));
         }
+        slidesDay = Settings.today(context);
         stillMs = Settings.backgroundStillSeconds(context) * 1000L;
         backgroundFit = Settings.backgroundFit(context);
         fadeEnabled = Settings.backgroundFade(context);
@@ -776,6 +785,12 @@ public class ClockView extends View {
 
         long instant = System.currentTimeMillis();
         ClockText time = ClockText.at(instant, offsetAt(instant), options);
+
+        // Midnight: a new day is a new shuffle, and a show that holds a picture for a day has just
+        // finished holding it.
+        if (!slides.isEmpty() && time.jdn != slidesDay) {
+            loadImages(getContext());
+        }
 
         int maxShift = burnInShift ? BurnInShift.maxShiftPx(w, h) : 0;
         long elapsed = SystemClock.elapsedRealtime();
