@@ -148,6 +148,11 @@ running, so you never have to guess.
 clock says so once when you first open it, and stops mentioning it after you have been there — and
 it never mentions it when the charger started the clock, so it stays quiet on a bedside stand.
 
+**A tap on the clock opens the main menu**, which is where the settings divide up: *General
+settings*, *Timer settings*, *Time and date settings*, *Fonts*, *Pictures* and *Import / Export*,
+each its own screen. The general settings do not link to the others — one list of where things are
+is enough, and it is the main menu.
+
 The button opens this screen rather than the clock on purpose. A full-screen clock has no controls
 on its face, so if a picture or a font you added ever makes it unusable, this is the way back in.
 And if the clock does stop answering, the next start leaves your images and fonts out and says so,
@@ -266,7 +271,7 @@ nothing extra drawn.
 
 **Import / Export**
 
-Its own screen, reached from the clock's menu.
+Its own screen, reached from the main menu.
 
 - **Export** — two buttons, because there are two errands. **A settings file (`.txt`)** is plain
   text, one key to a line, in sections that match the settings pages: read it, edit it, hand it to
@@ -292,7 +297,7 @@ Its own screen, reached from the clock's menu.
   refused whole and named on screen with the reason. Neither direction asks for a storage
   permission.
 
-**Time and date** — its own screen, reached from the clock's menu.
+**Time and date** — its own screen, reached from the main menu.
 
 - **Count the date in** — the calendar the clock counts in. Fourteen of them, listed below. The
   choice changes every date the app shows: the month grid, the date beside the time, and the

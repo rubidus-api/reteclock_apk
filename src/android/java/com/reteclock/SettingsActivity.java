@@ -461,36 +461,9 @@ public class SettingsActivity extends Activity {
         clock.addView(footer(getString(R.string.settings_ratio_note)));
         root.addView(clock);
 
-        // ---- Fonts and pictures, each on a page of its own ----
-        LinearLayout elsewhere = card(getString(R.string.settings_card_look));
-        elsewhere.addView(actionButton(getString(R.string.settings_open_fonts),
-                new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        openPage(PAGE_FONTS);
-                    }
-                }));
-        elsewhere.addView(actionButton(getString(R.string.settings_open_pictures),
-                new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        openPage(PAGE_PICTURES);
-                    }
-                }));
-        elsewhere.addView(footer(getString(R.string.settings_card_look_note)));
-        root.addView(elsewhere);
-
-        // ---- Carrying the settings ----
-        LinearLayout carry = card(getString(R.string.settings_card_carry));
-        carry.addView(footer(getString(R.string.settings_carry_note)));
-        carry.addView(actionButton(getString(R.string.menu_carry),
-                new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        openPage(PAGE_CARRY);
-                    }
-                }));
-        root.addView(carry);
+        // The fonts, the pictures and the settings file are not linked from here. They are
+        // categories of their own on the main menu, and a page that lists the other pages is a
+        // second menu disagreeing with the first.
 
         // ---- Dock ----
         LinearLayout dock = card(getString(R.string.settings_dock));

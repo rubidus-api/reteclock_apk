@@ -32,10 +32,8 @@
     <string name="carry_section_timedate">Time, date and calendars</string>
     <string name="menu_fonts">Fonts</string>
     <string name="menu_pictures">Pictures</string>
-    <string name="settings_card_look">FONTS AND PICTURES</string>
     <string name="settings_open_fonts">Fonts</string>
     <string name="settings_open_pictures">Pictures</string>
-    <string name="settings_card_look_note">Each on a page of its own: the font library with a choice per field, and the picture pool with what each picture is for. They are long lists, and they were making everything below them hard to reach. Both are also in the menu a tap on the clock opens, beside the timer and the time and date.</string>
     <string name="settings_burn_in">Let the clock wander, to spare the screen</string>
     <string name="settings_burn_in_note">Everything on screen drifts a few pixels at a time around a circle it takes hours to complete, so that no bright shape sits on the same pixels all day. It never leaves the margin, so nothing is clipped. Leave this on for a phone left showing the time — an OLED panel that has drawn the same numerals in the same place for months keeps them faintly forever. Turn it off if you would rather the clock held perfectly still; an LCD has nothing to burn in.</string>
     <string name="settings_markers">What the marker says</string>
@@ -137,6 +135,7 @@
     <string name="settings_screensaver_no_screen">This phone has no screensaver settings screen.</string>
     <string name="hint_long_press">Press and hold the clock for settings</string>
     <string name="hint_touch">Touch the clock for the menu</string>
+    <string name="menu_title">Main menu</string>
     <string name="menu_settings">General settings</string>
     <string name="menu_timer_settings">Timer settings</string>
     <string name="timer_title">Timer settings</string>
@@ -231,8 +230,6 @@
     <string name="calendar_paging_note">On the clock, the arrows either side of the month page through it. It returns to this month whenever the clock is opened again.</string>
     <string name="timer_hide">Hide the timer</string>
     <string name="timer_unhide">Show the timer again</string>
-    <string name="settings_card_carry">IMPORT / EXPORT</string>
-    <string name="settings_carry_note">Carry this arrangement to another phone, or keep it as a backup — the settings as plain text, and the fonts and pictures with them if you want them.</string>
     <string name="settings_export">Export settings…</string>
     <string name="settings_import">Import settings…</string>
     <string name="settings_export_done">Settings written.</string>

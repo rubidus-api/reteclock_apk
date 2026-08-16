@@ -58,6 +58,15 @@ final class ClockMenu {
         face.setStroke(1, CARD_STROKE);
         card.setBackgroundDrawable(face);
 
+        // The menu has a name now, because it is referred to by name — in the readmes, in the
+        // settings, and by anybody explaining where a thing lives.
+        TextView heading = new TextView(activity);
+        heading.setText(R.string.menu_title);
+        heading.setTextColor(TEXT_DIM);
+        heading.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f);
+        heading.setPadding(0, 0, 0, dp(activity, 8));
+        card.addView(heading);
+
         card.addView(choice(activity, activity.getString(R.string.menu_settings),
                 new View.OnClickListener() {
                     @Override
