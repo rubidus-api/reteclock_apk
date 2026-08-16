@@ -254,7 +254,9 @@ nothing extra drawn.
 
 - **Count the date in** — the calendar the clock counts in. Fourteen of them, listed below. The
   choice changes every date the app shows: the month grid, the date beside the time, and the
-  screensaver. Names and numbers stay in Latin letters and ordinary digits throughout.
+  screensaver. The names that ship are Latin letters and ordinary digits throughout — and every
+  month and weekday can be renamed to whatever you like, in any language, under **Your own names**
+  on the same screen.
 - **Show the Gregorian date as a small badge** — with another calendar counting, the Gregorian month
   and day appear as `08.15` reversed out of a small box at the lower left of the date, **and in the
   corner of every square of the month grid**, which is where the translation is most wanted: it
@@ -276,6 +278,12 @@ nothing extra drawn.
   India's Ashwin beside the scholarly Asvina. The choices are shown as the abbreviations themselves.
   The weekdays stay English unless you ask for the calendar's own — `Yek Dos Ses Cha Pan Jom Sha` for
   the Persian calendar, `CN T2 T3 T4 T5 T6 T7` for the Vietnamese one, which is what Vietnam writes.
+- **Your own names** — write your own name for any month or any weekday. No length limit and no
+  alphabet limit: what ships is three or four Latin characters because that is what fits the grid
+  on a small old screen, not because somebody else's language has to live under it. Past four
+  characters the grid crowds and the lines shrink to fit, and a letter your chosen font has no
+  glyph for comes out as a box. Leave one blank for the built-in name; each calendar keeps its own
+  set.
 - **The week starts on** — Sunday, Monday or Saturday. Iran and Israel begin the week on Saturday.
 - **The month is written as** — `Aug 2026` or `2026-08`.
 - **The clock takes its time from** — the phone, or an offset you set. Android carries its own table

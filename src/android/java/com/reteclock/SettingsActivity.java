@@ -131,6 +131,9 @@ public class SettingsActivity extends Activity {
         R.string.settings_field_month_day,
         R.string.settings_field_year,
         R.string.settings_field_quote,
+        R.string.settings_field_calendar_title,
+        R.string.settings_field_calendar_weekday,
+        R.string.settings_field_calendar_day,
     };
 
     /** Rebuilt in place whenever a font is added or deleted. */

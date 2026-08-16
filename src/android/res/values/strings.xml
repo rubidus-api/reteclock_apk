@@ -65,6 +65,9 @@
     <string name="settings_field_hour">Hour</string>
     <string name="settings_field_minute">Minute</string>
     <string name="settings_field_meridiem">AM / PM</string>
+    <string name="settings_field_calendar_title">Calendar: month and year</string>
+    <string name="settings_field_calendar_weekday">Calendar: weekday headings</string>
+    <string name="settings_field_calendar_day">Calendar: dates</string>
     <string name="settings_field_second">Seconds</string>
     <string name="settings_field_weekday">Weekday</string>
     <string name="settings_field_month_day">Month and day</string>
@@ -132,7 +135,7 @@
     <string name="menu_timedate_settings">Time and date</string>
     <string name="timedate_title">Time and date</string>
     <string name="timedate_count_in">Count the date in</string>
-    <string name="timedate_count_in_note">The calendar every date is counted in: the month under the time, the date beside it, and the screensaver. Names and numbers stay in Latin letters. Every calendar here is right from 1900 to 2200; outside that the clock shows the Gregorian date.</string>
+    <string name="timedate_count_in_note">The calendar every date is counted in: the month under the time, the date beside it, and the screensaver. The names that ship are Latin letters and ordinary digits; rename any of them below. Every calendar here is right from 1900 to 2200; outside that the clock shows the Gregorian date.</string>
     <string name="timedate_month_names">The months are spelled</string>
     <string name="timedate_month_names_note">Some of these calendars are read by people who spell their months differently — Cairo and the Coptic liturgy, Jakarta and Cairo again for the Hijri months, India\'s own spellings beside the scholarly ones. Neither is a correction of the other, so both are here.</string>
     <string name="timedate_weekday_names">The weekdays are written</string>
@@ -155,6 +158,9 @@
     <string name="timedate_summer_north_america">United States and Canada</string>
     <string name="timedate_summer_southern">Southern hemisphere</string>
     <string name="timedate_summer_custom">My own dates</string>
+    <string name="names_own">Your own names for %1$s</string>
+    <string name="names_clear">Use the built-in names again</string>
+    <string name="names_own_note">Tap a month or a weekday to call it whatever you like. Nothing here is checked: any length, any alphabet, in your own language if you want it. What ships is three or four Latin letters because that is what fits the grid on a small old screen — past four characters the month grid can crowd and the date line can shrink, and a letter your chosen font has no glyph for comes out as a box. Leave one blank to get the built-in name back. These names belong to this calendar; each calendar keeps its own.</string>
     <string name="timedate_summer_starts">Summer time starts</string>
     <string name="timedate_summer_ends">Summer time ends</string>
     <string name="timedate_summer_shift">The clock moves by</string>

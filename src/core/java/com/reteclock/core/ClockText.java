@@ -125,8 +125,9 @@ public final class ClockText {
         minute = pad2(time.minute);
         second = pad2(time.second);
         secondLabel = second + "s";
-        weekday = Calendars.weekdayNames(options.calendarSystem, options.weekdayStyle)
-                [CivilTime.weekday(time.jdn)];
+        int weekdayIndex = CivilTime.weekday(time.jdn);
+        weekday = options.names.weekday(weekdayIndex,
+                Calendars.weekdayNames(options.calendarSystem, options.weekdayStyle)[weekdayIndex]);
 
         int shown = time.jdn;
         if (options.calendarSystem == Calendars.ISLAMIC) {
@@ -135,7 +136,8 @@ public final class ClockText {
         CalendarDate date = Calendars.dateOf(options.calendarSystem, shown);
         monthDay = options.dateStyle == ClockOptions.DATE_STYLE_NUMERIC
                 ? pad2(date.month) + "-" + pad2(date.day)
-                : Calendars.monthName(date.system, date.year, date.month, options.nameStyle)
+                : options.names.month(date.month,
+                        Calendars.monthName(date.system, date.year, date.month, options.nameStyle))
                         + " " + date.day;
         year = Calendars.yearText(options.calendarSystem, shown);
         weekdayDate = weekday + ", " + monthDay;

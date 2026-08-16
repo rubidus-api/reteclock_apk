@@ -8,6 +8,7 @@ import java.io.File;
 import com.reteclock.core.ClockDefaults;
 import com.reteclock.core.ClockLayout;
 import com.reteclock.core.ClockOptions;
+import com.reteclock.core.CustomNames;
 import com.reteclock.core.SummerTime;
 import com.reteclock.core.FontLibrary;
 import com.reteclock.core.ImageFit;
@@ -58,6 +59,9 @@ public final class Settings {
     public static final String KEY_UTC_OFFSET = "time_utc_offset";
     public static final String KEY_DST_PRESET = "time_dst_preset";
     public static final String KEY_DST_CUSTOM = "time_dst_custom";
+    /** One key per calendar: the user's own month names, and their own weekday names. */
+    public static final String KEY_NAMES_MONTHS = "names_months_";
+    public static final String KEY_NAMES_WEEKDAYS = "names_weekdays_";
     public static final String KEY_HOUR12 = "clock_hour12";
     public static final String KEY_NOON_STYLE = "clock_noon_style";
     public static final String KEY_MIDNIGHT_STYLE = "clock_midnight_style";
@@ -519,6 +523,9 @@ public final class Settings {
         ClockLayout.ROLE_MONTH_DAY,
         ClockLayout.ROLE_YEAR,
         ClockLayout.ROLE_QUOTE,
+        ClockLayout.ROLE_CALENDAR_TITLE,
+        ClockLayout.ROLE_CALENDAR_WEEKDAY,
+        ClockLayout.ROLE_CALENDAR_DAY,
     };
 
     /**
@@ -888,6 +895,27 @@ public final class Settings {
                 calendarSystem(context), gregorianBadge(context), hijriOffset(context),
                 calendarNameStyle(context, calendarSystem(context)),
                 calendarWeekdayStyle(context, calendarSystem(context)),
-                hour12(context), noonStyle(context), midnightStyle(context));
+                hour12(context), noonStyle(context), midnightStyle(context),
+                customNames(context, calendarSystem(context)));
+    }
+
+    /**
+     * The names the user wrote for one calendar's months and weekdays.
+     *
+     * Kept per calendar, because a name for the third month of the Persian year is not a name for
+     * the third month of the Gregorian one, and somebody who renames both should not have the two
+     * fight over one slot.
+     */
+    public static CustomNames customNames(Context context, int system) {
+        return CustomNames.parse(
+                prefs(context).getString(KEY_NAMES_MONTHS + system, ""),
+                prefs(context).getString(KEY_NAMES_WEEKDAYS + system, ""));
+    }
+
+    public static void setCustomNames(Context context, int system, CustomNames names) {
+        prefs(context).edit()
+                .putString(KEY_NAMES_MONTHS + system, names.monthsText())
+                .putString(KEY_NAMES_WEEKDAYS + system, names.weekdaysText())
+                .commit();
     }
 }

@@ -66,6 +66,17 @@ public final class ClockLayout {
     }
     /** The saying along the bottom, which chooses its own font and decoration like any line. */
     public static final String ROLE_QUOTE = "quote";
+
+    /**
+     * The three parts of the month grid, which are styled but never laid out as slots.
+     *
+     * The grid places itself inside the rectangle the layout hands it, so these name a style rather
+     * than a position: the line with the month and the year in it, the row of weekday headings, and
+     * the day numbers. They are fields to the settings screen like any other.
+     */
+    public static final String ROLE_CALENDAR_TITLE = "calendar_title";
+    public static final String ROLE_CALENDAR_WEEKDAY = "calendar_weekday";
+    public static final String ROLE_CALENDAR_DAY = "calendar_day";
     /**
      * Not a field: the space between two of them.
      *

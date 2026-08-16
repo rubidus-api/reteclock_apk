@@ -39,10 +39,13 @@ public final class MonthGrid {
     private final int weekStart;
     private final int nameStyle;
     private final int weekdayStyle;
+    /** What the user renamed, which beats the style; never null. */
+    private final CustomNames names;
     private final int[] cells;
 
     private MonthGrid(int system, int year, int month, int firstJdn, int days, int weekStart,
-            int nameStyle, int weekdayStyle, int[] cells) {
+            int nameStyle, int weekdayStyle, CustomNames names, int[] cells) {
+        this.names = names == null ? CustomNames.NONE : names;
         this.weekdayStyle = weekdayStyle;
         this.nameStyle = nameStyle;
         this.system = system;
@@ -72,6 +75,12 @@ public final class MonthGrid {
     /** And with the column headings in English or in the calendar's own weekday names. */
     public static MonthGrid ofDay(int system, int jdn, int weekStart, int nameStyle,
             int weekdayStyle) {
+        return ofDay(system, jdn, weekStart, nameStyle, weekdayStyle, CustomNames.NONE);
+    }
+
+    /** And with the names the user wrote for themselves, where they wrote any. */
+    public static MonthGrid ofDay(int system, int jdn, int weekStart, int nameStyle,
+            int weekdayStyle, CustomNames names) {
         CalendarDate date = Calendars.dateOf(system, jdn);
         int first = jdn - date.day + 1;
         int length = Calendars.daysInMonth(date.system, date.year, date.month);
@@ -82,7 +91,7 @@ public final class MonthGrid {
             cells[lead + day - 1] = day;
         }
         return new MonthGrid(date.system, date.year, date.month, first, length, weekStart,
-                nameStyle, weekdayStyle, cells);
+                nameStyle, weekdayStyle, names, cells);
     }
 
     /** The Gregorian month, as the clock has always asked for it. */
@@ -100,12 +109,12 @@ public final class MonthGrid {
 
     /** The month one step back — the month the day before this one belongs to. */
     public MonthGrid previous() {
-        return ofDay(system, firstJdn - 1, weekStart, nameStyle, weekdayStyle);
+        return ofDay(system, firstJdn - 1, weekStart, nameStyle, weekdayStyle, names);
     }
 
     /** And one step on. */
     public MonthGrid next() {
-        return ofDay(system, firstJdn + days, weekStart, nameStyle, weekdayStyle);
+        return ofDay(system, firstJdn + days, weekStart, nameStyle, weekdayStyle, names);
     }
 
     public int system() {
@@ -154,15 +163,17 @@ public final class MonthGrid {
         if (style == HEADER_NUMBERS) {
             return yearText + "-" + (month < 10 ? "0" + month : Integer.toString(month));
         }
-        return Calendars.monthName(system, year, month, nameStyle) + " " + yearText;
+        return names.month(month, Calendars.monthName(system, year, month, nameStyle))
+                + " " + yearText;
     }
 
     /** The seven column headings, in the order this grid puts them. */
     public String[] weekdayNames() {
-        String[] names = Calendars.weekdayNames(system, weekdayStyle);
+        String[] built = Calendars.weekdayNames(system, weekdayStyle);
         String[] out = new String[COLUMNS];
         for (int i = 0; i < COLUMNS; i++) {
-            out[i] = names[(i + weekStart) % COLUMNS];
+            int day = (i + weekStart) % COLUMNS;
+            out[i] = names.weekday(day, built[day]);
         }
         return out;
     }

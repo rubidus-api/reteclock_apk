@@ -56,6 +56,14 @@ public final class ClockOptions {
     public final int noonStyle;
     /** And what it does at midnight, which is the same question asked at the other end of the day. */
     public final int midnightStyle;
+    /**
+     * The months and weekdays the user renamed, if any.
+     *
+     * A style says which published spelling to use; this says what the user typed, and it wins over
+     * the style wherever they typed anything. Never null — {@link CustomNames#NONE} means they did
+     * not.
+     */
+    public final CustomNames names;
 
     /** Noon reads `12 PM` — what nearly every clock does. */
     public static final int NOON_PM = 0;
@@ -88,28 +96,28 @@ public final class ClockOptions {
     public ClockOptions withCalendar(boolean showCalendar) {
         return new ClockOptions(showSeconds, dateStyle, timeFractionWide, timeFractionTall,
                 showCalendar, quote, calendarSystem, gregorianBadge, hijriOffsetDays, nameStyle,
-                weekdayStyle, hour12, noonStyle, midnightStyle);
+                weekdayStyle, hour12, noonStyle, midnightStyle, names);
     }
 
     /** The same options counting in another calendar. */
     public ClockOptions withCalendarSystem(int system, boolean badge, int hijriOffset) {
         return new ClockOptions(showSeconds, dateStyle, timeFractionWide, timeFractionTall,
                 calendar, quote, system, badge, hijriOffset, nameStyle, weekdayStyle, hour12,
-                noonStyle, midnightStyle);
+                noonStyle, midnightStyle, names);
     }
 
     /** The same options with the months spelled another way. */
     public ClockOptions withNameStyle(int style) {
         return new ClockOptions(showSeconds, dateStyle, timeFractionWide, timeFractionTall,
                 calendar, quote, calendarSystem, gregorianBadge, hijriOffsetDays, style,
-                weekdayStyle, hour12, noonStyle, midnightStyle);
+                weekdayStyle, hour12, noonStyle, midnightStyle, names);
     }
 
     /** The same options with the weekdays named the other way. */
     public ClockOptions withWeekdayStyle(int style) {
         return new ClockOptions(showSeconds, dateStyle, timeFractionWide, timeFractionTall,
                 calendar, quote, calendarSystem, gregorianBadge, hijriOffsetDays, nameStyle,
-                style, hour12, noonStyle, midnightStyle);
+                style, hour12, noonStyle, midnightStyle, names);
     }
 
     /** The same options on a twelve-hour clock, or back on a twenty-four hour one. */
@@ -121,7 +129,14 @@ public final class ClockOptions {
     public ClockOptions withHour12(boolean twelve, int noon, int midnight) {
         return new ClockOptions(showSeconds, dateStyle, timeFractionWide, timeFractionTall,
                 calendar, quote, calendarSystem, gregorianBadge, hijriOffsetDays, nameStyle,
-                weekdayStyle, twelve, noon, midnight);
+                weekdayStyle, twelve, noon, midnight, names);
+    }
+
+    /** The same options with the user's own month and weekday names. */
+    public ClockOptions withNames(CustomNames names) {
+        return new ClockOptions(showSeconds, dateStyle, timeFractionWide, timeFractionTall,
+                calendar, quote, calendarSystem, gregorianBadge, hijriOffsetDays, nameStyle,
+                weekdayStyle, hour12, noonStyle, midnightStyle, names);
     }
 
     public ClockOptions(boolean showSeconds, int dateStyle) {
@@ -178,6 +193,16 @@ public final class ClockOptions {
             float timeFractionTall, boolean calendar, boolean quote, int calendarSystem,
             boolean gregorianBadge, int hijriOffsetDays, int nameStyle, int weekdayStyle,
             boolean hour12, int noonStyle, int midnightStyle) {
+        this(showSeconds, dateStyle, timeFractionWide, timeFractionTall, calendar, quote,
+                calendarSystem, gregorianBadge, hijriOffsetDays, nameStyle, weekdayStyle, hour12,
+                noonStyle, midnightStyle, CustomNames.NONE);
+    }
+
+    public ClockOptions(boolean showSeconds, int dateStyle, float timeFractionWide,
+            float timeFractionTall, boolean calendar, boolean quote, int calendarSystem,
+            boolean gregorianBadge, int hijriOffsetDays, int nameStyle, int weekdayStyle,
+            boolean hour12, int noonStyle, int midnightStyle, CustomNames names) {
+        this.names = names == null ? CustomNames.NONE : names;
         this.noonStyle = noonStyle < 0 || noonStyle > NOON_ZERO ? NOON_PM : noonStyle;
         this.midnightStyle = midnightStyle < 0 || midnightStyle > MIDNIGHT_ZERO
                 ? MIDNIGHT_AM : midnightStyle;   // a stored 4 from the build that had five falls back

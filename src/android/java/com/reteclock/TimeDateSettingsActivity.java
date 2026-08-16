@@ -10,6 +10,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
@@ -17,7 +18,9 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 
 import com.reteclock.core.Calendars;
+import com.reteclock.core.CalendarDate;
 import com.reteclock.core.CivilTime;
+import com.reteclock.core.CustomNames;
 import com.reteclock.core.ClockText;
 import com.reteclock.core.MonthGrid;
 import com.reteclock.core.Places;
@@ -47,6 +50,7 @@ public final class TimeDateSettingsActivity extends Activity {
     private LinearLayout nameStyles;
     private LinearLayout weekdayStyles;
     private LinearLayout customSummer;
+    private LinearLayout ownNames;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -277,6 +281,119 @@ public final class TimeDateSettingsActivity extends Activity {
         header.addView(headerChoice);
         header.addView(note(getString(R.string.calendar_paging_note)));
         root.addView(header);
+
+        ownNames = card();
+        root.addView(ownNames);
+        rebuildOwnNames();
+    }
+
+    // ---- the user's own names ------------------------------------------------------------
+
+    /**
+     * The months and the weekdays, renameable, for the calendar in force.
+     *
+     * The names that ship are three or four Latin characters because that is what fits every grid
+     * on every screen this app runs on. That is a default, not a rule somebody else's language has
+     * to live under, so nothing here is checked: any length, any script. The note says what it
+     * costs, and the clock draws whatever it is given.
+     */
+    private void rebuildOwnNames() {
+        if (ownNames == null) {
+            return;
+        }
+        ownNames.removeAllViews();
+        final int system = Settings.calendarSystem(this);
+        ownNames.addView(subheading(getString(R.string.names_own,
+                Calendars.name(system))));
+
+        CustomNames names = Settings.customNames(this, system);
+        String[] months = Calendars.monthNames(system, Settings.calendarNameStyle(this, system));
+        final int howMany = mostMonths(system);
+        for (int month = 1; month <= howMany; month++) {
+            String built = month <= months.length ? months[month - 1] : Integer.toString(month);
+            ownNames.addView(nameRow(built, names.monthEntry(month), true, month, howMany));
+        }
+
+        String[] weekdays = Calendars.weekdayNames(system,
+                Settings.calendarWeekdayStyle(this, system));
+        for (int day = 0; day < weekdays.length; day++) {
+            ownNames.addView(nameRow(weekdays[day], names.weekdayEntry(day), false, day, howMany));
+        }
+
+        Button clear = new Button(this);
+        clear.setText(R.string.names_clear);
+        clear.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Settings.setCustomNames(TimeDateSettingsActivity.this, system, CustomNames.NONE);
+                rebuildOwnNames();
+            }
+        });
+        ownNames.addView(clear);
+        ownNames.addView(note(getString(R.string.names_own_note)));
+    }
+
+    /**
+     * How many months to offer.
+     *
+     * A Hebrew or lunisolar year has twelve months or thirteen depending on the year, so asking
+     * about this year alone would hide the leap month for most of a decade. Nineteen years is a
+     * whole Metonic cycle: whatever the calendar can do, it does inside one.
+     */
+    private static int mostMonths(int system) {
+        int[] today = com.reteclock.core.Gregorian.parts(
+                CivilTime.jdnOf(System.currentTimeMillis(), 0));
+        CalendarDate here = Calendars.dateOf(system,
+                com.reteclock.core.Gregorian.toJdn(today[0], today[1], today[2]));
+        int most = 12;
+        for (int year = here.year; year < here.year + 19; year++) {
+            int count = Calendars.monthsInYear(system, year);
+            if (count > most) {
+                most = count;
+            }
+        }
+        return most;
+    }
+
+    /** One renameable name: what it is called now, and what the user called it. */
+    private View nameRow(final String built, String typed, final boolean isMonth, final int index,
+            final int howMany) {
+        Button row = new Button(this);
+        row.setText(typed.length() == 0 ? built : built + "  \u2192  " + typed);
+        row.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                askForName(built, isMonth, index, howMany);
+            }
+        });
+        return row;
+    }
+
+    private void askForName(final String built, final boolean isMonth, final int index,
+            final int howMany) {
+        final int system = Settings.calendarSystem(this);
+        CustomNames names = Settings.customNames(this, system);
+        final EditText input = new EditText(this);
+        input.setSingleLine(true);
+        input.setText(isMonth ? names.monthEntry(index) : names.weekdayEntry(index));
+        input.setSelection(input.getText().length());
+        new AlertDialog.Builder(this)
+                .setTitle(built)
+                .setView(input)
+                .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        CustomNames now = Settings.customNames(
+                                TimeDateSettingsActivity.this, system);
+                        String typed = input.getText().toString().trim();
+                        Settings.setCustomNames(TimeDateSettingsActivity.this, system,
+                                isMonth ? now.withMonth(index, typed, howMany)
+                                        : now.withWeekday(index, typed));
+                        rebuildOwnNames();
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
     }
 
     // ---- the time base -------------------------------------------------------------------

@@ -421,12 +421,23 @@ public class ClockView extends View {
         float size = Math.min(rowHeight * 0.66f, cellWidth * 0.52f);
 
         MonthGrid grid = monthShown();
-        applyStyle(ClockLayout.ROLE_MONTH_DAY, size);
+        applyStyle(ClockLayout.ROLE_CALENDAR_TITLE, size);
         paint.setTextAlign(Paint.Align.CENTER);
 
         // The header: the month between two arrows, each given a whole column to be touched in.
+        // A renamed month can be far longer than "Aug", so the title gives up size to stay between
+        // the arrows rather than running out past them (the weekday headings below do the same).
+        String header = grid.header(headerStyle);
+        float titleRoom = width - 2f * cellWidth;
+        float titleWidth = paint.measureText(header);
+        if (titleWidth > titleRoom && titleRoom > 0) {
+            applyStyle(ClockLayout.ROLE_CALENDAR_TITLE, size * titleRoom / titleWidth);
+            paint.setTextAlign(Paint.Align.CENTER);
+        }
         float headerBase = top + rowHeight / 2f - (paint.ascent() + paint.descent()) / 2f;
-        write(canvas, grid.header(headerStyle), left + width / 2f, headerBase);
+        write(canvas, header, left + width / 2f, headerBase);
+        applyStyle(ClockLayout.ROLE_CALENDAR_TITLE, size);
+        paint.setTextAlign(Paint.Align.CENTER);
         write(canvas, "<", left + cellWidth / 2f, headerBase);
         write(canvas, ">", left + width - cellWidth / 2f, headerBase);
         backArrow.set(left, top, left + cellWidth, top + rowHeight);
@@ -436,6 +447,8 @@ public class ClockView extends View {
         // "Sun Mon Tue" runs together into one lump. They are measured and shrunk until the widest
         // of them clears its column with air on both sides — the columns themselves never move, so
         // the grid stays a grid.
+        applyStyle(ClockLayout.ROLE_CALENDAR_WEEKDAY, size);
+        paint.setTextAlign(Paint.Align.CENTER);
         String[] names = grid.weekdayNames();
         float widest = 0f;
         for (String name : names) {
@@ -443,13 +456,13 @@ public class ClockView extends View {
         }
         float room = cellWidth * 0.84f;
         float nameSize = widest > room ? size * (room / widest) : size;
-        applyStyle(ClockLayout.ROLE_MONTH_DAY, nameSize);
+        applyStyle(ClockLayout.ROLE_CALENDAR_WEEKDAY, nameSize);
         paint.setTextAlign(Paint.Align.CENTER);
         float namesBase = top + rowHeight * 1.5f - (paint.ascent() + paint.descent()) / 2f;
         for (int column = 0; column < MonthGrid.COLUMNS; column++) {
             write(canvas, names[column], left + cellWidth * (column + 0.5f), namesBase);
         }
-        applyStyle(ClockLayout.ROLE_MONTH_DAY, size);
+        applyStyle(ClockLayout.ROLE_CALENDAR_DAY, size);
         paint.setTextAlign(Paint.Align.CENTER);
 
         boolean showsCellDates = options.gregorianBadge
@@ -468,7 +481,7 @@ public class ClockView extends View {
                     continue;
                 }
                 boolean today = thisMonth && day == todayDay;
-                applyStyle(ClockLayout.ROLE_MONTH_DAY, size);
+                applyStyle(ClockLayout.ROLE_CALENDAR_DAY, size);
                 paint.setTextAlign(Paint.Align.CENTER);
                 float centreX = left + cellWidth * (column + 0.5f);
 
@@ -663,7 +676,7 @@ public class ClockView extends View {
     /** The month being looked at: this one, or however far the arrows have been pressed. */
     private MonthGrid monthShown() {
         MonthGrid grid = MonthGrid.ofDay(options.calendarSystem, todayJdn(), weekStart,
-                options.nameStyle, options.weekdayStyle);
+                options.nameStyle, options.weekdayStyle, options.names);
         for (int step = 0; step < monthOffset; step++) {
             grid = grid.next();
         }
@@ -932,7 +945,7 @@ public class ClockView extends View {
         int[] date = com.reteclock.core.Gregorian.parts(jdn);
         String text = (date[1] < 10 ? "0" : "") + date[1] + "." + (date[2] < 10 ? "0" : "") + date[2];
         float size = numeralSize * 0.34f;
-        applyStyle(ClockLayout.ROLE_MONTH_DAY, size);
+        applyStyle(ClockLayout.ROLE_CALENDAR_DAY, size);
         paint.setTextAlign(Paint.Align.LEFT);
         write(canvas, text, cellLeft + size * 0.15f, cellBottom - size * 0.15f);
     }

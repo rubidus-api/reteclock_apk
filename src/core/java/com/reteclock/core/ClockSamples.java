@@ -68,7 +68,8 @@ public final class ClockSamples {
                     : Collections.<String>emptyList();
         }
         if (ClockLayout.ROLE_WEEKDAY.equals(role)) {
-            return list(Calendars.weekdayNames(options.calendarSystem, options.weekdayStyle));
+            return named(Calendars.weekdayNames(options.calendarSystem, options.weekdayStyle),
+                    options, false);
         }
         if (ClockLayout.ROLE_MONTH_DAY.equals(role)) {
             return monthDays(options);
@@ -77,6 +78,23 @@ public final class ClockSamples {
             return years(options);
         }
         return Collections.emptyList();
+    }
+
+    /**
+     * The built-in names with the user's own put in their place.
+     *
+     * The sizing pass asks what the widest thing a field can ever show is, and after renaming that
+     * is whatever the user typed. Feeding their names in here is what makes a long one shrink the
+     * line to fit rather than run off the edge of it — the settings screen still warns that a long
+     * name costs size, because it does.
+     */
+    private static List<String> named(String[] built, ClockOptions options, boolean months) {
+        List<String> out = new ArrayList<String>();
+        for (int i = 0; i < built.length; i++) {
+            out.add(months ? options.names.month(i + 1, built[i])
+                    : options.names.weekday(i, built[i]));
+        }
+        return out;
     }
 
     /**
@@ -125,7 +143,8 @@ public final class ClockSamples {
             out.add("11-11");
             return out;
         }
-        for (String month : Calendars.monthNames(options.calendarSystem, options.nameStyle)) {
+        for (String month : named(Calendars.monthNames(options.calendarSystem, options.nameStyle),
+                options, true)) {
             out.add(month + " 1");
             out.add(month + " 8");
             out.add(month + " 28");
