@@ -124,7 +124,8 @@ final class SettingsPackage {
 
     /** The settings this phone holds, as INI, limited to the chosen pages. */
     static String settingsText(Context context, Set<String> sections) {
-        Map<String, ?> all = new TreeMap<String, Object>(Settings.all(context));
+        // Everything in force, not merely everything stored — see Settings.everything.
+        Map<String, ?> all = new TreeMap<String, Object>(Settings.everything(context));
         List<SettingsIni.Entry> entries = new ArrayList<SettingsIni.Entry>();
         for (Map.Entry<String, ?> setting : all.entrySet()) {
             String key = setting.getKey();

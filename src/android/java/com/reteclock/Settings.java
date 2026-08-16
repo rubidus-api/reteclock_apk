@@ -139,6 +139,84 @@ public final class Settings {
         return prefs(context).getAll();
     }
 
+    /**
+     * Every setting the clock actually runs on, whether it was ever changed or not.
+     *
+     * {@link #all} returns what is *stored*, and a preference nobody has touched is not stored — it
+     * lives in the default written into its accessor. Exporting the stored map therefore wrote a
+     * file with the four things the user happened to change in it, which reads as an export that
+     * did not work, and worse: bringing that file to another phone left every untouched setting at
+     * *that* phone's value instead of matching the one it came from. An arrangement carried
+     * halfway is not an arrangement.
+     *
+     * So this asks each accessor for the value in force and hands back the lot. The dynamic
+     * families are enumerated the same way the app enumerates them: one entry per field, one per
+     * calendar.
+     */
+    public static java.util.Map<String, Object> everything(Context context) {
+        java.util.Map<String, Object> out = new java.util.TreeMap<String, Object>();
+
+        out.put(KEY_START_WHEN_CHARGING, Boolean.valueOf(startWhenCharging(context)));
+        out.put(KEY_STAY_UNLOCKED, Boolean.valueOf(stayUnlocked(context)));
+        out.put(KEY_DIRECT_START, Boolean.valueOf(directStart(context)));
+        out.put(KEY_SHOW_SECONDS, Boolean.valueOf(showSeconds(context)));
+        out.put(KEY_DATE_STYLE, Integer.valueOf(dateStyle(context)));
+        out.put(KEY_QUOTE_ON, Boolean.valueOf(quoteOn(context)));
+        out.put(KEY_BURN_IN_SHIFT, Boolean.valueOf(burnInShift(context)));
+        out.put(KEY_TIME_PERCENT_WIDE, Integer.valueOf(timePercent(context, KEY_TIME_PERCENT_WIDE)));
+        out.put(KEY_TIME_PERCENT_TALL, Integer.valueOf(timePercent(context, KEY_TIME_PERCENT_TALL)));
+        out.put(KEY_TEXT_COLOR, Integer.valueOf(color(context, KEY_TEXT_COLOR)));
+        out.put(KEY_BACKGROUND_COLOR, Integer.valueOf(color(context, KEY_BACKGROUND_COLOR)));
+        out.put(KEY_NOON_STYLE, Integer.valueOf(noonStyle(context)));
+        out.put(KEY_MIDNIGHT_STYLE, Integer.valueOf(midnightStyle(context)));
+        out.put(KEY_MARKERS, markers(context).text());
+
+        out.put(KEY_BACKGROUND_FIT, Integer.valueOf(backgroundFit(context)));
+        out.put(KEY_BACKGROUND_STILL_SECONDS, Integer.valueOf(backgroundStillSeconds(context)));
+        out.put(KEY_BACKGROUND_FADE, Boolean.valueOf(backgroundFade(context)));
+        out.put(KEY_BACKGROUND_ORDER_MODE, Integer.valueOf(backgroundOrderMode(context)));
+        out.put(KEY_BACKGROUND_ORDER, prefs(context).getString(KEY_BACKGROUND_ORDER, ""));
+        out.put(KEY_POOL_BACKGROUND, prefs(context).getString(KEY_POOL_BACKGROUND, ""));
+        out.put(KEY_POOL_TEXT, prefs(context).getString(KEY_POOL_TEXT, ""));
+
+        out.put(KEY_TIMER_ON, Boolean.valueOf(timerOn(context)));
+        out.put(KEY_TIMER_HIDDEN, Boolean.valueOf(timerHidden(context)));
+        out.put(KEY_TIMER_CHOSEN, Integer.valueOf(timerChosen(context)));
+        out.put(KEY_TIMER_ALERT, Integer.valueOf(timerAlert(context)));
+        out.put(KEY_TIMER_PRESETS,
+                com.reteclock.core.TimerPresets.toText(timerPresets(context)));
+
+        out.put(KEY_CALENDAR_ON, Boolean.valueOf(calendarOn(context)));
+        out.put(KEY_CALENDAR_HEADER, Integer.valueOf(calendarHeaderStyle(context)));
+        out.put(KEY_CALENDAR_SYSTEM, Integer.valueOf(calendarSystem(context)));
+        out.put(KEY_CALENDAR_WEEK_START, Integer.valueOf(calendarWeekStart(context)));
+        out.put(KEY_CALENDAR_BADGE, Boolean.valueOf(gregorianBadge(context)));
+        out.put(KEY_HIJRI_OFFSET, Integer.valueOf(hijriOffset(context)));
+        out.put(KEY_TIME_SOURCE, Integer.valueOf(timeSource(context)));
+        out.put(KEY_UTC_OFFSET, Integer.valueOf(utcOffsetMinutes(context)));
+        out.put(KEY_DST_PRESET, Integer.valueOf(summerTimePreset(context)));
+        out.put(KEY_DST_CUSTOM, prefs(context).getString(KEY_DST_CUSTOM, ""));
+
+        for (int i = 0; i < FONT_ROLES.length; i++) {
+            String role = FONT_ROLES[i];
+            out.put(KEY_FONT + "_" + role, fontNameFor(context, role));
+            out.put(KEY_BOLD + "_" + role, Boolean.valueOf(bold(context, role)));
+            out.put(KEY_ITALIC + "_" + role, Boolean.valueOf(italic(context, role)));
+            out.put(KEY_UNDERLINE + "_" + role, Boolean.valueOf(underline(context, role)));
+            out.put(KEY_OUTLINE + "_" + role, Boolean.valueOf(outline(context, role)));
+        }
+        for (int system = 0; system < com.reteclock.core.Calendars.COUNT; system++) {
+            out.put(KEY_CALENDAR_SYSTEM + "_names_" + system,
+                    Integer.valueOf(calendarNameStyle(context, system)));
+            out.put(KEY_CALENDAR_SYSTEM + "_weekdays_" + system,
+                    Integer.valueOf(calendarWeekdayStyle(context, system)));
+            CustomNames names = customNames(context, system);
+            out.put(KEY_NAMES_MONTHS + system, names.monthsText());
+            out.put(KEY_NAMES_WEEKDAYS + system, names.weekdaysText());
+        }
+        return out;
+    }
+
     /** An editor for writing a carried arrangement back in one commit. */
     public static SharedPreferences.Editor edit(Context context) {
         return prefs(context).edit();
