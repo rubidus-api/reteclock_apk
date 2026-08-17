@@ -26,7 +26,7 @@ keep the screen awake, and one to vibrate, which only the timer uses.
 
 **[⬇ Get it on F-Droid](https://f-droid.org/packages/com.reteclock/)** — recommended.
 
-**[⬇ Download reteclock-0.26.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.26.0/reteclock-0.26.0.apk)**
+**[⬇ Download reteclock-0.27.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.27.0/reteclock-0.27.0.apk)**
 — 317 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
 render GitHub's release page can still fetch it.
 
@@ -131,7 +131,7 @@ beyond keeping the screen awake. Copy the APK to the phone, open it, and the pho
 
 ## Which phones it runs on
 
-Published on F-Droid; the latest release is 0.26.0.
+Published on F-Droid; the latest release is 0.27.0.
 
 | | |
 |---|---|
@@ -149,8 +149,8 @@ clock says so once when you first open it, and stops mentioning it after you hav
 it never mentions it when the charger started the clock, so it stays quiet on a bedside stand.
 
 **A tap on the clock opens the main menu**, which is where the settings divide up: *General
-settings*, *Timer settings*, *Time and date settings*, *Fonts*, *Pictures* and *Import / Export*,
-each its own screen. The general settings do not link to the others — one list of where things are
+settings*, *Timer settings*, *Time and date settings*, *Fonts*, *Pictures*, *Sounds and bells* and
+*Import / Export*, each its own screen. The general settings do not link to the others — one list of where things are
 is enough, and it is the main menu.
 
 The button opens this screen rather than the clock on purpose. A full-screen clock has no controls
@@ -275,16 +275,39 @@ nothing extra drawn.
   nobody can stop. So the run is ended and forgotten, not paused: switching the timer back on
   finds it at the beginning, not still going.
 
+**Sounds and bells**
+
+Its own screen, reached from the main menu.
+
+- **Bring in sounds of your own** — the same way fonts and pictures arrive: the phone's own file
+  picker hands the file over, and the app keeps a copy of it. **No storage permission is asked for**,
+  on any version of Android, and a sound that is in stays in — nothing can take it away later.
+- **What will play** — `.mp3` on every phone this app runs on, and beside it M4A/MP4, Ogg, 3GP, AMR,
+  MIDI and WAV; FLAC and Opus on newer phones. The screen names the ones *your* phone can play. A
+  file is opened as it comes in and one this phone will not play is refused there and then, rather
+  than at the moment you needed it.
+- **How each sound plays** — press *Clip…* to set where it starts and where it stops, in seconds to
+  one decimal, and whether it plays once or over and over until it is stopped. Four seconds out of
+  the middle of a song is four seconds, everywhere that song is used.
+- **Bells** — a sound at a time of day, on the weekdays you choose. A bell only plays: touch the
+  screen while one is ringing and it fades out and stops, and that touch does nothing else. Bells
+  ring while the clock or the screensaver is showing.
+- **The timer can use them too** — in *Timer settings*, each preset has a sound for its start and one
+  for its finish, and each interval has one for its beginning and one for its warning. A message you
+  set is still spoken: the sound and the words share the moment. A slot with no sound, or one whose
+  file you deleted, beeps exactly as it always did.
+- A whole folder of sounds travels in the zip on the *Import / Export* page, like fonts and pictures.
+
 **Import / Export**
 
 Its own screen, reached from the main menu.
 
 - **Export** — two buttons, because there are two errands. **A settings file (`.txt`)** is plain
   text, one key to a line, in sections that match the settings pages: read it, edit it, hand it to
-  another program, keep it as a backup. **A package (`.zip`)** is that same file with the fonts and
-  the pictures beside it under `fonts/` and `img/` — what you want when the other phone has none of
-  them. Either way you tick which pages to carry first, and the package has its own two ticks for
-  the fonts and the pictures.
+  another program, keep it as a backup. **A package (`.zip`)** is that same file with the fonts, the
+  pictures and the sounds beside it under `fonts/`, `img/` and `sounds/` — what you want when the
+  other phone has none of them. Either way you tick which pages to carry first, and the package has
+  its own three ticks for the fonts, the pictures and the sounds.
 - **Import** — the file is **read first and applied second**. You are shown what is in it — how
   many settings for each page, which fonts and pictures came along, and anything that could not be
   understood — and you tick what to bring in. What it shows is not the file's own text but the

@@ -1,0 +1,11 @@
+* Sounds of your own. Bring in an mp3 the way you already bring in fonts and
+  pictures — no permission is asked for — and the app tells you which other
+  formats your phone can play.
+* Choose the part that plays: a start and an end point to a tenth of a second,
+  once or repeating, set once and used everywhere that sound is.
+* The timer can play them: when a preset starts, when it finishes, at each
+  interval's beginning beside its spoken message, and for each warning.
+* Bells: a sound at a time of day on the weekdays you choose. Touch the screen
+  while one is ringing and it fades out and stops.
+* Sounds travel in the settings zip, beside the fonts and the pictures.
+* The month and weekday naming screen puts its buttons side by side.
