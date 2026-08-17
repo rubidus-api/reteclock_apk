@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The launcher icon from API 26 on. Older devices never see this file: the -v26 qualifier keeps
+     them on the plain PNG in the density folders, which is the icon this app shipped from the
+     start. The monochrome layer is the themed icon Android 13 asks for; the system tints it and
+     supplies the colour behind it, so there the lettering is a hole rather than ink. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
+</adaptive-icon>

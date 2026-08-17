@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The white plate the launcher icon is drawn on. The adaptive icon's background layer is this
+         colour rather than a picture, because the launcher masks the layer to its own shape and a
+         flat colour is the only thing that survives every shape unharmed. -->
+    <color name="ic_launcher_background">#FFFFFFFF</color>
+</resources>

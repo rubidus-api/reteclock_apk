@@ -1,10 +1,20 @@
 #!/usr/bin/env python3
-"""Generates the launcher icon PNGs into src/android/res/drawable-*/ic_launcher.png, the 512x512
-store icon, and the 1024x500 feature graphic F-Droid shows at the top of the app page.
+"""Generates every launcher icon the app ships: the legacy PNGs in src/android/res/drawable-*/, the
+adaptive icon's foreground and monochrome layers for API 26 and up, the 512x512 store icon, and the
+1024x500 feature graphic F-Droid shows at the top of the app page.
 
-The icon is drawn, not downloaded: a dark rounded square showing "13" over "45", which is what
-the tall clock layout looks like. Run this only when the icon design changes; the generated PNGs
-are part of the source tree so a normal build needs no Python and no image library.
+The icon is drawn, not downloaded: a white rounded square carrying the name RETE across the top and
+the time 13:24 below it in seven-segment digits, so the launcher says both what the app is called
+and what it does. It is monochrome on purpose --- a white plate and near-black lettering, no third
+colour --- which is also what lets the same drawing serve as the themed icon Android 13 asks for.
+On the themed layer the lettering is a hole rather than ink, because there the system supplies both
+the colour of the plate and what shows through it.
+
+The digits are polygons rather than a font, since no seven-segment face can be assumed to exist on
+the machine that runs this.
+
+Run this only when the icon design changes; the generated PNGs are part of the source tree, so a
+normal build needs no Python and no image library.
 
 Usage: python3 tools/make-icons.py
 """
@@ -14,6 +24,7 @@ import sys
 
 from PIL import Image, ImageDraw, ImageFont
 
+# The launcher icon is 48dp; these are its pixel sizes per density bucket.
 DENSITIES = {
     "ldpi": 36,
     "mdpi": 48,
@@ -23,8 +34,24 @@ DENSITIES = {
     "xxxhdpi": 192,
 }
 
-BACKGROUND = (12, 12, 16, 255)
-FOREGROUND = (255, 255, 255, 255)
+# An adaptive icon layer is 108dp, of which only the middle 66dp is guaranteed to survive the shape
+# the launcher masks it with. Nothing below hdpi is generated: no device that reached API 26 is
+# coarser than that, and mdpi is kept only as the fallback the framework may still ask for.
+ADAPTIVE_DENSITIES = {
+    "mdpi": 108,
+    "hdpi": 162,
+    "xhdpi": 216,
+    "xxhdpi": 324,
+    "xxxhdpi": 432,
+}
+SAFE_ZONE = 66.0 / 108.0
+
+PLATE = (255, 255, 255, 255)  # the white rounded square
+INK = (12, 12, 16, 255)  # the lettering on it, and the black the clock itself runs on
+BACKGROUND = INK
+FOREGROUND = PLATE
+
+PLATE_RADIUS = 0.22  # corner radius of the plate, as a fraction of its side
 
 FONT_CANDIDATES = [
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
@@ -33,6 +60,23 @@ FONT_CANDIDATES = [
     "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
     "/usr/share/fonts/gnu-free/FreeSans.ttf",
 ]
+
+# The wordmark wants weight; fall back to the regular faces if no bold one is installed.
+BOLD_FONT_CANDIDATES = [
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
+    "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",
+    "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
+    "/usr/share/fonts/gnu-free/FreeSansBold.ttf",
+] + FONT_CANDIDATES
+
+WORDMARK = "RETE"
+ICON_TIME = "13:24"
+TRACKING = 0.14  # extra letter spacing in the wordmark, as a fraction of the font size
+
+# Where the two lines sit inside the square they are drawn in, as fractions of its side.
+WORD_BOX = (0.13, 0.18, 0.87, 0.38)
+TIME_BOX = (0.10, 0.48, 0.90, 0.79)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RES = os.path.join(ROOT, "src", "android", "res")
@@ -54,8 +98,8 @@ FEATURE_SIZE = (1024, 500)
 SUPERSAMPLE = 8
 
 
-def load_font(size):
-    for path in FONT_CANDIDATES:
+def load_font(size, candidates=FONT_CANDIDATES):
+    for path in candidates:
         if os.path.exists(path):
             return ImageFont.truetype(path, size)
     raise SystemExit("no usable TTF font found; install a DejaVu or FreeFont package")
@@ -68,18 +112,194 @@ def centered(draw, text, font, box):
     return x, y
 
 
+def tracked_width(draw, text, font, tracking):
+    """Width of text once the extra letter spacing is counted, which textlength does not know."""
+    width = sum(draw.textlength(char, font=font) for char in text)
+    return width + tracking * font.size * (len(text) - 1)
+
+
+def fit_tracked(draw, text, box, candidates, tracking):
+    """The largest font size at which the tracked text still fits inside box."""
+    width = box[2] - box[0]
+    height = box[3] - box[1]
+    probe_size = 100
+    probe = load_font(probe_size, candidates)
+    left, top, right, bottom = draw.textbbox((0, 0), text, font=probe)
+    scale = min(
+        width / tracked_width(draw, text, probe, tracking), height / (bottom - top)
+    )
+    return load_font(max(1, int(probe_size * scale)), candidates)
+
+
+def draw_tracked(draw, text, font, box, tracking, fill):
+    """Draws text centred in box, one letter at a time so the spacing can be widened."""
+    left, top, right, bottom = draw.textbbox((0, 0), text, font=font)
+    x = box[0] + (box[2] - box[0] - tracked_width(draw, text, font, tracking)) / 2
+    y = box[1] + (box[3] - box[1] - (bottom - top)) / 2 - top
+    for char in text:
+        draw.text((x, y), char, font=font, fill=fill)
+        x += draw.textlength(char, font=font) + tracking * font.size
+
+
+# Which of the seven segments each digit lights, named the usual way: a is the top bar, b and c the
+# right-hand pair, d the bottom bar, e and f the left-hand pair, g the middle bar.
+SEGMENTS = {
+    "0": "abcdef",
+    "1": "bc",
+    "2": "abged",
+    "3": "abgcd",
+    "4": "fgbc",
+    "5": "afgcd",
+    "6": "afgedc",
+    "7": "abc",
+    "8": "abcdefg",
+    "9": "abcdfg",
+}
+
+
+def draw_segment_digit(draw, digit, box, thickness, fill):
+    """Draws one seven-segment digit inside box = (x, y, x2, y2)."""
+    x, y, x2, y2 = box
+    half = thickness / 2
+    gap = thickness * 0.22  # keeps neighbouring segments from touching at the corners
+
+    def horizontal(cy):
+        return [
+            (x + gap, cy),
+            (x + gap + half, cy - half),
+            (x2 - gap - half, cy - half),
+            (x2 - gap, cy),
+            (x2 - gap - half, cy + half),
+            (x + gap + half, cy + half),
+        ]
+
+    def vertical(cx, top, bottom):
+        return [
+            (cx, top + gap),
+            (cx + half, top + gap + half),
+            (cx + half, bottom - gap - half),
+            (cx, bottom - gap),
+            (cx - half, bottom - gap - half),
+            (cx - half, top + gap + half),
+        ]
+
+    middle = (y + y2) / 2
+    shapes = {
+        "a": horizontal(y + half),
+        "g": horizontal(middle),
+        "d": horizontal(y2 - half),
+        "f": vertical(x + half, y, middle),
+        "b": vertical(x2 - half, y, middle),
+        "e": vertical(x + half, middle, y2),
+        "c": vertical(x2 - half, middle, y2),
+    }
+    for name in SEGMENTS[digit]:
+        draw.polygon(shapes[name], fill=fill)
+
+
+def draw_segment_time(draw, text, box, fill):
+    """Lays a string like "13:24" of digits and colons across box = (x, y, x2, y2)."""
+    x, y, x2, y2 = box
+    height = y2 - y
+    digit_width = height * 0.55
+    colon_width = digit_width * 0.34
+    spacing = digit_width * 0.16
+    thickness = height * 0.155
+
+    # A one lights only its right-hand pair, so on a full-width cell it drifts away from the digit
+    # beside it. Give it a narrower cell instead and the line reads evenly.
+    cells = []
+    for char in text:
+        if char == ":":
+            cells.append((char, colon_width))
+        elif char == "1":
+            cells.append((char, digit_width * 0.55))
+        else:
+            cells.append((char, digit_width))
+    total = sum(width for _, width in cells) + spacing * (len(cells) - 1)
+
+    cursor = x + (x2 - x - total) / 2
+    for char, width in cells:
+        if char == ":":
+            dot = thickness * 0.95
+            cx = cursor + width / 2
+            for cy in (y + height * 0.32, y + height * 0.68):
+                draw.ellipse(
+                    [cx - dot / 2, cy - dot / 2, cx + dot / 2, cy + dot / 2], fill=fill
+                )
+        else:
+            draw_segment_digit(
+                draw, char, (cursor, y, cursor + width, y2), thickness, fill
+            )
+        cursor += width + spacing
+
+
+def draw_face(draw, origin, side, fill):
+    """The name over the time, drawn inside the square at origin with the given side."""
+
+    def place(fractions):
+        left, top, right, bottom = fractions
+        return (
+            origin[0] + side * left,
+            origin[1] + side * top,
+            origin[0] + side * right,
+            origin[1] + side * bottom,
+        )
+
+    word_box = place(WORD_BOX)
+    font = fit_tracked(draw, WORDMARK, word_box, BOLD_FONT_CANDIDATES, TRACKING)
+    draw_tracked(draw, WORDMARK, font, word_box, TRACKING, fill)
+    draw_segment_time(draw, ICON_TIME, place(TIME_BOX), fill)
+
+
 def render(size):
+    """The legacy launcher icon and the store icon: the plate, with the lettering on it."""
     big = size * SUPERSAMPLE
     image = Image.new("RGBA", (big, big), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
-    draw.rounded_rectangle([0, 0, big - 1, big - 1], radius=big * 0.22, fill=BACKGROUND)
-
-    font = load_font(int(big * 0.40))
-    for text, top, bottom in (("13", big * 0.10, big * 0.52), ("45", big * 0.48, big * 0.90)):
-        x, y = centered(draw, text, font, (big * 0.08, top, big * 0.92, bottom))
-        draw.text((x, y), text, font=font, fill=FOREGROUND)
-
+    draw.rounded_rectangle(
+        [0, 0, big - 1, big - 1], radius=big * PLATE_RADIUS, fill=PLATE
+    )
+    draw_face(draw, (0, 0), big, INK)
     return image.resize((size, size), Image.LANCZOS)
+
+
+def render_adaptive_foreground(size):
+    """The API 26 foreground layer: the lettering alone, inside the safe zone.
+
+    The plate is not drawn here --- the background layer is the plate, and the launcher masks it to
+    whatever shape it uses, which is the whole point of an adaptive icon.
+    """
+    big = size * SUPERSAMPLE
+    image = Image.new("RGBA", (big, big), (0, 0, 0, 0))
+    side = big * SAFE_ZONE
+    draw_face(ImageDraw.Draw(image), ((big - side) / 2, (big - side) / 2), side, INK)
+    return image.resize((size, size), Image.LANCZOS)
+
+
+def render_monochrome(size):
+    """The themed layer Android 13 asks for: one shape, no colour of its own.
+
+    The system tints whatever is opaque here and puts its own colour behind it, so the plate is the
+    ink and the lettering is a hole punched through it. That is the same picture as the ordinary
+    icon with the two tones swapped, which is what a themed icon is meant to be.
+    """
+    big = size * SUPERSAMPLE
+    side = big * SAFE_ZONE
+    origin = ((big - side) / 2, (big - side) / 2)
+
+    plate = Image.new("RGBA", (big, big), (0, 0, 0, 0))
+    ImageDraw.Draw(plate).rounded_rectangle(
+        [origin[0], origin[1], origin[0] + side - 1, origin[1] + side - 1],
+        radius=side * PLATE_RADIUS,
+        fill=(0, 0, 0, 255),
+    )
+
+    # The lettering is collected in a mask, then taken out of the plate in one step.
+    knockout = Image.new("L", (big, big), 0)
+    draw_face(ImageDraw.Draw(knockout), origin, side, 255)
+    cut = Image.new("RGBA", (big, big), (0, 0, 0, 0))
+    return Image.composite(cut, plate, knockout).resize((size, size), Image.LANCZOS)
 
 
 def render_feature_graphic():
@@ -93,9 +313,8 @@ def render_feature_graphic():
     side_font = load_font(int(height * big * 0.13))
 
     # Same arrangement as the wide layout: the time on the left, the details in a column right.
-    x, y = centered(draw, "13:45", time_font,
-                    (0, 0, width * big * 0.62, height * big))
-    draw.text((x, y), "13:45", font=time_font, fill=FOREGROUND[:3])
+    x, y = centered(draw, ICON_TIME, time_font, (0, 0, width * big * 0.62, height * big))
+    draw.text((x, y), ICON_TIME, font=time_font, fill=FOREGROUND[:3])
 
     lines = ["25s", "Sun", "Jul 12", "2026"]
     line_height = height * big * 0.19
@@ -109,20 +328,29 @@ def render_feature_graphic():
     return image.resize(FEATURE_SIZE, Image.LANCZOS)
 
 
+def write(image, path):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    image.save(path, "PNG", optimize=True)
+    print("wrote", os.path.relpath(path, ROOT))
+
+
 def main():
     for density, size in DENSITIES.items():
+        write(render(size), os.path.join(RES, "drawable-" + density, "ic_launcher.png"))
+
+    for density, size in ADAPTIVE_DENSITIES.items():
         directory = os.path.join(RES, "drawable-" + density)
-        os.makedirs(directory, exist_ok=True)
-        path = os.path.join(directory, "ic_launcher.png")
-        render(size).save(path, "PNG", optimize=True)
-        print("wrote", os.path.relpath(path, ROOT))
+        write(
+            render_adaptive_foreground(size),
+            os.path.join(directory, "ic_launcher_foreground.png"),
+        )
+        write(
+            render_monochrome(size),
+            os.path.join(directory, "ic_launcher_monochrome.png"),
+        )
 
-    os.makedirs(os.path.dirname(STORE_ICON), exist_ok=True)
-    render(STORE_ICON_SIZE).save(STORE_ICON, "PNG", optimize=True)
-    print("wrote", os.path.relpath(STORE_ICON, ROOT))
-
-    render_feature_graphic().save(FEATURE_GRAPHIC, "PNG", optimize=True)
-    print("wrote", os.path.relpath(FEATURE_GRAPHIC, ROOT))
+    write(render(STORE_ICON_SIZE), STORE_ICON)
+    write(render_feature_graphic(), FEATURE_GRAPHIC)
     return 0
 
 
