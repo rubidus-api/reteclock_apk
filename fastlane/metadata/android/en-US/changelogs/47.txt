@@ -1,0 +1,5 @@
+* A new icon: RETE across the top and 13:24 below it in seven-segment digits,
+  on a white rounded plate.
+* On Android 13 and later the icon now follows the home screen's theme. The
+  plate takes the theme's colour and the lettering is a hole through it.
+* Nothing changes on older phones, which keep the icon they had.
