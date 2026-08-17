@@ -1,0 +1,9 @@
+* Fixed: with Android's high-contrast text switched on, the clock was outlined
+  whatever you had chosen and a picture used to fill the writing did not appear.
+  The clock now draws its writing as shapes while that setting is on, and the
+  settings say the setting is on and what it does elsewhere.
+* A phone on silent now stays silent: no sound on vibrate, and neither sound nor
+  vibration on silent — bells included.
+* A timer set to vibrate or to silent says nothing and plays none of your sounds.
+* Pictures can be brought in several at a time, and the Pictures page points at
+  the zip that carries a whole folder.
