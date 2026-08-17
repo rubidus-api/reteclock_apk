@@ -113,6 +113,15 @@ final class ClockMenu {
                         activity.startActivity(page(activity, SettingsActivity.PAGE_PICTURES));
                     }
                 }));
+        card.addView(choice(activity, activity.getString(R.string.menu_sounds),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        dialog.dismiss();
+                        activity.startActivity(
+                                new Intent(activity, SoundSettingsActivity.class));
+                    }
+                }));
         card.addView(choice(activity, activity.getString(R.string.menu_carry),
                 new View.OnClickListener() {
                     @Override

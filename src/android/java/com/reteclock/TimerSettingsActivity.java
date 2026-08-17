@@ -319,6 +319,30 @@ public class TimerSettingsActivity extends Activity {
                     }
                 }));
 
+        // The preset's own two moments: the instant it truly begins, and the instant it is done.
+        // Both are slots a sound can fill, and both fall back to the beep and the melody.
+        // A flow rather than a row: two labels of this length side by side are clipped on a 320 dp
+        // screen, and what gets clipped is the half that says which sound is in the slot.
+        FlowLayout presetSounds = new FlowLayout(this, dp(2), dp(2));
+        presetSounds.addView(soundButton(getString(R.string.sound_slot_start), preset.startSound,
+                new SoundChoice.Chosen() {
+                    @Override
+                    public void chose(String name) {
+                        presets.set(presetIndex, presets.get(presetIndex).withStartSound(name));
+                        save();
+                    }
+                }));
+        presetSounds.addView(soundButton(getString(R.string.sound_slot_finish),
+                preset.finishSound, new SoundChoice.Chosen() {
+                    @Override
+                    public void chose(String name) {
+                        presets.set(presetIndex, presets.get(presetIndex).withFinishSound(name));
+                        save();
+                    }
+                }));
+        block.addView(presetSounds);
+        block.addView(footer(getString(R.string.timer_sounds_note)));
+
         for (int i = 0; i < preset.intervals.size(); i++) {
             block.addView(intervalRow(presetIndex, i));
         }
@@ -462,12 +486,49 @@ public class TimerSettingsActivity extends Activity {
                 }));
         block.addView(bottom);
 
+        // A sound beside the message, and one for the warning. The message is spoken and the sound
+        // is played: they share the moment rather than replacing each other.
+        FlowLayout sounds = new FlowLayout(this, dp(2), dp(2));
+        sounds.addView(soundButton(getString(R.string.sound_slot_interval_start),
+                interval.startSound, new SoundChoice.Chosen() {
+                    @Override
+                    public void chose(String name) {
+                        replace(presetIndex, index, interval.withStartSound(name));
+                    }
+                }));
+        sounds.addView(soundButton(getString(R.string.sound_slot_pre_alarm),
+                interval.preAlarmSound, new SoundChoice.Chosen() {
+                    @Override
+                    public void chose(String name) {
+                        replace(presetIndex, index, interval.withPreAlarmSound(name));
+                    }
+                }));
+        block.addView(sounds);
+
         if (!interval.message.isEmpty()) {
             TextView says = footer("“" + interval.message + "”");
             says.setPadding(0, 0, 0, dp(2));
             block.addView(says);
         }
         return block;
+    }
+
+    /**
+     * One slot that can hold a sound: what it is for, and what is in it.
+     *
+     * The label says the slot and the second line says the choice, because "None (beep)" on its own
+     * beside three other buttons tells nobody which of the four moments it belongs to.
+     */
+    private View soundButton(final String label, final String current,
+            final SoundChoice.Chosen then) {
+        return smallButton(label + ": " + (current.isEmpty()
+                        ? getString(R.string.sound_slot_none) : current),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        SoundChoice.ask(TimerSettingsActivity.this, current, then);
+                    }
+                });
     }
 
     private void replace(int presetIndex, int index, TimerInterval interval) {

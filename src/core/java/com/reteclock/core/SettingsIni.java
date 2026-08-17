@@ -41,7 +41,7 @@ public final class SettingsIni {
 
     /** The pages the settings divide into, which are the sections of the file. */
     public static final String[] SECTIONS = {
-        "clock", "fonts", "pictures", "timer", "timedate",
+        "clock", "fonts", "pictures", "sounds", "timer", "timedate",
     };
 
     public static final char BOOLEAN = 'b';
@@ -83,6 +83,10 @@ public final class SettingsIni {
         {"foreground", "s", "pictures"},
         {"pool_background", "s", "pictures"},
         {"pool_text", "s", "pictures"},
+
+        {"sound_clips", "s", "sounds"},
+        {"bells", "s", "sounds"},
+        {"bells_on", "b", "sounds"},
 
         {"timer_on", "b", "timer"},
         {"timer_presets", "s", "timer"},

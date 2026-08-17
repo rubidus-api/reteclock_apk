@@ -53,6 +53,12 @@
             android:theme="@android:style/Theme.Black" />
 
         <activity
+            android:name=".SoundSettingsActivity"
+            android:exported="false"
+            android:label="@string/sound_title"
+            android:theme="@android:style/Theme.Black" />
+
+        <activity
             android:name=".TimeDateSettingsActivity"
             android:exported="false"
             android:label="@string/timedate_title"

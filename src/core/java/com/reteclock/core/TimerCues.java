@@ -29,7 +29,13 @@ public final class TimerCues {
     public static final int END = 3;
     /** The melody when the whole preset is done. */
     public static final int FINISH = 4;
-    /** An interval's message, to be spoken. */
+    /**
+     * An interval's beginning: its message spoken, its own sound played, or both.
+     *
+     * Named for what it did when it was the only thing it did. A sound was added beside the message
+     * later, and the cue means the same as it always did — "this interval is starting, say so" —
+     * so it kept its name rather than growing a second kind that falls on the same instant.
+     */
     public static final int SPEAK = 5;
 
     /** How many seconds of counting lead into every ending. */
@@ -122,7 +128,7 @@ public final class TimerCues {
         }
         // The preset's own beginning, landing on zero the way an interval's end lands on its own.
         add(out, from, to, new Cue(START, 0, offset));
-        if (!preset.intervals.isEmpty() && !preset.intervals.get(0).message.isEmpty()) {
+        if (!preset.intervals.isEmpty() && announces(preset.intervals.get(0))) {
             add(out, from, to, new Cue(SPEAK, 0, offset));
         }
 
@@ -145,12 +151,17 @@ public final class TimerCues {
             boolean last = i == preset.intervals.size() - 1;
             if (last) {
                 add(out, from, to, new Cue(FINISH, i, end));
-            } else if (!preset.intervals.get(i + 1).message.isEmpty()) {
-                // The next interval's message belongs to the moment this one ends.
+            } else if (announces(preset.intervals.get(i + 1))) {
+                // The next interval's beginning belongs to the moment this one ends.
                 add(out, from, to, new Cue(SPEAK, i + 1, end));
             }
             cursor = end;
         }
+    }
+
+    /** Whether an interval has anything to say or play at its own beginning. */
+    private static boolean announces(TimerInterval interval) {
+        return !interval.message.isEmpty() || !interval.startSound.isEmpty();
     }
 
     /** In the order they should be played, and on the same instant the ending comes first. */

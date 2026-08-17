@@ -76,6 +76,14 @@ public class TimerView extends View {
         /** Play this pattern, however the settings say it should be heard. */
         void cue(Tones.Note[] pattern);
 
+        /**
+         * Play the sound this cue was given, falling back to the pattern when there is none.
+         *
+         * The strip knows which sound a slot names; what a sound *is* — a file, a clip, a decoder —
+         * belongs to the screen, which is where the player and the settings live.
+         */
+        void sound(String name, Tones.Note[] fallback);
+
         /** Say this, if there is anything to say. */
         void speak(String message);
 
@@ -259,25 +267,34 @@ public class TimerView extends View {
         for (TimerCues.Cue cue : cues) {
             switch (cue.kind) {
                 case TimerCues.PRE_ALARM:
-                    listener.cue(Tones.PRE_ALARM);
+                    listener.sound(cue.interval < preset.intervals.size()
+                            ? preset.intervals.get(cue.interval).preAlarmSound : "",
+                            Tones.PRE_ALARM);
                     break;
                 case TimerCues.TICK:
                     listener.cue(Tones.TICK);
                     break;
                 case TimerCues.START:
                     // The high one, landing on the moment the preset really begins — the same
-                    // sound as an ending, because it marks an instant just as exactly.
-                    listener.cue(Tones.END);
+                    // sound as an ending, because it marks an instant just as exactly. A preset
+                    // with a sound of its own plays that instead.
+                    listener.sound(preset.startSound, Tones.END);
                     break;
                 case TimerCues.END:
                     listener.cue(Tones.END);
                     listener.flash();
                     break;
                 case TimerCues.FINISH:
-                    listener.cue(Tones.FINISH);
+                    listener.sound(preset.finishSound, Tones.FINISH);
                     break;
                 case TimerCues.SPEAK:
                     if (cue.interval < preset.intervals.size()) {
+                        // The message and the sound share this moment rather than replacing each
+                        // other: one says what is beginning, the other marks that it has.
+                        String named = preset.intervals.get(cue.interval).startSound;
+                        if (!named.isEmpty()) {
+                            listener.sound(named, null);
+                        }
                         listener.speak(preset.intervals.get(cue.interval).message);
                     }
                     break;

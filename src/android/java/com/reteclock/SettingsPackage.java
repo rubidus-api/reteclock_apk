@@ -33,10 +33,11 @@ import java.util.zip.ZipOutputStream;
  *   settings.ini      the arrangement, in sections that match the settings pages
  *   fonts/…           the imported fonts, under their own names
  *   img/…             the pictures
+ *   sounds/…          the sounds
  * </pre>
  *
- * Both plural and singular are accepted when reading (`font/`, `fonts/`, `img/`, `imgs/`), because
- * the point of a plain zip is that somebody can build one by hand. A bare `.ini` or `.txt` is
+ * Both plural and singular are accepted when reading (`font/`, `fonts/`, `img/`, `imgs/`,
+ * `sound/`, `sounds/`), because the point of a plain zip is that somebody can build one by hand. A bare `.ini` or `.txt` is
  * accepted too: it is the same thing without the files.
  *
  * <p><b>Names arriving here are not names, they are input.</b> Every entry is checked by
@@ -49,6 +50,18 @@ final class SettingsPackage {
     static final String SETTINGS_ENTRY = "settings.ini";
     private static final String[] FONT_FOLDERS = {"font", "fonts"};
     private static final String[] IMAGE_FOLDERS = {"img", "imgs"};
+    private static final String[] SOUND_FOLDERS = {"sound", "sounds"};
+
+    /** The three kinds of file a package can carry, used as indexes into one array of choices. */
+    static final int FONTS = 0;
+    static final int IMAGES = 1;
+    static final int SOUNDS = 2;
+    static final int KINDS = 3;
+
+    /** Every kind chosen — what a caller with nothing to ask about wants. */
+    static boolean[] allKinds() {
+        return new boolean[] {true, true, true};
+    }
 
     /** As much of one file as will ever be read: past this it is not a font or a picture. */
     private static final int MAX_FILE_BYTES = 32 * 1024 * 1024;
@@ -83,19 +96,25 @@ final class SettingsPackage {
         final SettingsIni.Reading settings;
         final List<Carried> fonts = new ArrayList<Carried>();
         final List<Carried> images = new ArrayList<Carried>();
+        final List<Carried> sounds = new ArrayList<Carried>();
         /** Entries refused by name, each with the reason, for showing to the user. */
         final List<String> refused = new ArrayList<String>();
         /** Whether this was a package rather than a bare settings file. */
         boolean packaged;
 
+        /** The files of one kind: {@link #FONTS}, {@link #IMAGES} or {@link #SOUNDS}. */
+        List<Carried> of(int kind) {
+            return kind == FONTS ? fonts : kind == IMAGES ? images : sounds;
+        }
+
         /** What the carried files add up to, for showing before anything is brought in. */
         long carriedBytes() {
             long total = 0;
-            for (int i = 0; i < fonts.size(); i++) {
-                total += fonts.get(i).bytes;
-            }
-            for (int i = 0; i < images.size(); i++) {
-                total += images.get(i).bytes;
+            for (int kind = 0; kind < KINDS; kind++) {
+                List<Carried> carried = of(kind);
+                for (int i = 0; i < carried.size(); i++) {
+                    total += carried.get(i).bytes;
+                }
             }
             return total;
         }
@@ -105,7 +124,8 @@ final class SettingsPackage {
         }
 
         boolean isEmpty() {
-            return settings.entries.isEmpty() && fonts.isEmpty() && images.isEmpty();
+            return settings.entries.isEmpty() && fonts.isEmpty() && images.isEmpty()
+                    && sounds.isEmpty();
         }
     }
 
@@ -114,6 +134,7 @@ final class SettingsPackage {
         int settingsApplied;
         int fontsAdded;
         int imagesAdded;
+        int soundsAdded;
         int dropped;
     }
 
@@ -153,18 +174,21 @@ final class SettingsPackage {
     }
 
     /** Writes the package to an already-open stream, which the caller closes. */
-    static void write(Context context, OutputStream raw, Set<String> sections,
-            boolean withFonts, boolean withImages) throws IOException {
+    static void write(Context context, OutputStream raw, Set<String> sections, boolean[] files)
+            throws IOException {
         ZipOutputStream zip = new ZipOutputStream(raw);
         try {
             zip.putNextEntry(new ZipEntry(SETTINGS_ENTRY));
             zip.write(settingsText(context, sections).getBytes("UTF-8"));
             zip.closeEntry();
-            if (withFonts) {
+            if (files[FONTS]) {
                 copyInto(zip, Settings.fonts(context), "fonts/");
             }
-            if (withImages) {
+            if (files[IMAGES]) {
                 copyInto(zip, Settings.images(context), "img/");
+            }
+            if (files[SOUNDS]) {
+                copyInto(zip, Settings.sounds(context), "sounds/");
             }
         } finally {
             zip.finish();
@@ -254,12 +278,14 @@ final class SettingsPackage {
         clearStaging(context);
         File fontsDir = new File(staging(context), "fonts");
         File imagesDir = new File(staging(context), "img");
-        if (!fontsDir.mkdirs() || !imagesDir.mkdirs()) {
+        File soundsDir = new File(staging(context), "sounds");
+        if (!fontsDir.mkdirs() || !imagesDir.mkdirs() || !soundsDir.mkdirs()) {
             throw new IOException("cannot make room for the package under " + staging(context));
         }
         ZipInputStream zip = new ZipInputStream(in);
         List<Carried> fonts = new ArrayList<Carried>();
         List<Carried> images = new ArrayList<Carried>();
+        List<Carried> sounds = new ArrayList<Carried>();
         List<String> refused = new ArrayList<String>();
         SettingsIni.Reading settings = null;
         ZipEntry entry;
@@ -277,18 +303,21 @@ final class SettingsPackage {
             }
             String font = SafeName.insideFolder(path, FONT_FOLDERS);
             String image = font != null ? null : SafeName.insideFolder(path, IMAGE_FOLDERS);
-            if (font == null && image == null) {
-                refused.add(path + " — not in fonts/ or img/");
+            String sound = font != null || image != null
+                    ? null : SafeName.insideFolder(path, SOUND_FOLDERS);
+            if (font == null && image == null && sound == null) {
+                refused.add(path + " — not in fonts/, img/ or sounds/");
                 continue;
             }
-            String name = font != null ? font : image;
+            String name = font != null ? font : image != null ? image : sound;
             // Checked before a single byte of it is read, and refused whole rather than repaired.
             String wrong = SafeName.complaint(name);
             if (wrong != null) {
                 refused.add(name + " — " + wrong);
                 continue;
             }
-            File staged = new File(font != null ? fontsDir : imagesDir, name);
+            File staged = new File(font != null ? fontsDir : image != null ? imagesDir : soundsDir,
+                    name);
             long written = drain(zip, staged, MAX_FILE_BYTES);
             if (written >= MAX_FILE_BYTES) {
                 staged.delete();
@@ -296,12 +325,14 @@ final class SettingsPackage {
                         + FontLibrary.humanBytes(MAX_FILE_BYTES));
                 continue;
             }
-            (font != null ? fonts : images).add(new Carried(name, staged, written));
+            (font != null ? fonts : image != null ? images : sounds)
+                    .add(new Carried(name, staged, written));
         }
         Preview out = new Preview(settings == null ? SettingsIni.parse("") : settings);
         out.packaged = true;
         out.fonts.addAll(fonts);
         out.images.addAll(images);
+        out.sounds.addAll(sounds);
         out.refused.addAll(refused);
         return out;
     }
@@ -320,8 +351,7 @@ final class SettingsPackage {
      * The files go in first: a setting that names a font is only worth writing if the font is
      * there, and this is the order that makes the two agree.
      */
-    static Result apply(Context context, Preview preview, Set<String> sections,
-            boolean withFonts, boolean withImages) {
+    static Result apply(Context context, Preview preview, Set<String> sections, boolean[] files) {
         Result result = new Result();
         // A file whose name is already taken by different content lands under a new name, and the
         // settings that came with it still say the old one. Left alone, that is a package that
@@ -329,15 +359,20 @@ final class SettingsPackage {
         // being there. So the renames are collected and the names in the settings follow them.
         java.util.Map<String, String> renamedFonts = new java.util.HashMap<String, String>();
         java.util.Map<String, String> renamedImages = new java.util.HashMap<String, String>();
-        if (withFonts) {
+        java.util.Map<String, String> renamedSounds = new java.util.HashMap<String, String>();
+        if (files[FONTS]) {
             result.fontsAdded = install(Settings.fonts(context), preview.fonts, renamedFonts);
         }
-        if (withImages) {
+        if (files[IMAGES]) {
             result.imagesAdded = install(Settings.images(context), preview.images, renamedImages);
+        }
+        if (files[SOUNDS]) {
+            result.soundsAdded = install(Settings.sounds(context), preview.sounds, renamedSounds);
         }
 
         Set<String> fontNames = names(Settings.fonts(context));
         Set<String> imageNames = names(Settings.images(context));
+        Set<String> soundNames = names(Settings.sounds(context));
 
         SharedPreferences.Editor editor = Settings.edit(context);
         for (int i = 0; i < preview.settings.entries.size(); i++) {
@@ -367,6 +402,18 @@ final class SettingsPackage {
             } else if (entry.kind == SettingsIni.STRING && isFontChoice(entry.key)
                     && renamedFonts.containsKey(value)) {
                 value = renamedFonts.get(value);
+            } else if (Settings.KEY_BELLS.equals(entry.key)) {
+                // A bell keeps its time and its weekdays whatever happened to its sound: those are
+                // the parts somebody had to think about. A sound that did not travel falls back to
+                // the chime, and one that landed under another name is followed.
+                value = com.reteclock.core.Bells.parse(value)
+                        .renamed(renamedSounds).soundsKeptTo(soundNames).text();
+            } else if (Settings.KEY_SOUND_CLIPS.equals(entry.key)) {
+                value = com.reteclock.core.SoundClips.parse(value)
+                        .renamed(renamedSounds).keeping(soundNames).text();
+            } else if (Settings.KEY_TIMER_PRESETS.equals(entry.key)
+                    && !renamedSounds.isEmpty()) {
+                value = presetsWithSoundsRenamed(value, renamedSounds);
             }
             if (entry.kind == SettingsIni.STRING && isFontChoice(entry.key)
                     && value.length() > 0 && !fontNames.contains(value)) {
@@ -397,6 +444,24 @@ final class SettingsPackage {
         editor.putString(Settings.KEY_RUN_PRESET, "");
         editor.commit();
         return result;
+    }
+
+    /**
+     * The presets, with every sound name they hold pointed at where the file actually landed.
+     *
+     * A preset is a small tree written as one string, so this is the one place the rename cannot be
+     * done by looking at the value: it is parsed, moved and written again.
+     */
+    private static String presetsWithSoundsRenamed(String text,
+            java.util.Map<String, String> renames) {
+        List<com.reteclock.core.TimerPreset> presets =
+                com.reteclock.core.TimerPresets.parse(text);
+        List<com.reteclock.core.TimerPreset> moved =
+                new ArrayList<com.reteclock.core.TimerPreset>(presets.size());
+        for (int i = 0; i < presets.size(); i++) {
+            moved.add(presets.get(i).soundsRenamed(renames));
+        }
+        return com.reteclock.core.TimerPresets.toText(moved);
     }
 
     private static int install(FontLibrary library, List<Carried> files,

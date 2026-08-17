@@ -85,6 +85,10 @@ public final class Settings {
     /** How long a still background image shows before the slideshow moves on. */
     public static final int DEFAULT_STILL_SECONDS = 10;
 
+    public static final String KEY_SOUND_CLIPS = "sound_clips";
+    public static final String KEY_BELLS = "bells";
+    public static final String KEY_BELLS_ON = "bells_on";
+
     public static final String KEY_POOL_BACKGROUND = "pool_background";
     public static final String KEY_POOL_TEXT = "pool_text";
     public static final String KEY_POOL_MIGRATED = "pool_migrated";
@@ -93,6 +97,8 @@ public final class Settings {
     private static final String FONT_DIR = "fonts";
     /** Where every image lives — one pool; the two role lists say which serves where. */
     private static final String POOL_DIR = "images";
+    /** The imported sounds, in a pool of their own beside the pictures. */
+    private static final String SOUND_DIR = "sounds";
     /** The pre-0.5 homes of the images, read once by the migration and then left empty. */
     private static final String OLD_BACKGROUND_DIR = "background";
     private static final String OLD_FOREGROUND_DIR = "foreground";
@@ -179,6 +185,10 @@ public final class Settings {
         out.put(KEY_POOL_BACKGROUND, prefs(context).getString(KEY_POOL_BACKGROUND, ""));
         out.put(KEY_POOL_TEXT, prefs(context).getString(KEY_POOL_TEXT, ""));
 
+        out.put(KEY_BELLS_ON, Boolean.valueOf(bellsOn(context)));
+        out.put(KEY_BELLS, bells(context).text());
+        out.put(KEY_SOUND_CLIPS, soundClips(context).text());
+
         out.put(KEY_TIMER_ON, Boolean.valueOf(timerOn(context)));
         out.put(KEY_TIMER_HIDDEN, Boolean.valueOf(timerHidden(context)));
         out.put(KEY_TIMER_CHOSEN, Integer.valueOf(timerChosen(context)));
@@ -225,6 +235,45 @@ public final class Settings {
     /** The fonts the user has imported. */
     public static FontLibrary fonts(Context context) {
         return new FontLibrary(new File(context.getFilesDir(), FONT_DIR));
+    }
+
+    /**
+     * The sounds the user has imported.
+     *
+     * The same plain file store the fonts and the pictures use — it says of itself that nothing in
+     * it is font-specific, and a sound is one more thing with a safe name and some bytes. What is
+     * sound-specific lives elsewhere: {@link #soundClips} says which stretch of each one plays.
+     */
+    public static FontLibrary sounds(Context context) {
+        return new FontLibrary(new File(context.getFilesDir(), SOUND_DIR));
+    }
+
+    /** How each adjusted sound plays: from where, to where, and whether it repeats. */
+    public static com.reteclock.core.SoundClips soundClips(Context context) {
+        return com.reteclock.core.SoundClips.parse(
+                prefs(context).getString(KEY_SOUND_CLIPS, ""));
+    }
+
+    public static void setSoundClips(Context context, com.reteclock.core.SoundClips clips) {
+        prefs(context).edit().putString(KEY_SOUND_CLIPS, clips.text()).commit();
+    }
+
+    /** The bells: a sound, a time of day, and the weekdays it rings on. */
+    public static com.reteclock.core.Bells bells(Context context) {
+        return com.reteclock.core.Bells.parse(prefs(context).getString(KEY_BELLS, ""));
+    }
+
+    public static void setBells(Context context, com.reteclock.core.Bells bells) {
+        prefs(context).edit().putString(KEY_BELLS, bells.text()).commit();
+    }
+
+    /** The one switch that silences every bell without unsetting any of them. */
+    public static boolean bellsOn(Context context) {
+        return prefs(context).getBoolean(KEY_BELLS_ON, true);
+    }
+
+    public static void setBellsOn(Context context, boolean on) {
+        prefs(context).edit().putBoolean(KEY_BELLS_ON, on).commit();
     }
 
     /**

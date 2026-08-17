@@ -59,6 +59,19 @@ public final class Tones {
         new Note(A5, 240, 0),
     };
 
+    /**
+     * What a bell rings when no sound has been chosen for it.
+     *
+     * Four notes falling, the shape of a chiming clock, and long enough to be noticed across a room
+     * without being an alarm: a bell in this app announces an hour, it does not demand anything.
+     */
+    public static final Note[] CHIME = {
+        new Note(E5, 320, 40),
+        new Note(CIS5, 320, 40),
+        new Note(A4, 320, 40),
+        new Note(D5, 600, 0),
+    };
+
     public static final String FINISH_NAME = "Die Forelle (Schubert, 1817)";
 
     /**

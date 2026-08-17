@@ -31,6 +31,9 @@ public class ClockDreamService extends DreamService {
 
     private ClockView view;
     private TimerView timer;
+    /** The screensaver sounds a cue the same way the clock does; it simply never speaks. */
+    private final SoundPlayer cuePlayer = new SoundPlayer();
+    private BellRinger bells;
     private TimerSounds sounds;
 
     @Override
@@ -41,6 +44,16 @@ public class ClockDreamService extends DreamService {
         setScreenBright(true);
 
         view = new ClockView(this);
+        // The screensaver is the clock, so the bells ring here too. Touching a screensaver
+        // dismisses it, which stops the sound with it — there is nothing else for a touch to do.
+        final BellRinger bells = new BellRinger(this);
+        this.bells = bells;
+        view.setOnSecond(new ClockView.OnSecond() {
+            @Override
+            public void second(long nowMs) {
+                bells.tick(nowMs);
+            }
+        });
         TimerRun running = restoreRun();
         if (running == null) {
             setContentView(view);
@@ -117,6 +130,14 @@ public class ClockDreamService extends DreamService {
         }
 
         @Override
+        public void sound(String name, Tones.Note[] fallback) {
+            if (sounds == null) {
+                sounds = new TimerSounds(ClockDreamService.this);
+            }
+            CueSound.play(ClockDreamService.this, cuePlayer, sounds, name, fallback);
+        }
+
+        @Override
         public void speak(String message) {
             // Left to the clock: a screensaver that starts talking is harder to explain than one
             // that beeps, and the engine would have to be held open for the whole night.
@@ -134,6 +155,9 @@ public class ClockDreamService extends DreamService {
     @Override
     public void onDreamingStarted() {
         super.onDreamingStarted();
+        if (bells != null) {
+            bells.reload();
+        }
         view.start();
         if (timer != null) {
             timer.resumeDrawing();
@@ -143,6 +167,10 @@ public class ClockDreamService extends DreamService {
     @Override
     public void onDreamingStopped() {
         view.stop();
+        cuePlayer.stopNow();
+        if (bells != null) {
+            bells.stop();
+        }
         if (timer != null) {
             timer.pauseDrawing();
         }

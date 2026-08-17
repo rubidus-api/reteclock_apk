@@ -306,19 +306,29 @@ public final class TimeDateSettingsActivity extends Activity {
         ownNames.addView(subheading(getString(R.string.names_own,
                 Calendars.name(system))));
 
+        // Side by side, each button only as wide as the name on it. Thirteen months and seven
+        // weekdays as full-width rows is twenty rows of screen spent on twenty short words, and the
+        // set is far easier to read as a set: this is a calendar's names, and they belong together.
         CustomNames names = Settings.customNames(this, system);
         String[] months = Calendars.monthNames(system, Settings.calendarNameStyle(this, system));
         final int howMany = mostMonths(system);
+        ownNames.addView(subheading(getString(R.string.names_months)));
+        FlowLayout monthRow = new FlowLayout(this, dp(4), dp(2));
         for (int month = 1; month <= howMany; month++) {
             String built = month <= months.length ? months[month - 1] : Integer.toString(month);
-            ownNames.addView(nameRow(built, names.monthEntry(month), true, month, howMany));
+            monthRow.addView(nameRow(built, names.monthEntry(month), true, month, howMany));
         }
+        ownNames.addView(monthRow);
 
         String[] weekdays = Calendars.weekdayNames(system,
                 Settings.calendarWeekdayStyle(this, system));
+        ownNames.addView(subheading(getString(R.string.names_weekdays)));
+        FlowLayout weekdayRow = new FlowLayout(this, dp(4), dp(2));
         for (int day = 0; day < weekdays.length; day++) {
-            ownNames.addView(nameRow(weekdays[day], names.weekdayEntry(day), false, day, howMany));
+            weekdayRow.addView(nameRow(weekdays[day], names.weekdayEntry(day), false, day,
+                    howMany));
         }
+        ownNames.addView(weekdayRow);
 
         Button clear = new Button(this);
         clear.setText(R.string.names_clear);
@@ -355,11 +365,20 @@ public final class TimeDateSettingsActivity extends Activity {
         return most;
     }
 
-    /** One renameable name: what it is called now, and what the user called it. */
+    /**
+     * One renameable name, as wide as the word on it.
+     *
+     * The button shows the name in force — the user's own where there is one, the built-in one
+     * otherwise — rather than both with an arrow between them. In a row of thirteen, position says
+     * which month this is, and the pair "Jan → 1월" is twice as wide as either half of it.
+     */
     private View nameRow(final String built, String typed, final boolean isMonth, final int index,
             final int howMany) {
         Button row = new Button(this);
-        row.setText(typed.length() == 0 ? built : built + "  \u2192  " + typed);
+        row.setText(typed.length() == 0 ? built : typed);
+        row.setMinWidth(0);
+        row.setMinimumWidth(0);
+        row.setPadding(dp(10), dp(4), dp(10), dp(4));
         row.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {

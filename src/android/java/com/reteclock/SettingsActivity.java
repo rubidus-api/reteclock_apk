@@ -168,14 +168,13 @@ public class SettingsActivity extends Activity {
     /** What the export will contain: every page and both file kinds until the user says otherwise. */
     private final Set<String> exportSections = new HashSet<String>(
             java.util.Arrays.asList(SettingsIni.SECTIONS));
-    private boolean exportFonts = true;
+    /** Fonts, pictures and sounds, indexed by {@link SettingsPackage#FONTS} and its neighbours. */
+    private final boolean[] exportFiles = SettingsPackage.allKinds();
     /** Which of the two buttons was pressed: the package, or the settings on their own. */
     private boolean exportAsZip;
-    private boolean exportImages = true;
     /** And what an import will bring in, decided after the file has been read. */
     private final Set<String> importSections = new HashSet<String>();
-    private boolean importFonts = true;
-    private boolean importImages = true;
+    private final boolean[] importFiles = SettingsPackage.allKinds();
     /** The file that was chosen, read but not yet applied. */
     private SettingsPackage.Preview pendingImport;
     private LinearLayout importSection;
@@ -561,8 +560,9 @@ public class SettingsActivity extends Activity {
                 }));
         out.addView(divider());
         out.addView(subheading(getString(R.string.carry_export_files)));
-        out.addView(fileBox(R.string.carry_fonts, true, true));
-        out.addView(fileBox(R.string.carry_pictures, false, true));
+        out.addView(fileBox(R.string.carry_fonts, SettingsPackage.FONTS, exportFiles));
+        out.addView(fileBox(R.string.carry_pictures, SettingsPackage.IMAGES, exportFiles));
+        out.addView(fileBox(R.string.carry_sounds, SettingsPackage.SOUNDS, exportFiles));
         out.addView(actionButton(getString(R.string.carry_export_zip),
                 new View.OnClickListener() {
                     @Override
@@ -584,6 +584,9 @@ public class SettingsActivity extends Activity {
         }
         if ("pictures".equals(section)) {
             return getString(R.string.carry_section_pictures);
+        }
+        if ("sounds".equals(section)) {
+            return getString(R.string.carry_section_sounds);
         }
         if ("timer".equals(section)) {
             return getString(R.string.carry_section_timer);
@@ -611,26 +614,16 @@ public class SettingsActivity extends Activity {
         return box;
     }
 
-    private CheckBox fileBox(int label, final boolean fonts, final boolean forExport) {
+    /** One kind of carried file, ticked or not: fonts, pictures or sounds. */
+    private CheckBox fileBox(int label, final int kind, final boolean[] into) {
         CheckBox box = new CheckBox(this);
         box.setText(label);
         box.setTextColor(TEXT_WHITE);
-        box.setChecked(forExport ? (fonts ? exportFonts : exportImages)
-                : (fonts ? importFonts : importImages));
+        box.setChecked(into[kind]);
         box.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton button, boolean checked) {
-                if (forExport) {
-                    if (fonts) {
-                        exportFonts = checked;
-                    } else {
-                        exportImages = checked;
-                    }
-                } else if (fonts) {
-                    importFonts = checked;
-                } else {
-                    importImages = checked;
-                }
+                into[kind] = checked;
             }
         });
         return box;
@@ -656,12 +649,19 @@ public class SettingsActivity extends Activity {
             importSection.addView(box);
         }
         if (!pendingImport.fonts.isEmpty()) {
-            importSection.addView(fileBox(R.string.carry_fonts, true, false));
+            importSection.addView(fileBox(R.string.carry_fonts, SettingsPackage.FONTS,
+                    importFiles));
             importSection.addView(footer(namesOf(pendingImport.fonts)));
         }
         if (!pendingImport.images.isEmpty()) {
-            importSection.addView(fileBox(R.string.carry_pictures, false, false));
+            importSection.addView(fileBox(R.string.carry_pictures, SettingsPackage.IMAGES,
+                    importFiles));
             importSection.addView(footer(namesOf(pendingImport.images)));
+        }
+        if (!pendingImport.sounds.isEmpty()) {
+            importSection.addView(fileBox(R.string.carry_sounds, SettingsPackage.SOUNDS,
+                    importFiles));
+            importSection.addView(footer(namesOf(pendingImport.sounds)));
         }
         // What the file amounts to, as this app understood it — not the bytes it was handed. A
         // preview of the raw text would show what somebody wrote; the question here is what is
@@ -725,12 +725,12 @@ public class SettingsActivity extends Activity {
             return;
         }
         SettingsPackage.Result result = SettingsPackage.apply(this, pendingImport,
-                importSections, importFonts, importImages);
+                importSections, importFiles);
         SettingsPackage.clearStaging(this);
         pendingImport = null;
         rebuildImportSection();
         toast(getString(R.string.carry_import_done, result.settingsApplied,
-                result.fontsAdded + result.imagesAdded, result.dropped));
+                result.fontsAdded + result.imagesAdded + result.soundsAdded, result.dropped));
     }
 
     /** The picture pool and what each picture is for. */
@@ -1671,7 +1671,7 @@ public class SettingsActivity extends Activity {
                 throw new IOException("cannot write " + uri);
             }
             if (exportAsZip) {
-                SettingsPackage.write(this, out, exportSections, exportFonts, exportImages);
+                SettingsPackage.write(this, out, exportSections, exportFiles);
             } else {
                 out.write(SettingsPackage.settingsText(this, exportSections).getBytes("UTF-8"));
             }
@@ -1741,8 +1741,9 @@ public class SettingsActivity extends Activity {
                 importSections.add(SettingsIni.SECTIONS[i]);
             }
         }
-        importFonts = !pendingImport.fonts.isEmpty();
-        importImages = !pendingImport.images.isEmpty();
+        importFiles[SettingsPackage.FONTS] = !pendingImport.fonts.isEmpty();
+        importFiles[SettingsPackage.IMAGES] = !pendingImport.images.isEmpty();
+        importFiles[SettingsPackage.SOUNDS] = !pendingImport.sounds.isEmpty();
         rebuildImportSection();
         if (pendingImport.isEmpty()) {
             toast(getString(R.string.settings_import_not_ours));

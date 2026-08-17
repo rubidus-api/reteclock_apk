@@ -33,6 +33,10 @@ public class ClockActivity extends Activity {
     public static final String EXTRA_DOCK = "com.reteclock.DOCK";
 
     private ClockView view;
+    /** The bells, riding the clock's own tick. */
+    private BellRinger bells;
+    /** The player the timer's own cues use; the bells have one of their own. */
+    private final SoundPlayer cuePlayer = new SoundPlayer();
     /** The timer's strip beside the clock, or null when the timer is switched off. */
     private TimerView timer;
     /** Everything on screen: the clock, the strip, and the sheet the flash uses. */
@@ -81,6 +85,14 @@ public class ClockActivity extends Activity {
         }
 
         view = new ClockView(this, safeMode);
+        // A bell is not part of the clock's drawing, but it happens on the clock's second.
+        bells = new BellRinger(this);
+        view.setOnSecond(new ClockView.OnSecond() {
+            @Override
+            public void second(long nowMs) {
+                bells.tick(nowMs);
+            }
+        });
         // A tap opens the menu; a long press is the old way straight to the settings, kept because
         // people who have used the app know it.
         view.setClickable(true);
@@ -91,10 +103,13 @@ public class ClockActivity extends Activity {
             public boolean onTouch(View v, android.view.MotionEvent event) {
                 int action = event.getAction();
                 if (action == android.view.MotionEvent.ACTION_DOWN) {
+                    // A ringing bell takes the touch before anything else does, and the touch is
+                    // then spent: somebody reaching to stop a sound is not asking for a menu.
                     // Taken now, and the rest of the gesture with it: consuming only the press
                     // leaves the release to the view, which counts it as a tap and opens the menu
                     // on top of whatever the arrow just did.
-                    ownGesture = view.pageCalendar(event.getX(), event.getY())
+                    ownGesture = silenceWhatIsSounding()
+                            || view.pageCalendar(event.getX(), event.getY())
                             || view.nextSaying(event.getX(), event.getY());
                     return ownGesture;
                 }
@@ -244,6 +259,21 @@ public class ClockActivity extends Activity {
     /** Whether the touch in progress belongs to the calendar's arrows or to the saying. */
     private boolean ownGesture;
 
+    /**
+     * Stops whatever the app is playing, and says whether there was anything to stop.
+     *
+     * A bell or a timer's own sound, either way: a touch that lands on a phone making a noise means
+     * "enough", and it means that before it means anything else on this screen.
+     */
+    private boolean silenceWhatIsSounding() {
+        boolean stopped = bells.silence();
+        if (cuePlayer.isPlaying()) {
+            cuePlayer.fadeOutAndStop();
+            stopped = true;
+        }
+        return stopped;
+    }
+
     private final TimerView.Listener timerListener = new TimerView.Listener() {
         @Override
         public void remember(com.reteclock.core.TimerRun run) {
@@ -265,6 +295,14 @@ public class ClockActivity extends Activity {
                 sounds = new TimerSounds(ClockActivity.this);
             }
             sounds.play(pattern, Settings.timerAlert(ClockActivity.this));
+        }
+
+        @Override
+        public void sound(String name, Tones.Note[] fallback) {
+            if (sounds == null) {
+                sounds = new TimerSounds(ClockActivity.this);
+            }
+            CueSound.play(ClockActivity.this, cuePlayer, sounds, name, fallback);
         }
 
         @Override
@@ -391,6 +429,9 @@ public class ClockActivity extends Activity {
         // The user may have just changed the options in the settings screen — including whether
         // the timer is on at all, which changes what is on screen.
         view.reloadOptions();
+        // The bells may have been edited in the meantime, and whatever fell while they were being
+        // edited is not rung on the way back.
+        bells.reload();
         applyStayUnlocked();
         layOutScreen();
         view.start();
@@ -406,6 +447,8 @@ public class ClockActivity extends Activity {
     @Override
     protected void onPause() {
         view.stop();
+        bells.stop();
+        cuePlayer.stopNow();
         if (timer != null) {
             timer.pauseDrawing();
         }

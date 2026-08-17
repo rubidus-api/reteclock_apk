@@ -191,11 +191,32 @@ public class ClockView extends View {
     /** The screen this device's prepared files were baked for; one pack serves both orientations. */
     private int preparedEdge;
 
+    /** Told each time the clock reaches a new second, for whoever else counts in seconds. */
+    public interface OnSecond {
+        void second(long nowMs);
+    }
+
+    /**
+     * Who else wants the tick.
+     *
+     * The clock already wakes once a second and knows when the next one is; anything else that
+     * needs the same rhythm — the bells — rides on it rather than starting a timer of its own,
+     * which on these phones is a second wake-up per second for no more information.
+     */
+    private OnSecond onSecond;
+
+    public void setOnSecond(OnSecond listener) {
+        onSecond = listener;
+    }
+
     private final Runnable tick = new Runnable() {
         @Override
         public void run() {
             if (!running) {
                 return;
+            }
+            if (onSecond != null) {
+                onSecond.second(System.currentTimeMillis());
             }
             invalidate();
             // A moving image or a running fade needs frames; a still clock needs one redraw per

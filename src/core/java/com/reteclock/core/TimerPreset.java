@@ -14,9 +14,13 @@ import java.util.List;
  * against the awkward characters a person can actually type.
  *
  * <pre>
- *   preset  := name '|' repeat TAB interval (TAB interval)*
- *   interval:= name | length | colour | endColour | message | preAlarm     (fields joined by '|')
+ *   preset  := name '|' repeat '|' startSound '|' finishSound TAB interval (TAB interval)*
+ *   interval:= name | length | colour | endColour | message | preAlarm | startSound | preAlarmSound
  * </pre>
+ *
+ * Fields were added to both lines as the timer grew, and both are read by position with the tail
+ * optional: a preset written before sounds existed simply has none, and one written after is read by
+ * an older build as the preset it always was.
  *
  * Backslash escapes itself, the two separators, and the newline, so a name containing any of them
  * survives the round trip.
@@ -30,12 +34,23 @@ public final class TimerPreset {
     public final List<TimerInterval> intervals;
     /** Whether it starts again the moment it ends, forever. */
     public final boolean loops;
+    /** A stored sound played when the whole preset begins; empty means the built-in beep. */
+    public final String startSound;
+    /** And when it is done, in place of the finishing melody. */
+    public final String finishSound;
 
     public TimerPreset(String name, List<TimerInterval> intervals) {
         this(name, intervals, false);
     }
 
     public TimerPreset(String name, List<TimerInterval> intervals, boolean loops) {
+        this(name, intervals, loops, "", "");
+    }
+
+    public TimerPreset(String name, List<TimerInterval> intervals, boolean loops,
+            String startSound, String finishSound) {
+        this.startSound = startSound == null ? "" : startSound;
+        this.finishSound = finishSound == null ? "" : finishSound;
         this.loops = loops;
         this.name = name == null ? "" : name;
         this.intervals = Collections.unmodifiableList(
@@ -82,17 +97,62 @@ public final class TimerPreset {
 
     /** The same preset under another name. */
     public TimerPreset withName(String newName) {
-        return new TimerPreset(newName, intervals, loops);
+        return new TimerPreset(newName, intervals, loops, startSound, finishSound);
     }
 
     /** The same preset with this list of intervals instead. */
     public TimerPreset withIntervals(List<TimerInterval> newIntervals) {
-        return new TimerPreset(name, newIntervals, loops);
+        return new TimerPreset(name, newIntervals, loops, startSound, finishSound);
     }
 
     /** The same preset, told whether to start again when it ends. */
     public TimerPreset withLoop(boolean newLoops) {
-        return new TimerPreset(name, intervals, newLoops);
+        return new TimerPreset(name, intervals, newLoops, startSound, finishSound);
+    }
+
+    public TimerPreset withStartSound(String sound) {
+        return new TimerPreset(name, intervals, loops, sound, finishSound);
+    }
+
+    public TimerPreset withFinishSound(String sound) {
+        return new TimerPreset(name, intervals, loops, startSound, sound);
+    }
+
+    /**
+     * The same preset with every sound name it holds remapped — its own two and its intervals'.
+     *
+     * An imported package can land a file under a different name when the one it wanted was taken,
+     * and a preset naming the old one would be a preset whose sounds silently became beeps.
+     */
+    public TimerPreset soundsRenamed(java.util.Map<String, String> renames) {
+        if (renames == null || renames.isEmpty()) {
+            return this;
+        }
+        List<TimerInterval> moved = new ArrayList<TimerInterval>(intervals.size());
+        for (int i = 0; i < intervals.size(); i++) {
+            moved.add(intervals.get(i).soundsRenamed(renames));
+        }
+        String start = renames.containsKey(startSound) ? renames.get(startSound) : startSound;
+        String finish = renames.containsKey(finishSound) ? renames.get(finishSound) : finishSound;
+        return new TimerPreset(name, moved, loops, start, finish);
+    }
+
+    /** Every sound this preset names, its intervals included, with no empties and no repeats. */
+    public List<String> soundNames() {
+        List<String> out = new ArrayList<String>();
+        addSound(out, startSound);
+        addSound(out, finishSound);
+        for (int i = 0; i < intervals.size(); i++) {
+            addSound(out, intervals.get(i).startSound);
+            addSound(out, intervals.get(i).preAlarmSound);
+        }
+        return out;
+    }
+
+    private static void addSound(List<String> out, String name) {
+        if (name != null && !name.isEmpty() && !out.contains(name)) {
+            out.add(name);
+        }
     }
 
     public String toText() {
@@ -100,6 +160,8 @@ public final class TimerPreset {
         // existed still reads — its name simply has no flag, which means it does not repeat.
         StringBuilder out = new StringBuilder(escape(name));
         out.append(FIELD).append(loops ? '1' : '0');
+        out.append(FIELD).append(escape(startSound));
+        out.append(FIELD).append(escape(finishSound));
         for (TimerInterval interval : intervals) {
             out.append(PART);
             out.append(escape(interval.name)).append(FIELD);
@@ -107,7 +169,9 @@ public final class TimerPreset {
             out.append(interval.color).append(FIELD);
             out.append(interval.endColor).append(FIELD);
             out.append(escape(interval.message)).append(FIELD);
-            out.append(interval.preAlarmSeconds);
+            out.append(interval.preAlarmSeconds).append(FIELD);
+            out.append(escape(interval.startSound)).append(FIELD);
+            out.append(escape(interval.preAlarmSound));
         }
         return out.toString();
     }
@@ -121,6 +185,8 @@ public final class TimerPreset {
         List<String> head = split(parts.get(0), FIELD);
         String name = unescape(head.get(0));
         boolean loops = head.size() > 1 && "1".equals(head.get(1).trim());
+        String startSound = head.size() > 2 ? unescape(head.get(2)) : "";
+        String finishSound = head.size() > 3 ? unescape(head.get(3)) : "";
         List<TimerInterval> intervals = new ArrayList<TimerInterval>();
         for (int i = 1; i < parts.size(); i++) {
             List<String> fields = split(parts.get(i), FIELD);
@@ -133,12 +199,14 @@ public final class TimerPreset {
                     (int) number(fields.get(2), TimerInterval.DEFAULT_COLOR),
                     (int) number(fields.get(3), TimerInterval.DEFAULT_END_COLOR),
                     unescape(fields.get(4)),
-                    (int) number(fields.get(5), 0)));
+                    (int) number(fields.get(5), 0),
+                    fields.size() > 6 ? unescape(fields.get(6)) : "",
+                    fields.size() > 7 ? unescape(fields.get(7)) : ""));
         }
         if (intervals.isEmpty() && name.isEmpty()) {
             return null;
         }
-        return new TimerPreset(name, intervals, loops);
+        return new TimerPreset(name, intervals, loops, startSound, finishSound);
     }
 
     private static long number(String text, long fallback) {

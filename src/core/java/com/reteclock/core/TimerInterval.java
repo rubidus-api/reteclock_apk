@@ -31,9 +31,26 @@ public final class TimerInterval {
     public final String message;
     /** How many seconds before the end the warning beeps sound; zero means none. */
     public final int preAlarmSeconds;
+    /**
+     * A stored sound played where the message is spoken — the interval's own beginning.
+     *
+     * Empty means the built-in beep, and a name whose file is gone means the same: a cue that fell
+     * silent because a file was deleted would be a timer that quietly stopped working. The sound and
+     * the message are two different things in the same slot, and both happen when both are set.
+     */
+    public final String startSound;
+    /** A stored sound played in place of the warning beeps; empty means the beeps. */
+    public final String preAlarmSound;
 
     public TimerInterval(String name, long lengthMs, int color, int endColor, String message,
             int preAlarmSeconds) {
+        this(name, lengthMs, color, endColor, message, preAlarmSeconds, "", "");
+    }
+
+    public TimerInterval(String name, long lengthMs, int color, int endColor, String message,
+            int preAlarmSeconds, String startSound, String preAlarmSound) {
+        this.startSound = startSound == null ? "" : startSound;
+        this.preAlarmSound = preAlarmSound == null ? "" : preAlarmSound;
         this.name = name == null ? "" : name;
         this.lengthMs = Math.max(lengthMs, MIN_LENGTH_MS);
         this.color = color == 0 ? DEFAULT_COLOR : color;
@@ -47,22 +64,49 @@ public final class TimerInterval {
 
     /** The same interval with one field replaced; the editor works by making new ones. */
     public TimerInterval withName(String newName) {
-        return new TimerInterval(newName, lengthMs, color, endColor, message, preAlarmSeconds);
+        return new TimerInterval(newName, lengthMs, color, endColor, message, preAlarmSeconds,
+                startSound, preAlarmSound);
     }
 
     public TimerInterval withLength(long newLengthMs) {
-        return new TimerInterval(name, newLengthMs, color, endColor, message, preAlarmSeconds);
+        return new TimerInterval(name, newLengthMs, color, endColor, message, preAlarmSeconds,
+                startSound, preAlarmSound);
     }
 
     public TimerInterval withColors(int newColor, int newEndColor) {
-        return new TimerInterval(name, lengthMs, newColor, newEndColor, message, preAlarmSeconds);
+        return new TimerInterval(name, lengthMs, newColor, newEndColor, message, preAlarmSeconds,
+                startSound, preAlarmSound);
     }
 
     public TimerInterval withMessage(String newMessage) {
-        return new TimerInterval(name, lengthMs, color, endColor, newMessage, preAlarmSeconds);
+        return new TimerInterval(name, lengthMs, color, endColor, newMessage, preAlarmSeconds,
+                startSound, preAlarmSound);
     }
 
     public TimerInterval withPreAlarm(int seconds) {
-        return new TimerInterval(name, lengthMs, color, endColor, message, seconds);
+        return new TimerInterval(name, lengthMs, color, endColor, message, seconds,
+                startSound, preAlarmSound);
+    }
+
+    public TimerInterval withStartSound(String sound) {
+        return new TimerInterval(name, lengthMs, color, endColor, message, preAlarmSeconds,
+                sound, preAlarmSound);
+    }
+
+    public TimerInterval withPreAlarmSound(String sound) {
+        return new TimerInterval(name, lengthMs, color, endColor, message, preAlarmSeconds,
+                startSound, sound);
+    }
+
+    /** The same interval with every sound it names remapped, the way an import remaps one. */
+    public TimerInterval soundsRenamed(java.util.Map<String, String> renames) {
+        if (renames == null || renames.isEmpty()) {
+            return this;
+        }
+        String start = renames.containsKey(startSound) ? renames.get(startSound) : startSound;
+        String warn = renames.containsKey(preAlarmSound)
+                ? renames.get(preAlarmSound) : preAlarmSound;
+        return new TimerInterval(name, lengthMs, color, endColor, message, preAlarmSeconds,
+                start, warn);
     }
 }
