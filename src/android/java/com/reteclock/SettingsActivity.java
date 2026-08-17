@@ -499,6 +499,9 @@ public class SettingsActivity extends Activity {
     private void buildFontPage(LinearLayout root) {
         root.addView(title(getString(R.string.settings_open_fonts)));
         LinearLayout fonts = card(getString(R.string.settings_font));
+        if (HighContrastText.isOn(this)) {
+            fonts.addView(warning(getString(R.string.settings_high_contrast)));
+        }
         fontSection = new LinearLayout(this);
         fontSection.setOrientation(LinearLayout.VERTICAL);
         fonts.addView(fontSection);
@@ -737,9 +740,22 @@ public class SettingsActivity extends Activity {
     private void buildPicturePage(LinearLayout root) {
         root.addView(title(getString(R.string.settings_open_pictures)));
         LinearLayout images = card(getString(R.string.settings_images));
+        if (HighContrastText.isOn(this)) {
+            images.addView(warning(getString(R.string.settings_high_contrast)));
+        }
         imageSection = new LinearLayout(this);
         imageSection.setOrientation(LinearLayout.VERTICAL);
         images.addView(imageSection);
+        // One at a time is the picker in the list above — which now takes as many as you tick.
+        // A whole folder at once is the zip, the same page the fonts and the sounds use.
+        images.addView(actionButton(getString(R.string.settings_images_carry),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        openPage(PAGE_CARRY);
+                    }
+                }));
+        images.addView(footer(getString(R.string.settings_images_carry_note)));
         root.addView(images);
         rebuildImageSection();
     }
@@ -1525,6 +1541,14 @@ public class SettingsActivity extends Activity {
         return 1;
     }
 
+    /**
+     * Asks for pictures — as many at a time as the phone will offer.
+     *
+     * A folder of photographs is the thing people actually bring in, and one at a time is twenty
+     * trips through the picker. {@code EXTRA_ALLOW_MULTIPLE} arrived in API 18; below that the
+     * picker hands back one file and the flag is simply ignored, so there is nothing to guard
+     * beyond asking.
+     */
     private void pickImage() {
         Intent intent;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
@@ -1533,6 +1557,7 @@ public class SettingsActivity extends Activity {
             intent = new Intent(Intent.ACTION_GET_CONTENT);
         }
         intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
         intent.setType("image/*");
         try {
             startActivityForResult(intent, REQUEST_PICK_IMAGE);
@@ -1546,34 +1571,85 @@ public class SettingsActivity extends Activity {
      * tick away from anything else; a re-import of a file already in the pool keeps whatever role
      * it has.
      */
+    /**
+     * Everything the picker handed back, brought in one at a time.
+     *
+     * A multiple selection arrives as a {@code ClipData} (API 16) rather than as the single
+     * {@code getData()} URI; either may be present, and a picker that ignored the request gives
+     * only the second. Each file is reported by itself when it fails, and the count is said once at
+     * the end, because forty toasts is not a report.
+     */
+    private void importImages(Intent data) {
+        java.util.List<Uri> chosen = new java.util.ArrayList<Uri>();
+        android.content.ClipData clip = Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN
+                ? data.getClipData() : null;
+        if (clip != null) {
+            for (int i = 0; i < clip.getItemCount(); i++) {
+                Uri uri = clip.getItemAt(i).getUri();
+                if (uri != null) {
+                    chosen.add(uri);
+                }
+            }
+        }
+        if (chosen.isEmpty() && data.getData() != null) {
+            chosen.add(data.getData());
+        }
+        if (chosen.size() == 1) {
+            importImage(chosen.get(0));
+            return;
+        }
+        int added = 0;
+        for (int i = 0; i < chosen.size(); i++) {
+            if (importImage(chosen.get(i), false)) {
+                added++;
+            }
+        }
+        rebuildImageSection();
+        toast(getString(R.string.settings_images_added, added, chosen.size()));
+    }
+
     private void importImage(Uri uri) {
+        importImage(uri, true);
+    }
+
+    /** Brings one picture in; {@code alone} decides whether it reports and redraws by itself. */
+    private boolean importImage(Uri uri, boolean alone) {
         FontLibrary store = Settings.images(this);
         byte[] content;
         try {
             content = readAll(uri, BackgroundImage.MAX_IMAGE_BYTES);
         } catch (IOException e) {
-            toast(getString(R.string.settings_font_failed));
-            return;
+            if (alone) {
+                toast(getString(R.string.settings_font_failed));
+            }
+            return false;
         }
         String stored;
         try {
             stored = store.add(displayName(uri), content);
         } catch (IOException e) {
-            toast(getString(R.string.settings_font_failed));
-            return;
+            if (alone) {
+                toast(getString(R.string.settings_font_failed));
+            }
+            return false;
         }
         // Whether the file is an image this device can draw is something only decoding can say,
         // so it is asked now, while the file can still be thrown away.
         if (BackgroundImage.load(store.file(stored)) == null) {
             store.delete(stored);
-            toast(getString(R.string.settings_background_rejected));
-            return;
+            if (alone) {
+                toast(getString(R.string.settings_background_rejected));
+            }
+            return false;
         }
         ImageRoles.Lists lists = Settings.roles(this);
         if (ImageRoles.roleOf(lists, stored) == ImageRoles.NONE) {
             Settings.saveRoles(this, ImageRoles.assign(lists, stored, ImageRoles.BACKGROUND));
         }
-        rebuildImageSection();
+        if (alone) {
+            rebuildImageSection();
+        }
+        return true;
     }
 
     /**
@@ -1606,7 +1682,7 @@ public class SettingsActivity extends Activity {
         if (requestCode == REQUEST_PICK_FONT) {
             importFont(data.getData());
         } else if (requestCode == REQUEST_PICK_IMAGE) {
-            importImage(data.getData());
+            importImages(data);
         } else if (requestCode == REQUEST_PICK_SETTINGS) {
             importSettings(data.getData());
         } else if (requestCode == REQUEST_SAVE_SETTINGS) {

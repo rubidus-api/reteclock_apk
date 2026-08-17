@@ -260,6 +260,12 @@ public class SoundSettingsActivity extends Activity {
      * name is empty, since that is what a bell with no sound rings.
      */
     private void preview(String name) {
+        // The phone's own switch is obeyed here too — but silently failing to play would read as a
+        // broken button, so this one says what happened.
+        if (!PhoneQuiet.soundAllowed(this)) {
+            toast(getString(R.string.sound_phone_silent));
+            return;
+        }
         if (name == null || name.isEmpty()) {
             player.stopNow();
             previewing = "";

@@ -53,7 +53,15 @@ final class TimerSounds {
             return;
         }
         if (mode == Settings.ALERT_VIBRATE) {
-            buzz(pattern);
+            // A phone switched to silent is not asking to be buzzed either.
+            if (PhoneQuiet.vibrationAllowed(context)) {
+                buzz(pattern);
+            }
+            return;
+        }
+        // The ringer switch wins over this app's own setting. Sounds go out on the music stream,
+        // which the platform does not silence for us, so it is silenced here.
+        if (!PhoneQuiet.soundAllowed(context)) {
             return;
         }
         final Tones.Note[] notes = pattern;

@@ -79,6 +79,11 @@ final class BellRinger {
      * is nothing left to stop. A bell naming a file goes through the player, which can be faded.
      */
     private void ring(Bell bell) {
+        // A bell does not answer to the timer's vibrate or silent setting — it is a different
+        // feature, set separately — but it does answer to the phone's own ringer switch.
+        if (!PhoneQuiet.soundAllowed(context)) {
+            return;
+        }
         if (bell.sound.isEmpty()) {
             tones.play(Tones.CHIME, Settings.ALERT_SOUND);
             return;

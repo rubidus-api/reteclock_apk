@@ -71,6 +71,17 @@ public class ClockView extends View {
     private boolean outlineNow;
     /** The outline's own brush; the text's paint keeps its fill and its shader. */
     private final Paint outlinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    /**
+     * Whether Android's high-contrast text is on, in which case the clock is drawn as shapes.
+     *
+     * See {@link HighContrastText}: while it is on the platform outlines every string itself and
+     * throws away the paint's shader, so a picture used to fill the writing never appears and the
+     * clock looks outlined whatever this app was asked for. Glyphs handed over as a path are not
+     * text as far as that feature is concerned, and come out as they were meant to.
+     */
+    private boolean highContrast;
+    /** The glyphs of one string, reused: one path object rather than one per draw. */
+    private final android.graphics.Path glyphPath = new android.graphics.Path();
 
     /** The background slideshow's files, in name order; empty for the plain black clock. */
     private final java.util.List<java.io.File> slides = new java.util.ArrayList<java.io.File>();
@@ -277,6 +288,7 @@ public class ClockView extends View {
     /** Re-reads the options, e.g. after the user comes back from the settings screen. */
     public void reloadOptions() {
         options = Settings.options(getContext());
+        highContrast = HighContrastText.isOn(getContext());
         loadCalendar(getContext());
         loadTypeface(getContext());
         loadImages(getContext());
@@ -544,7 +556,20 @@ public class ClockView extends View {
                 android.graphics.Xfermode was = paint.getXfermode();
                 paint.setXfermode(new android.graphics.PorterDuffXfermode(
                         android.graphics.PorterDuff.Mode.CLEAR));
-                canvas.drawText(String.valueOf(day), centreX, base, paint);
+                if (highContrast) {
+                    // The same reason as everywhere else: with high-contrast text on, the platform
+                    // would draw its own outline into the hole this is cutting.
+                    glyphPath.reset();
+                    Paint.Align align = paint.getTextAlign();
+                    paint.setTextAlign(Paint.Align.LEFT);
+                    String number = String.valueOf(day);
+                    paint.getTextPath(number, 0, number.length(),
+                            centreX - paint.measureText(number) / 2f, base, glyphPath);
+                    paint.setTextAlign(align);
+                    canvas.drawPath(glyphPath, paint);
+                } else {
+                    canvas.drawText(String.valueOf(day), centreX, base, paint);
+                }
                 paint.setXfermode(was);
                 canvas.restoreToCount(layer);
             }
@@ -1369,11 +1394,19 @@ public class ClockView extends View {
         if (resized) {
             ImageFit.Placement place = ImageFit.of(w, h,
                     foreground.width(), foreground.height(), ImageFit.COVER);
-            if (place != null) {
-                foregroundMatrix.setScale(place.scaleX, place.scaleY);
-                foregroundMatrix.postTranslate(place.dx, place.dy);
-                foregroundShader.setLocalMatrix(foregroundMatrix);
+            // A placement that cannot be worked out — a picture reporting no size, a screen with
+            // none yet — would leave the shader mapping every pixel of the glyph onto one point of
+            // the image, which draws letters with nothing inside them. Invisible text is never the
+            // better answer: give the fill up and let the clock draw in its own colour.
+            if (place == null || place.scaleX <= 0f || place.scaleY <= 0f) {
+                foreground = null;
+                dropForegroundShader();
+                updateLayerType();
+                return;
             }
+            foregroundMatrix.setScale(place.scaleX, place.scaleY);
+            foregroundMatrix.postTranslate(place.dx, place.dy);
+            foregroundShader.setLocalMatrix(foregroundMatrix);
             foregroundForW = w;
             foregroundForH = h;
         }
@@ -1406,6 +1439,7 @@ public class ClockView extends View {
      * second line of defence for a file that goes bad afterwards.
      */
     private void loadTypeface(Context context) {
+        highContrast = HighContrastText.isOn(context);
         boldRoles.clear();
         italicRoles.clear();
         underlineRoles.clear();
@@ -1525,20 +1559,78 @@ public class ClockView extends View {
      * text is, and it is what makes writing legible over a picture that happens to match it.
      */
     private void write(Canvas canvas, String text, float x, float y) {
+        if (highContrast) {
+            writeAsShapes(canvas, text, x, y);
+            return;
+        }
         if (outlineNow) {
-            outlinePaint.setTypeface(paint.getTypeface());
-            outlinePaint.setTextSize(paint.getTextSize());
-            outlinePaint.setTextSkewX(paint.getTextSkewX());
-            outlinePaint.setTextAlign(paint.getTextAlign());
-            outlinePaint.setFakeBoldText(paint.isFakeBoldText());
-            outlinePaint.setUnderlineText(paint.isUnderlineText());
-            outlinePaint.setStyle(Paint.Style.STROKE);
-            outlinePaint.setStrokeJoin(Paint.Join.ROUND);
-            outlinePaint.setStrokeWidth(Math.max(1f, paint.getTextSize() * 0.09f));
-            outlinePaint.setColor(com.reteclock.core.ClockColors.opposite(textColor));
+            applyOutlinePaint();
             canvas.drawText(text, x, y, outlinePaint);
         }
         canvas.drawText(text, x, y, paint);
+    }
+
+    /**
+     * The same string, drawn as shapes rather than as text.
+     *
+     * Only while Android's high-contrast text is on. A path keeps the shader — which is the picture
+     * inside the writing — and gets no outline the app did not ask for. What the rasteriser would
+     * have done for us has to be done here instead: the alignment, the synthesised bold, and the
+     * underline, which is a flag on the paint and not part of a glyph's outline.
+     */
+    private void writeAsShapes(Canvas canvas, String text, float x, float y) {
+        if (text == null || text.isEmpty()) {
+            return;
+        }
+        float width = paint.measureText(text);
+        float left = x;
+        if (paint.getTextAlign() == Paint.Align.CENTER) {
+            left = x - width / 2f;
+        } else if (paint.getTextAlign() == Paint.Align.RIGHT) {
+            left = x - width;
+        }
+        Paint.Align was = paint.getTextAlign();
+        paint.setTextAlign(Paint.Align.LEFT);
+        glyphPath.reset();
+        paint.getTextPath(text, 0, text.length(), left, y, glyphPath);
+        paint.setTextAlign(was);
+
+        if (outlineNow) {
+            applyOutlinePaint();
+            canvas.drawPath(glyphPath, outlinePaint);
+        }
+        if (paint.isFakeBoldText()) {
+            // Fake bold is a rasteriser trick and does not reach a path, so the weight it would
+            // have added is put back by stroking the same shape.
+            Paint.Style style = paint.getStyle();
+            float stroke = paint.getStrokeWidth();
+            paint.setStyle(Paint.Style.FILL_AND_STROKE);
+            paint.setStrokeWidth(paint.getTextSize() * 0.03f);
+            canvas.drawPath(glyphPath, paint);
+            paint.setStyle(style);
+            paint.setStrokeWidth(stroke);
+        } else {
+            canvas.drawPath(glyphPath, paint);
+        }
+        if (paint.isUnderlineText()) {
+            float thickness = Math.max(1f, paint.getTextSize() * 0.055f);
+            float top = y + paint.getTextSize() * 0.12f;
+            canvas.drawRect(left, top, left + width, top + thickness, paint);
+        }
+    }
+
+    /** The stroke behind a string: the app's own outline, set up from the text's paint. */
+    private void applyOutlinePaint() {
+        outlinePaint.setTypeface(paint.getTypeface());
+        outlinePaint.setTextSize(paint.getTextSize());
+        outlinePaint.setTextSkewX(paint.getTextSkewX());
+        outlinePaint.setTextAlign(paint.getTextAlign());
+        outlinePaint.setFakeBoldText(paint.isFakeBoldText());
+        outlinePaint.setUnderlineText(paint.isUnderlineText());
+        outlinePaint.setStyle(Paint.Style.STROKE);
+        outlinePaint.setStrokeJoin(Paint.Join.ROUND);
+        outlinePaint.setStrokeWidth(Math.max(1f, paint.getTextSize() * 0.09f));
+        outlinePaint.setColor(com.reteclock.core.ClockColors.opposite(textColor));
     }
 
     private static String textFor(String role, ClockText time) {

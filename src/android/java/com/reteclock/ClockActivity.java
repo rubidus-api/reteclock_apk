@@ -307,8 +307,7 @@ public class ClockActivity extends Activity {
 
         @Override
         public void speak(String message) {
-            if (message == null || message.isEmpty()
-                    || Settings.timerAlert(ClockActivity.this) != Settings.ALERT_SOUND) {
+            if (message == null || message.isEmpty() || !CueSound.canSpeak(ClockActivity.this)) {
                 return;
             }
             if (voice == null) {

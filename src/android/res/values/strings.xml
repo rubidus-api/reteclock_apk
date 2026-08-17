@@ -161,7 +161,7 @@
     <string name="timer_alert_sound">Sound</string>
     <string name="timer_alert_vibrate">Vibrate</string>
     <string name="timer_alert_silent">Silent</string>
-    <string name="timer_alert_note">Every interval end also flashes the screen, whichever of these is chosen.</string>
+    <string name="timer_alert_note">Every interval end also flashes the screen, whichever of these is chosen. On vibrate and on silent the timer says nothing aloud and plays none of your sounds. And whatever is chosen here, a phone switched to silent stays silent — on vibrate it will not sound, and on silent it will not buzz either.</string>
     <string name="timer_no_speech">This device has no speech engine, so an interval\'s message will not be spoken. Everything else — the beeps, the count into each ending, and the flash — works as usual.</string>
     <string name="timer_no_voice">This device\'s speech engine has no voice data installed, so a message will not be heard. Everything else — the beeps, the count into each ending, and the flash — works as usual.</string>
     <string name="timer_card_presets">Presets</string>
@@ -322,9 +322,14 @@
 
     <string name="sound_carry">Bring in or take out a folder of sounds…</string>
     <string name="sound_carry_note">A whole folder of sounds travels in the same zip the fonts and pictures use, on the carry page.</string>
+    <string name="settings_high_contrast">Android\'s high-contrast text is switched on (Settings → Accessibility). While it is on, the phone draws a heavy outline around every word and throws away a picture used to fill writing — which is why text here, and in every other app, looks outlined. The clock itself works around it: it draws its own writing as shapes, so your picture still shows inside the digits and only the outline you asked for appears. Switch the accessibility setting off if you would rather have the plain rendering everywhere.</string>
+    <string name="settings_images_added">Added %1$d of %2$d pictures.</string>
+    <string name="settings_images_carry">Bring in or take out a folder of pictures…</string>
+    <string name="settings_images_carry_note">Pick several at once above, or carry a whole folder in one zip on the carry page — the same one the fonts and the sounds travel in.</string>
+    <string name="sound_phone_silent">This phone is on silent, so nothing will play — here or anywhere else in the app.</string>
     <string name="sound_card_bells">Bells</string>
     <string name="sound_bells_on">Let bells ring</string>
-    <string name="sound_bells_note">A bell rings while the clock is on screen. Touch the screen while one is ringing and it fades out and stops — that touch does nothing else.</string>
+    <string name="sound_bells_note">A bell rings while the clock is on screen. Touch the screen while one is ringing and it fades out and stops — that touch does nothing else. Nothing plays while the phone itself is on silent.</string>
     <string name="sound_bell_add">Add a bell…</string>
     <string name="sound_bell_none">No bells yet.</string>
     <string name="sound_bell_next">Next: in %1$s</string>
