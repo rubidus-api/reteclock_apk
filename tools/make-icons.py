@@ -278,28 +278,24 @@ def render_adaptive_foreground(size):
 
 
 def render_monochrome(size):
-    """The themed layer Android 13 asks for: one shape, no colour of its own.
+    """The themed layer Android 13 asks for: the lettering alone, opaque, on nothing.
 
-    The system tints whatever is opaque here and puts its own colour behind it, so the plate is the
-    ink and the lettering is a hole punched through it. That is the same picture as the ordinary
-    icon with the two tones swapped, which is what a themed icon is meant to be.
+    What a themed home screen does with this layer is the part that is easy to get backwards, and
+    this project did get it backwards in 0.26.0: the system fills the icon's *background* with the
+    theme's light accent and paints whatever is **opaque here** in the theme's dark on-colour. So an
+    opaque plate with the letters punched out of it comes out as a dark plate with bright letters —
+    the inverse of every other icon on the screen, which is what the reporter of #28 photographed.
+
+    The layer is therefore the same shape as the adaptive foreground: the lettering, solid, inside
+    the safe zone, and nothing else. Colour is irrelevant — only the alpha is read — but black keeps
+    the file readable to a person opening it.
     """
     big = size * SUPERSAMPLE
     side = big * SAFE_ZONE
-    origin = ((big - side) / 2, (big - side) / 2)
-
-    plate = Image.new("RGBA", (big, big), (0, 0, 0, 0))
-    ImageDraw.Draw(plate).rounded_rectangle(
-        [origin[0], origin[1], origin[0] + side - 1, origin[1] + side - 1],
-        radius=side * PLATE_RADIUS,
-        fill=(0, 0, 0, 255),
-    )
-
-    # The lettering is collected in a mask, then taken out of the plate in one step.
-    knockout = Image.new("L", (big, big), 0)
-    draw_face(ImageDraw.Draw(knockout), origin, side, 255)
-    cut = Image.new("RGBA", (big, big), (0, 0, 0, 0))
-    return Image.composite(cut, plate, knockout).resize((size, size), Image.LANCZOS)
+    image = Image.new("RGBA", (big, big), (0, 0, 0, 0))
+    draw_face(ImageDraw.Draw(image), ((big - side) / 2, (big - side) / 2), side,
+              (0, 0, 0, 255))
+    return image.resize((size, size), Image.LANCZOS)
 
 
 def render_feature_graphic():
