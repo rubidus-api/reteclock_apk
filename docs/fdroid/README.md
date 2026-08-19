@@ -1,4 +1,4 @@
-# Publishing reteclock on F-Droid
+# Publishing ReteClock on F-Droid
 
 F-Droid does not accept a finished APK. It clones this repository at a tagged commit, builds the
 app on its own build server, and signs the result with the F-Droid key. Everything in this
@@ -103,10 +103,10 @@ downloads carry the same signature, so a phone can move between them without uni
 Two obligations come with that. Every release needs a signed APK published at
 `releases/download/v<version>/reteclock-<version>.apk`, because `Binaries:` points there and the
 build fails without it. And the signing key has to survive: if it is lost, no future version can
-update an installed reteclock, and `AllowedAPKSigningKeys` cannot be changed to a new one without
+update an installed ReteClock, and `AllowedAPKSigningKeys` cannot be changed to a new one without
 F-Droid treating it as a different app.
 
-**The v1 signature is no longer a risk.** reteclock declares `minSdkVersion 9` and needs a v1 (JAR)
+**The v1 signature is no longer a risk.** ReteClock declares `minSdkVersion 9` and needs a v1 (JAR)
 signature, because Android 2.3 through 6 accept nothing else (requirement R2). Under a reproducible
 build F-Droid ships the APK built here, signed by `scripts/build.sh --release`, which enables v1,
 v2 and v3 explicitly. There is nothing left to hope for. Still worth one check on the first

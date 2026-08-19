@@ -5,6 +5,6 @@
   smaller and played.
 * Each frame is drawn into a small buffer and put on screen by the graphics
   hardware, instead of dragging the whole screen onto the slow drawing path.
-* Setting reteclock as your screensaver is now one button, under Dock: it says
+* Setting ReteClock as your screensaver is now one button, under Dock: it says
   whether it already is, and opens Android's own screensaver screen - which
   hides somewhere different on every version.

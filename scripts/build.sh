@@ -1,5 +1,5 @@
 #!/bin/sh
-# Builds the reteclock APK with the Android SDK command-line tools only: no Gradle, no AGP.
+# Builds the ReteClock APK with the Android SDK command-line tools only: no Gradle, no AGP.
 #
 #   scripts/build.sh              debug-signed APK in dist/
 #   scripts/build.sh --release    same pipeline, but requires RETECLOCK_KEYSTORE

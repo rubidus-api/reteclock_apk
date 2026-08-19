@@ -10,7 +10,7 @@ import java.util.List;
  * reads happily and a person does not. This writes the same values as
  *
  * <pre>
- *   # reteclock settings
+ *   # ReteClock settings
  *   [clock]
  *   show_seconds = true
  *   time_percent_wide = 62
@@ -37,7 +37,7 @@ import java.util.List;
 public final class SettingsIni {
 
     /** The first line of a file this wrote. Not required when reading. */
-    public static final String HEADER = "# reteclock settings 2";
+    public static final String HEADER = "# ReteClock settings 2";
 
     /** The pages the settings divide into, which are the sections of the file. */
     public static final String[] SECTIONS = {

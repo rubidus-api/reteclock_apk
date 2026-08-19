@@ -1,10 +1,10 @@
-# reteclock
+# ReteClock
 
 **English** · [한국어](README.ko.md)
 
 **Turn an old Android phone into a bedside or desk clock.**
 
-Plug the phone into its charger, stand it up, and reteclock fills the screen with the time in big
+Plug the phone into its charger, stand it up, and ReteClock fills the screen with the time in big
 digits, along with the weekday and the date. It keeps the screen on while it runs, rearranges
 itself when you turn the phone sideways, and quietly shifts what it draws by a pixel now and then
 so the numbers never burn into an OLED screen.
@@ -26,7 +26,7 @@ keep the screen awake, and one to vibrate, which only the timer uses.
 
 **[⬇ Get it on F-Droid](https://f-droid.org/packages/com.reteclock/)** — recommended.
 
-**[⬇ Download reteclock-0.28.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.28.0/reteclock-0.28.0.apk)**
+**[⬇ Download ReteClock-0.28.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.28.0/reteclock-0.28.0.apk)**
 — 317 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
 render GitHub's release page can still fetch it.
 
@@ -126,7 +126,7 @@ September 2021, Google Play services stopped being updated for Android 4.4 KitKa
 apps in the Play Store now require a far newer Android. But a phone that can no longer install
 anything can still show you the time.
 
-So reteclock asks for nothing: no Play Store, no Google account, no network, and no permission
+So ReteClock asks for nothing: no Play Store, no Google account, no network, and no permission
 beyond keeping the screen awake. Copy the APK to the phone, open it, and the phone has a job again.
 
 ## Which phones it runs on
@@ -205,7 +205,7 @@ In the order they appear on the screen.
 **Fonts**
 
 - **Font** — the clock uses the phone's own font until you add one of your own. *Add a font from a
-  file* opens the usual file picker. The file is copied into the app, which is why reteclock never
+  file* opens the usual file picker. The file is copied into the app, which is why ReteClock never
   has to ask for permission to your storage, and why your font keeps working even if you later move
   or delete the original. TrueType (`.ttf`), OpenType (`.otf`) and font collections (`.ttc`) all
   work — the collection was really tried on Android 4.4 rather than assumed — and anything the
@@ -531,7 +531,7 @@ the calculation part company. My thanks for your understanding.
   newer do not let an app open itself this way, so on those phones use the app list or the
   screensaver instead.
 - **As the system screensaver** (Android calls it Daydream) on Android 4.2 and newer:
-  Settings > Display > Daydream > reteclock.
+  Settings > Display > Daydream > ReteClock.
 - **From a desk dock**, if the phone reports being docked.
 
 ## For developers

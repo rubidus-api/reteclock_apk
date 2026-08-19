@@ -1,8 +1,8 @@
-An old Android phone in a drawer is still a perfectly good screen with a perfectly good clock in it. reteclock is for exactly that: plug the phone into a charger, put it on a stand, and it shows the time in large digits with the weekday and the date.
+An old Android phone in a drawer is still a perfectly good screen with a perfectly good clock in it. ReteClock is for exactly that: plug the phone into a charger, put it on a stand, and it shows the time in large digits with the weekday and the date.
 
 Old phones are hard to use for much else. Signing in to a Google account stopped working on Android 2.3.7 and older in 2021, Google Play services stopped shipping updates for Android 4.4 KitKat in 2023, and most apps now require a much newer Android. A phone that can no longer install anything can still show the time.
 
-So reteclock asks for nothing: no account, no network, no runtime permission. It runs on Android 2.3 and newer, and it is built and verified against Android 4.4.
+So ReteClock asks for nothing: no account, no network, no runtime permission. It runs on Android 2.3 and newer, and it is built and verified against Android 4.4.
 
 Features
 
@@ -13,7 +13,7 @@ Features
 * Burn-in protection: the drawing moves a few pixels every minute, when the displayed minute changes anyway, and works its way around a wide disc over a couple of hours, so an OLED panel does not burn in.
 * Starts when the charger is connected, and shows over the lock screen when started that way. This can be turned off.
 * Works as a system screensaver (Daydream) on Android 4.2 and newer, and from a desk dock.
-* Your own fonts. Add a font file and the clock draws in it — TrueType (.ttf), OpenType (.otf) or a collection (.ttc), with anything the device cannot read refused on the spot. The file goes through the system picker and is copied into the app, so reteclock still asks for no storage permission, and the font keeps working if you move or delete the original. Keep several: the settings screen lists each one's size and the total they occupy, and any of them can be deleted.
+* Your own fonts. Add a font file and the clock draws in it — TrueType (.ttf), OpenType (.otf) or a collection (.ttc), with anything the device cannot read refused on the spot. The file goes through the system picker and is copied into the app, so ReteClock still asks for no storage permission, and the font keeps working if you move or delete the original. Keep several: the settings screen lists each one's size and the total they occupy, and any of them can be deleted.
 * A font for each field. The hour, the minute, the seconds, the weekday, the month and day, and the year each take their own font, and their own bold, italic and underline. Sizes stay worked out by the app.
 * The clock does not fidget. Each field is sized from the widest text it could ever show, so 11:11 is drawn at the same size and in the same place as 88:88 and nothing shifts as the digits change.
 * Your own pictures, in one pool. Each image is ticked as a background or as the text fill — the digits become a window onto it — or held on hand, unused; a select-all tops each column. The backgrounds take turns: an animated GIF plays through once, a still holds for a time you choose, one cross-fades into the next, and six fit modes cover every shape. The text images cycle on the same rules. Sort by name or date, rename (001, 002 … makes the name sort your order), arrange by hand, or select many and delete together.

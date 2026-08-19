@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">reteclock</string>
-    <string name="settings_title">reteclock settings</string>
+    <string name="app_name">ReteClock</string>
+    <string name="settings_title">ReteClock settings</string>
     <string name="settings_show_seconds">Show seconds</string>
     <string name="settings_hour12">Show the time as 12 hours, with AM and PM</string>
     <string name="settings_hour12_warning">Warning: did you know there is no settled agreement on how midnight and noon should be written, with AM and PM or in any other way? Different countries and different standards do it differently. A 12-hour clock brings confusion into communication, it can cause misunderstandings and disputes in contracts, and that can lead to loss and to accidents. If you want to use it anyway, please also decide below how midnight and noon should be shown — AM, PM, 0, NN, MN, or the 24-hour way.</string>
@@ -142,10 +142,10 @@
     <string name="settings_stay_unlocked">Keep the clock up, past the lock screen</string>
     <string name="settings_stay_unlocked_note">The screen stays on, the lock screen does not cover the clock, and nothing takes it away — for a phone left showing the time, or running a timer. It already behaves this way when the charger starts it. Turn it on if you want to touch the clock: Android gives no touches to a screensaver or to anything over the lock screen, so the menu, the timer and the calendar all do nothing there.</string>
     <string name="settings_screensaver">Screensaver</string>
-    <string name="settings_screensaver_on">reteclock is your screensaver.</string>
-    <string name="settings_screensaver_off">reteclock is not your screensaver yet.</string>
+    <string name="settings_screensaver_on">ReteClock is your screensaver.</string>
+    <string name="settings_screensaver_off">ReteClock is not your screensaver yet.</string>
     <string name="settings_screensaver_open">Set as screensaver…</string>
-    <string name="settings_screensaver_note">Opens Android\'s own screensaver settings — it hides in a different place on every version. Pick reteclock there, and choose when it should come on (while charging, or in a dock).</string>
+    <string name="settings_screensaver_note">Opens Android\'s own screensaver settings — it hides in a different place on every version. Pick ReteClock there, and choose when it should come on (while charging, or in a dock).</string>
     <string name="settings_screensaver_no_screen">This phone has no screensaver settings screen.</string>
     <string name="hint_long_press">Press and hold the clock for settings</string>
     <string name="hint_touch">Touch the clock for the menu</string>
@@ -251,7 +251,7 @@
     <string name="settings_export_done">Settings written.</string>
     <string name="settings_export_failed">Could not write the file.</string>
     <string name="settings_import_failed">Could not read the file.</string>
-    <string name="settings_import_not_ours">That is not a reteclock settings file.</string>
+    <string name="settings_import_not_ours">That is not a ReteClock settings file.</string>
     <string name="settings_import_done">%1$d settings restored.</string>
     <string name="settings_import_done_partial">%1$d settings restored, %2$d names skipped (not on this phone).</string>
     <string name="settings_carry_no_picker">No app here can pick a file.</string>
@@ -283,7 +283,7 @@
     <string name="settings_direct_start">Home-screen button opens the clock directly</string>
     <string name="settings_direct_start_note">Off, the button opens this screen — the way back in when an image or a font has made the clock unusable. A run that stopped answering opens this screen either way.</string>
     <string name="settings_safe_notice">The last run stopped answering, so the clock started without images or imported fonts. A large animated GIF is the usual reason: remove it below, or untick BG, and start the clock again.</string>
-    <string name="settings_about">reteclock %1$s\nRuns on Android 2.3 (API 9) and newer. Built for Android 4.4.\nThis device: Android %2$s</string>
+    <string name="settings_about">ReteClock %1$s\nRuns on Android 2.3 (API 9) and newer. Built for Android 4.4.\nThis device: Android %2$s</string>
     <!-- Sounds: the pool, how each one plays, and the bells that ring one at a time of day. -->
     <string name="menu_sounds">Sounds</string>
     <string name="sound_title">Sounds and bells</string>
