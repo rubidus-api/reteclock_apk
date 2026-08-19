@@ -300,6 +300,22 @@ public class SettingsActivity extends Activity {
 
         // ---- Clock ----
         LinearLayout clock = card(getString(R.string.settings_card_clock));
+
+        // First in the card, because it decides how much of the rest of the card applies: with it
+        // on, the screen is the time and the settings below it are waiting rather than gone.
+        final CheckBox timeOnly = new CheckBox(this);
+        timeOnly.setText(R.string.settings_time_only);
+        timeOnly.setTextColor(TEXT_WHITE);
+        timeOnly.setChecked(Settings.timeOnly(this));
+        timeOnly.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                Settings.setTimeOnly(SettingsActivity.this, checked);
+            }
+        });
+        clock.addView(timeOnly);
+        clock.addView(footer(getString(R.string.settings_time_only_note)));
+
         final CheckBox seconds = new CheckBox(this);
         seconds.setText(R.string.settings_show_seconds);
         seconds.setTextColor(TEXT_WHITE);

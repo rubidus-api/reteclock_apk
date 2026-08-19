@@ -2,6 +2,8 @@
 <resources>
     <string name="app_name">ReteClock</string>
     <string name="settings_title">ReteClock settings</string>
+    <string name="settings_time_only">Show only the time</string>
+    <string name="settings_time_only_note">The hour and the minute fill the screen, with the AM/PM marker where the clock reads in twelve hours, and nothing else: no seconds, no weekday, no date, no year, no month grid and no saying. This is what the app looked like on its first day; everything it grew since is still set where you left it and comes back the moment this is switched off.</string>
     <string name="settings_show_seconds">Show seconds</string>
     <string name="settings_hour12">Show the time as 12 hours, with AM and PM</string>
     <string name="settings_hour12_warning">Warning: did you know there is no settled agreement on how midnight and noon should be written, with AM and PM or in any other way? Different countries and different standards do it differently. A 12-hour clock brings confusion into communication, it can cause misunderstandings and disputes in contracts, and that can lead to loss and to accidents. If you want to use it anyway, please also decide below how midnight and noon should be shown — AM, PM, 0, NN, MN, or the 24-hour way.</string>

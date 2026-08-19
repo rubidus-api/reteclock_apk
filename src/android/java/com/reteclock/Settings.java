@@ -69,6 +69,7 @@ public final class Settings {
     public static final String KEY_NOON_STYLE = "clock_noon_style";
     public static final String KEY_MIDNIGHT_STYLE = "clock_midnight_style";
     public static final String KEY_QUOTE_ON = "quote_on";
+    public static final String KEY_TIME_ONLY = "clock_only";
     /** Whether the clock wanders a few pixels to spare the panel. On unless turned off. */
     public static final String KEY_BURN_IN_SHIFT = "burn_in_shift";
     public static final String KEY_RUN_ORIGIN = "timer_run_origin";
@@ -168,6 +169,7 @@ public final class Settings {
         out.put(KEY_SHOW_SECONDS, Boolean.valueOf(showSeconds(context)));
         out.put(KEY_DATE_STYLE, Integer.valueOf(dateStyle(context)));
         out.put(KEY_QUOTE_ON, Boolean.valueOf(quoteOn(context)));
+        out.put(KEY_TIME_ONLY, Boolean.valueOf(timeOnly(context)));
         out.put(KEY_BURN_IN_SHIFT, Boolean.valueOf(burnInShift(context)));
         out.put(KEY_TIME_PERCENT_WIDE, Integer.valueOf(timePercent(context, KEY_TIME_PERCENT_WIDE)));
         out.put(KEY_TIME_PERCENT_TALL, Integer.valueOf(timePercent(context, KEY_TIME_PERCENT_TALL)));
@@ -815,6 +817,20 @@ public final class Settings {
         prefs(context).edit().putBoolean(KEY_BURN_IN_SHIFT, on).commit();
     }
 
+    /**
+     * Whether the clock shows the time and nothing else (issue #31).
+     *
+     * Off by default: the app it turns the clock back into is the app it used to be, and somebody
+     * who has never asked for it should find the clock they already have.
+     */
+    public static boolean timeOnly(Context context) {
+        return prefs(context).getBoolean(KEY_TIME_ONLY, false);
+    }
+
+    public static void setTimeOnly(Context context, boolean only) {
+        prefs(context).edit().putBoolean(KEY_TIME_ONLY, only).commit();
+    }
+
     public static boolean quoteOn(Context context) {
         return prefs(context).getBoolean(KEY_QUOTE_ON, false);
     }
@@ -1075,7 +1091,8 @@ public final class Settings {
                 calendarWeekdayStyle(context, calendarSystem(context)),
                 hour12(context), noonStyle(context), midnightStyle(context),
                 customNames(context, calendarSystem(context)))
-                .withMarkers(markers(context));
+                .withMarkers(markers(context))
+                .withTimeOnly(timeOnly(context));
     }
 
     /**

@@ -61,6 +61,52 @@ public final class ClockLayout {
     private static final float MERIDIEM_WIDTH_SHARE = 0.15f;
 
     /** The width a time on one line may use, once the marker has been allowed for. */
+    /**
+     * A wide screen with the time and nothing else: one line, the whole screen (issue #31).
+     *
+     * The share of the width the time usually takes is what leaves room for the date column beside
+     * it. There is no column now, so there is no share: the time is centred on the screen and has
+     * all of it, less the padding — and, on a twelve-hour clock, less the room the marker needs
+     * beside it, which is the same allowance the ordinary layout makes.
+     */
+    private static ClockLayout wideTimeOnly(int w, int h, ClockOptions options, float pad) {
+        List<Slot> out = new ArrayList<Slot>(1);
+        out.add(new Slot(ROLE_HOUR_MINUTE,
+                parts(new String[] {ROLE_HOUR, ROLE_MINUTE}, new String[] {"", ":"}),
+                w / 2f, h / 2f, h - 2f * pad,
+                timeBoxWidth(w - 2f * pad, options)));
+        return new ClockLayout(true, out, options, null);
+    }
+
+    /**
+     * A tall screen with the time and nothing else: the hour over the minute, and the marker under
+     * them where the clock reads in twelve hours.
+     *
+     * The two lines take the height the time and the date used to divide between them, so they are
+     * larger than they have ever been on this screen — which is the point of the option.
+     */
+    private static ClockLayout tallTimeOnly(int w, int h, ClockOptions options, float pad,
+            float boxWidth, float centerX, float gap) {
+        int lines = options.hour12 ? 2 : 1;              // gaps between the big lines and a marker
+        float content = h - 2f * pad - gap * lines;
+        float mainSize = options.hour12
+                ? content / (2f + MERIDIEM_SHARE)
+                : content / 2f;
+        float meridiemSize = options.hour12 ? mainSize * MERIDIEM_SHARE : 0f;
+
+        List<Slot> out = new ArrayList<Slot>(3);
+        float cursor = pad;
+        out.add(new Slot(ROLE_HOUR, centerX, cursor + mainSize / 2f, mainSize, boxWidth));
+        cursor += mainSize + gap;
+        out.add(new Slot(ROLE_MINUTE, centerX, cursor + mainSize / 2f, mainSize, boxWidth));
+        if (options.hour12) {
+            cursor += mainSize + gap;
+            out.add(new Slot(ROLE_MERIDIEM, centerX, cursor + meridiemSize / 2f,
+                    meridiemSize, boxWidth));
+        }
+        return new ClockLayout(false, out, options, null);
+    }
+
     private static float timeBoxWidth(float boxWidth, ClockOptions options) {
         return options.hour12 ? boxWidth * (1f - MERIDIEM_WIDTH_SHARE) : boxWidth;
     }
@@ -486,7 +532,7 @@ public final class ClockLayout {
     public static ClockLayout of(int widthPx, int heightPx, ClockOptions options) {
         // The saying takes a strip off the bottom and the clock lays itself out in what is left,
         // exactly as it does for the timer: nothing else has to know the strip is there.
-        float quoteHeight = options.quote
+        float quoteHeight = options.quote && !options.timeOnly
                 ? Math.min(widthPx, heightPx) * QUOTE_SHARE
                 : 0f;
         int usable = Math.max(1, Math.round(heightPx - quoteHeight));
@@ -506,6 +552,9 @@ public final class ClockLayout {
 
     private static ClockLayout wide(int w, int h, ClockOptions options) {
         float pad = paddingPx(w, h);
+        if (options.timeOnly) {
+            return wideTimeOnly(w, h, options, pad);
+        }
         // The clock is laid out in a shorter screen and the calendar takes the floor it stands on.
         if (options.calendar) {
             return wideWithCalendar(w, h, options, pad);
@@ -617,6 +666,9 @@ public final class ClockLayout {
         // which is where the growing stops.
         float content = h - 2f * pad - 3f * gap;
 
+        if (options.timeOnly) {
+            return tallTimeOnly(w, h, options, pad, boxWidth, centerX, gap);
+        }
         if (options.calendar) {
             return tallWithCalendar(w, h, options, pad, boxWidth, centerX, gap, content);
         }

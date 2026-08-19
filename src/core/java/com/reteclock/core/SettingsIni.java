@@ -61,6 +61,7 @@ public final class SettingsIni {
         {"show_seconds", "b", "clock"},
         {"date_style", "i", "clock"},
         {"quote_on", "b", "clock"},
+        {"clock_only", "b", "clock"},
         {"burn_in_shift", "b", "clock"},
         {"time_percent_wide", "i", "clock"},
         {"time_percent_tall", "i", "clock"},
