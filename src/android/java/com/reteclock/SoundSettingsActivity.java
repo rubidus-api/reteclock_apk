@@ -540,7 +540,9 @@ public class SoundSettingsActivity extends Activity {
 
         TextView detail = new TextView(this);
         detail.setText(daysText(bell) + "  ·  "
-                + (bell.sound.isEmpty() ? getString(R.string.sound_bell_chime) : bell.sound));
+                + (bell.sound.isEmpty() ? getString(R.string.sound_bell_chime) : bell.sound)
+                + (bell.repeats > 1 ? "  ·  " + getString(R.string.sound_bell_times,
+                        bell.repeats) : ""));
         detail.setTextColor(bell.isLive() ? TEXT_DIM : WARNING);
         detail.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f);
         row.addView(detail);
@@ -673,6 +675,12 @@ public class SoundSettingsActivity extends Activity {
         });
         box.addView(soundButton);
 
+        box.addView(subheading(getString(R.string.sound_bell_repeats)));
+        final EditText repeats = numberField(Integer.toString(bell.repeats));
+        box.addView(repeats, new LinearLayout.LayoutParams(dp(64),
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+        box.addView(footer(getString(R.string.sound_bell_repeats_note)));
+
         box.addView(subheading(getString(R.string.sound_bell_label)));
         final EditText label = new EditText(this);
         label.setSingleLine(true);
@@ -691,6 +699,8 @@ public class SoundSettingsActivity extends Activity {
                         Bell made = edited[0]
                                 .withTime(number(hour.getText().toString(), 23),
                                         number(minute.getText().toString(), 59))
+                                .withRepeats(number(repeats.getText().toString(),
+                                        Bell.MAX_REPEATS))
                                 .withLabel(label.getText().toString().trim());
                         Settings.setBells(SoundSettingsActivity.this,
                                 Settings.bells(SoundSettingsActivity.this)

@@ -70,6 +70,8 @@ public final class Settings {
     public static final String KEY_MIDNIGHT_STYLE = "clock_midnight_style";
     public static final String KEY_QUOTE_ON = "quote_on";
     public static final String KEY_TIME_ONLY = "clock_only";
+    public static final String KEY_BLINK_COLON = "clock_blink_colon";
+    public static final String KEY_THEME_COLORS = "colors_from_theme";
     /** Whether the clock wanders a few pixels to spare the panel. On unless turned off. */
     public static final String KEY_BURN_IN_SHIFT = "burn_in_shift";
     public static final String KEY_RUN_ORIGIN = "timer_run_origin";
@@ -170,6 +172,8 @@ public final class Settings {
         out.put(KEY_DATE_STYLE, Integer.valueOf(dateStyle(context)));
         out.put(KEY_QUOTE_ON, Boolean.valueOf(quoteOn(context)));
         out.put(KEY_TIME_ONLY, Boolean.valueOf(timeOnly(context)));
+        out.put(KEY_BLINK_COLON, Boolean.valueOf(blinkColon(context)));
+        out.put(KEY_THEME_COLORS, Boolean.valueOf(themeColors(context)));
         out.put(KEY_BURN_IN_SHIFT, Boolean.valueOf(burnInShift(context)));
         out.put(KEY_TIME_PERCENT_WIDE, Integer.valueOf(timePercent(context, KEY_TIME_PERCENT_WIDE)));
         out.put(KEY_TIME_PERCENT_TALL, Integer.valueOf(timePercent(context, KEY_TIME_PERCENT_TALL)));
@@ -789,11 +793,59 @@ public final class Settings {
     }
 
     /** The colour a settings key holds; ClockColors resolves the pair before drawing. */
+    /**
+     * The colour in force for one of the two roles.
+     *
+     * With {@link #KEY_THEME_COLORS} on, both come from the phone's own light or dark theme
+     * (issue #33) and the stored pair is left alone — it is what the clock goes back to when the
+     * option is switched off. Every caller asks here, so the timer's chrome and the calendar follow
+     * the theme as well without knowing anything about it.
+     */
     public static int color(Context context, String key) {
+        if (themeColors(context)) {
+            boolean night = nightMode(context);
+            return KEY_TEXT_COLOR.equals(key)
+                    ? com.reteclock.core.ThemeColors.textFor(night)
+                    : com.reteclock.core.ThemeColors.backgroundFor(night);
+        }
         int fallback = KEY_TEXT_COLOR.equals(key)
                 ? com.reteclock.core.ClockColors.DEFAULT_TEXT
                 : com.reteclock.core.ClockColors.DEFAULT_BACKGROUND;
         return prefs(context).getInt(key, fallback);
+    }
+
+    /** The colour the user chose, whatever the theme is doing — what the settings screen shows. */
+    public static int chosenColor(Context context, String key) {
+        int fallback = KEY_TEXT_COLOR.equals(key)
+                ? com.reteclock.core.ClockColors.DEFAULT_TEXT
+                : com.reteclock.core.ClockColors.DEFAULT_BACKGROUND;
+        return prefs(context).getInt(key, fallback);
+    }
+
+    /** Whether the clock takes its two colours from the system theme (issue #33). */
+    public static boolean themeColors(Context context) {
+        return prefs(context).getBoolean(KEY_THEME_COLORS, false);
+    }
+
+    public static void setThemeColors(Context context, boolean follow) {
+        prefs(context).edit().putBoolean(KEY_THEME_COLORS, follow).commit();
+    }
+
+    /**
+     * Whether the phone is in its dark theme.
+     *
+     * `UI_MODE_NIGHT_*` has been in `Configuration` since API 8, so this reads on every device the
+     * app runs on; a phone with no theme of its own simply always answers "no", and the clock is
+     * then black-on-white, which is what a light theme is.
+     */
+    public static boolean nightMode(Context context) {
+        try {
+            int mode = context.getResources().getConfiguration().uiMode
+                    & android.content.res.Configuration.UI_MODE_NIGHT_MASK;
+            return mode == android.content.res.Configuration.UI_MODE_NIGHT_YES;
+        } catch (RuntimeException e) {
+            return false;
+        }
     }
 
     public static void setColor(Context context, String key, int color) {
@@ -823,6 +875,20 @@ public final class Settings {
      * Off by default: the app it turns the clock back into is the app it used to be, and somebody
      * who has never asked for it should find the clock they already have.
      */
+    /**
+     * Whether the colon between the hour and the minute blinks once a second (issue #32).
+     *
+     * Off by default. It only has anything to do where the time is written on one line and so has a
+     * colon — a wide screen; where the hour and the minute are stacked there is nothing to blink.
+     */
+    public static boolean blinkColon(Context context) {
+        return prefs(context).getBoolean(KEY_BLINK_COLON, false);
+    }
+
+    public static void setBlinkColon(Context context, boolean blink) {
+        prefs(context).edit().putBoolean(KEY_BLINK_COLON, blink).commit();
+    }
+
     public static boolean timeOnly(Context context) {
         return prefs(context).getBoolean(KEY_TIME_ONLY, false);
     }

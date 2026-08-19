@@ -29,14 +29,30 @@ public final class Bell {
     public final String sound;
     /** What the user calls it; empty is allowed and the screen then shows the time. */
     public final String label;
+    /**
+     * How many times the sound plays when the bell rings.
+     *
+     * A chime of two or three seconds is easy to miss once and unmistakable three times over, and
+     * the alternative — a longer file — is not something a person should have to edit audio to get.
+     * One is the ordinary answer and what every bell set before this existed keeps.
+     */
+    public final int repeats;
+
+    /** Nothing repeats more than this: past it, it is not a bell, it is an alarm. */
+    public static final int MAX_REPEATS = 10;
 
     public Bell(boolean on, int days, int minuteOfDay, String sound, String label) {
+        this(on, days, minuteOfDay, sound, label, 1);
+    }
+
+    public Bell(boolean on, int days, int minuteOfDay, String sound, String label, int repeats) {
         this.on = on;
         this.days = days & EVERY_DAY;
         int minute = minuteOfDay % MINUTES_A_DAY;
         this.minuteOfDay = minute < 0 ? minute + MINUTES_A_DAY : minute;
         this.sound = sound == null ? "" : sound;
         this.label = label == null ? "" : label;
+        this.repeats = repeats < 1 ? 1 : repeats > MAX_REPEATS ? MAX_REPEATS : repeats;
     }
 
     /** A new bell as the screen offers it: on, every day, at the hour, with no sound chosen yet. */
@@ -66,11 +82,11 @@ public final class Bell {
     }
 
     public Bell withOn(boolean nowOn) {
-        return new Bell(nowOn, days, minuteOfDay, sound, label);
+        return new Bell(nowOn, days, minuteOfDay, sound, label, repeats);
     }
 
     public Bell withDays(int nowDays) {
-        return new Bell(on, nowDays, minuteOfDay, sound, label);
+        return new Bell(on, nowDays, minuteOfDay, sound, label, repeats);
     }
 
     /** The same bell with one weekday turned on or off. */
@@ -83,14 +99,19 @@ public final class Bell {
     }
 
     public Bell withTime(int hour, int minute) {
-        return new Bell(on, days, hour * 60 + minute, sound, label);
+        return new Bell(on, days, hour * 60 + minute, sound, label, repeats);
     }
 
     public Bell withSound(String name) {
-        return new Bell(on, days, minuteOfDay, name, label);
+        return new Bell(on, days, minuteOfDay, name, label, repeats);
+    }
+
+    /** The same bell, played a different number of times when it rings. */
+    public Bell withRepeats(int times) {
+        return new Bell(on, days, minuteOfDay, sound, label, times);
     }
 
     public Bell withLabel(String text) {
-        return new Bell(on, days, minuteOfDay, sound, text);
+        return new Bell(on, days, minuteOfDay, sound, text, repeats);
     }
 }

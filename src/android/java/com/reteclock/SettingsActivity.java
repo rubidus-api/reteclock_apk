@@ -328,6 +328,21 @@ public class SettingsActivity extends Activity {
         });
         clock.addView(seconds);
 
+        // Beside the seconds, because both are about what the time itself does rather than about
+        // what is written around it.
+        final CheckBox blink = new CheckBox(this);
+        blink.setText(R.string.settings_blink_colon);
+        blink.setTextColor(TEXT_WHITE);
+        blink.setChecked(Settings.blinkColon(this));
+        blink.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                Settings.setBlinkColon(SettingsActivity.this, checked);
+            }
+        });
+        clock.addView(blink);
+        clock.addView(footer(getString(R.string.settings_blink_colon_note)));
+
         // Everything the twelve-hour clock brings with it — the warning, what other countries do,
         // and the two questions about noon and midnight — lives in one box that is only there when
         // the twelve-hour clock is. On a 24-hour clock none of it applies: 00:00 and 12:00 say what
@@ -1381,6 +1396,31 @@ public class SettingsActivity extends Activity {
     /** The two colour rows: a name, and a swatch that opens the palette. */
     private void rebuildColorSection() {
         colorSection.removeAllViews();
+
+        // The theme's own pair, offered beside the two the user can pick — which is where somebody
+        // deciding what colour the clock should be is already looking (issue #33).
+        CheckBox theme = new CheckBox(this);
+        theme.setText(R.string.settings_theme_colors);
+        theme.setTextColor(TEXT_WHITE);
+        theme.setChecked(Settings.themeColors(this));
+        theme.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                Settings.setThemeColors(SettingsActivity.this, checked);
+                rebuildColorSection();
+            }
+        });
+        colorSection.addView(theme);
+        colorSection.addView(footer(getString(R.string.settings_theme_colors_note)));
+
+        if (Settings.themeColors(this)) {
+            // The pickers are put away rather than left to be pressed with no effect. The pair the
+            // user chose is untouched underneath and comes back with them.
+            colorSection.addView(footer(getString(Settings.nightMode(this)
+                    ? R.string.settings_theme_colors_dark
+                    : R.string.settings_theme_colors_light)));
+            return;
+        }
         colorSection.addView(colorRow(R.string.settings_text_color, Settings.KEY_TEXT_COLOR,
                 Settings.KEY_BACKGROUND_COLOR));
         colorSection.addView(colorRow(R.string.settings_background_color,
@@ -1401,7 +1441,7 @@ public class SettingsActivity extends Activity {
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
         row.addView(name);
 
-        View swatch = swatch(Settings.color(this, key), dp(30));
+        View swatch = swatch(Settings.chosenColor(this, key), dp(30));
         swatch.setClickable(true);
         swatch.setOnClickListener(new View.OnClickListener() {
             @Override

@@ -48,6 +48,12 @@ public class ClockDreamService extends DreamService {
         // dismisses it, which stops the sound with it — there is nothing else for a touch to do.
         final BellRinger bells = new BellRinger(this);
         this.bells = bells;
+        bells.setBusy(new BellRinger.Busy() {
+            @Override
+            public boolean timerIsRunning() {
+                return timer != null && timer.isRunning();
+            }
+        });
         view.setOnSecond(new ClockView.OnSecond() {
             @Override
             public void second(long nowMs) {

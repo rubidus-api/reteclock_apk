@@ -140,8 +140,38 @@ public class TimerView extends View {
         return preset;
     }
 
+    /**
+     * Whether something is actually counting.
+     *
+     * A run that has reached its end is **not** running, and the controls were reading it as if it
+     * were: play stayed dim and stop stayed lit after the last cue had sounded, so the strip looked
+     * busy while nothing was happening (issue #29). The run object is deliberately kept after it
+     * finishes — the bar holds full so you can see that it did — but keeping it is not the same as
+     * still running it.
+     */
     boolean isRunning() {
-        return run != null && !run.isPaused();
+        return run != null && !run.isPaused()
+                && !run.finishedAt(SystemClock.elapsedRealtime());
+    }
+
+    /**
+     * Whether a control does anything just now, which is also whether it is drawn lit.
+     *
+     * One answer for both, so a control cannot look enabled and be dead, or the other way round.
+     */
+    private boolean controlLit(int control) {
+        if (control == TimerBar.CONTROL_PLAY) {
+            return !isRunning();
+        }
+        if (control == TimerBar.CONTROL_PAUSE) {
+            return isRunning();
+        }
+        if (control == TimerBar.CONTROL_STOP) {
+            // Something to stop: a run that is going, or one paused part-way. A finished run has
+            // stopped itself.
+            return run != null && !run.finishedAt(SystemClock.elapsedRealtime());
+        }
+        return true;
     }
 
     void start() {
@@ -564,9 +594,7 @@ public class TimerView extends View {
             float middle = (bar.barNear() + bar.barFar()) / 2f;
             float cx = horizontal ? along : middle;
             float cy = horizontal ? middle : getHeight() - along;
-            boolean lit = i == TimerBar.CONTROL_PLAY ? !isRunning()
-                    : i == TimerBar.CONTROL_PAUSE ? isRunning()
-                    : true;
+            boolean lit = controlLit(i);
             paint.setColor(i == TimerBar.CONTROL_HOURGLASS ? hourglassColor()
                     : lit ? chromeControl : dimmed(chromeControl));
             // Upright in both orientations. The readouts are turned with the strip because they
@@ -632,6 +660,11 @@ public class TimerView extends View {
         }
         float along = horizontal ? event.getX() : getHeight() - event.getY();
         int control = bar.controlAt(along);
+        // A control drawn dim is a control with nothing to do: pressing it does nothing rather
+        // than something invisible.
+        if (!controlLit(control)) {
+            return true;
+        }
         switch (control) {
             case TimerBar.CONTROL_PLAY:
                 if (run == null || run.finishedAt(SystemClock.elapsedRealtime())) {

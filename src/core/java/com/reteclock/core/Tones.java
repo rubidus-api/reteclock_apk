@@ -105,6 +105,31 @@ public final class Tones {
     private Tones() {
     }
 
+    /**
+     * The same pattern played over, with a gap between the passes.
+     *
+     * A bell asked to ring three times is one buffer of samples, not three sounds started by three
+     * timers: the pattern is what gets repeated, so the spacing is exact and nothing can arrive
+     * late. The gap is added to the last note's own silence, which is where a pattern already keeps
+     * its tail.
+     */
+    public static Note[] repeated(Note[] pattern, int times, int gapMs) {
+        if (pattern == null || pattern.length == 0 || times <= 1) {
+            return pattern;
+        }
+        Note[] out = new Note[pattern.length * times];
+        for (int pass = 0; pass < times; pass++) {
+            for (int i = 0; i < pattern.length; i++) {
+                Note note = pattern[i];
+                boolean last = i == pattern.length - 1;
+                out[pass * pattern.length + i] = last && pass < times - 1
+                        ? new Note(note.hz, note.onMs, note.offMs + Math.max(0, gapMs))
+                        : note;
+            }
+        }
+        return out;
+    }
+
     /** How long a pattern takes from its first sound to the end of its last silence. */
     public static int lengthMs(Note[] pattern) {
         int total = 0;

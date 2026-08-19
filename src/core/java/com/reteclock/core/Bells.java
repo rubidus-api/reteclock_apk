@@ -210,7 +210,7 @@ public final class Bells {
     /**
      * <pre>
      *   bells := bell ('\n' bell)*
-     *   bell  := on '|' days '|' minuteOfDay '|' sound '|' label
+     *   bell  := on '|' days '|' minuteOfDay '|' sound '|' label '|' repeats
      * </pre>
      */
     public String text() {
@@ -224,7 +224,8 @@ public final class Bells {
             out.append(bell.days).append(FIELD);
             out.append(bell.minuteOfDay).append(FIELD);
             out.append(escape(bell.sound)).append(FIELD);
-            out.append(escape(bell.label));
+            out.append(escape(bell.label)).append(FIELD);
+            out.append(bell.repeats);
         }
         return out.toString();
     }
@@ -249,7 +250,9 @@ public final class Bells {
                     number(fields.get(1), Bell.EVERY_DAY),
                     number(fields.get(2), 0),
                     TimerPreset.unescape(fields.get(3)),
-                    fields.size() > 4 ? TimerPreset.unescape(fields.get(4)) : ""));
+                    fields.size() > 4 ? TimerPreset.unescape(fields.get(4)) : "",
+                    // A bell written before repeating existed rings once, which is what it did.
+                    fields.size() > 5 ? number(fields.get(5), 1) : 1));
         }
         return out.isEmpty() ? NONE : new Bells(out);
     }

@@ -62,6 +62,8 @@ public final class SettingsIni {
         {"date_style", "i", "clock"},
         {"quote_on", "b", "clock"},
         {"clock_only", "b", "clock"},
+        {"clock_blink_colon", "b", "clock"},
+        {"colors_from_theme", "b", "clock"},
         {"burn_in_shift", "b", "clock"},
         {"time_percent_wide", "i", "clock"},
         {"time_percent_tall", "i", "clock"},

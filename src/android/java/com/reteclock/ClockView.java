@@ -18,6 +18,7 @@ import com.reteclock.core.ClockLayout;
 import com.reteclock.core.MonthGrid;
 import com.reteclock.core.ClockOptions;
 import com.reteclock.core.ClockText;
+import com.reteclock.core.ColonBlink;
 import com.reteclock.core.FramePacer;
 import com.reteclock.core.ImageFit;
 import com.reteclock.core.SafeStart;
@@ -80,6 +81,16 @@ public class ClockView extends View {
      * text as far as that feature is concerned, and come out as they were meant to.
      */
     private boolean highContrast;
+    /**
+     * Whether the colon between the hour and the minute blinks once a second (issue #32).
+     *
+     * A drawing habit rather than a layout value, so it is read here and never reaches
+     * {@link ClockOptions}: the line is measured and placed with its colon whatever the blink is
+     * doing, and only the painting of that one character changes. Nothing moves.
+     */
+    private boolean blinkColon;
+    /** Whether the layout on screen has a colon at all — a tall clock stacks its lines and has none. */
+    private boolean layoutHasColon;
     /** The glyphs of one string, reused: one path object rather than one per draw. */
     private final android.graphics.Path glyphPath = new android.graphics.Path();
 
@@ -233,9 +244,14 @@ public class ClockView extends View {
             // A moving image or a running fade needs frames; a still clock needs one redraw per
             // second. The once-a-second tick also advances the slideshow, to within a second —
             // close enough for slides that hold for many.
+            long now = System.currentTimeMillis();
             long delay = fastFrames(SystemClock.elapsedRealtime())
                     ? pacer.delayMs()
-                    : ClockText.millisToNextSecond(System.currentTimeMillis());
+                    : blinkColon && layoutHasColon
+                            // Twice a second while the colon blinks, and only then: a tall clock
+                            // has no colon, so it keeps the one redraw a second it always had.
+                            ? ColonBlink.millisToNextChange(now)
+                            : ClockText.millisToNextSecond(now);
             handler.postDelayed(this, delay);
         }
     };
@@ -289,6 +305,7 @@ public class ClockView extends View {
     public void reloadOptions() {
         options = Settings.options(getContext());
         highContrast = HighContrastText.isOn(getContext());
+        blinkColon = Settings.blinkColon(getContext());
         loadCalendar(getContext());
         loadTypeface(getContext());
         loadImages(getContext());
@@ -807,6 +824,8 @@ public class ClockView extends View {
         // The background is the size of the view; the text is laid out in what the strip leaves.
         refreshSlideForSize(w, h);
         layout = ClockLayout.of(Math.max(1, w - insetLeft), Math.max(1, h - insetTop), options);
+        // Worked out once with the layout rather than at every tick: it decides the redraw cadence.
+        layoutHasColon = hasColon(layout);
         plan = layout.plan(new ClockLayout.Metrics() {
             @Override
             public float width(String role, String text, float textSize) {
@@ -916,11 +935,14 @@ public class ClockView extends View {
                 applyStyle(part.role, size);
                 float cellStart = plan.cellStart(slot, part);
                 float cellWidth = plan.cellWidth(slot, part);
+                // Measured with the colon whatever the blink is doing: the width and the place
+                // are the line's, not the moment's, so the digits cannot shift half a second at a
+                // time. Only what is painted changes.
                 float textWidth = paint.measureText(pieces[i]);
                 paint.getFontMetrics(fontMetrics);
                 float baseline = slot.centerY - (fontMetrics.ascent + fontMetrics.descent) / 2f;
                 float textLeft = cellStart + (cellWidth - textWidth) / 2f;
-                write(canvas, pieces[i], textLeft, baseline);
+                write(canvas, blinked(slot, i, pieces[i], instant), textLeft, baseline);
 
                 if (isDateRole(part.role)) {
                     carriesDate = true;
@@ -1440,6 +1462,7 @@ public class ClockView extends View {
      */
     private void loadTypeface(Context context) {
         highContrast = HighContrastText.isOn(context);
+        blinkColon = Settings.blinkColon(context);
         boldRoles.clear();
         italicRoles.clear();
         underlineRoles.clear();
@@ -1524,6 +1547,37 @@ public class ClockView extends View {
             anything = anything || !text.isEmpty();
         }
         return anything ? pieces : null;
+    }
+
+    /**
+     * The piece as it should be painted this instant: without its colon, on the dark half of a
+     * blink (issue #32).
+     *
+     * The colon was appended to the piece it follows, so hiding it is taking the last character
+     * off — and only when that character is the time's colon. A comma in the date and the spaces
+     * in the small line are punctuation too, and they do not blink.
+     */
+    private String blinked(ClockLayout.Slot slot, int index, String piece, long nowMs) {
+        if (!blinkColon || index + 1 >= slot.parts.size()) {
+            return piece;
+        }
+        String punctuation = ClockLayout.visibleOf(slot.parts.get(index + 1).separatorBefore);
+        if (!":".equals(punctuation) || ColonBlink.showsAt(nowMs)) {
+            return piece;
+        }
+        return ColonBlink.without(piece, punctuation);
+    }
+
+    /** Whether anything on this layout has a colon to blink. */
+    private static boolean hasColon(ClockLayout layout) {
+        for (ClockLayout.Slot slot : layout.slots()) {
+            for (int i = 1; i < slot.parts.size(); i++) {
+                if (":".equals(ClockLayout.visibleOf(slot.parts.get(i).separatorBefore))) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /** Sets the paint up for one field: its font and its decorations. */

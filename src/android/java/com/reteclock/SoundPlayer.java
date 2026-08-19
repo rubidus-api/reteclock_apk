@@ -48,6 +48,12 @@ final class SoundPlayer {
 
     private MediaPlayer player;
     private SoundClip playing;
+    /**
+     * How many more times the current sound is to be played (issue: a short chime asked for three
+     * times over). One is the ordinary case; stopping — a touch on the screen — throws away
+     * whatever is left, which is what "cancel the rest of it" means.
+     */
+    private int playsLeft = 1;
     private float volume = VOLUME;
 
     private final Handler handler = new Handler() {
@@ -73,7 +79,19 @@ final class SoundPlayer {
      * already decided a sound is better than a beep here, and a crash is not the other option.
      */
     void play(File file, SoundClip clip) {
+        play(file, clip, 1);
+    }
+
+    /**
+     * Plays this file {@code times} over — the clip, then the clip again, up to the count.
+     *
+     * A clip that was set to repeat for ever still does: that is what the file was asked to do, and
+     * a count cannot mean anything against it. Everything else plays exactly the number of times
+     * asked for and then stops itself.
+     */
+    void play(File file, SoundClip clip, int times) {
         stopNow();
+        playsLeft = times < 1 ? 1 : times;
         if (file == null || !file.isFile()) {
             return;
         }
@@ -151,9 +169,12 @@ final class SoundPlayer {
         if (player == null || playing == null) {
             return;
         }
-        if (!playing.loops) {
+        if (!playing.loops && playsLeft <= 1) {
             stopNow();
             return;
+        }
+        if (!playing.loops) {
+            playsLeft--;
         }
         try {
             player.seekTo((int) playing.startMs());
@@ -169,8 +190,11 @@ final class SoundPlayer {
         }
         // A file shorter than the clip's start, or one that simply ended: repeat if that is what was
         // asked for, otherwise let it go.
-        if (clip.loops) {
+        if (clip.loops || playsLeft > 1) {
             try {
+                if (!clip.loops) {
+                    playsLeft--;
+                }
                 done.seekTo((int) clip.startMs());
                 done.start();
                 scheduleEndPoint(clip);
@@ -221,6 +245,7 @@ final class SoundPlayer {
         MediaPlayer going = player;
         player = null;
         playing = null;
+        playsLeft = 1;
         volume = VOLUME;
         release(going);
     }

@@ -5,6 +5,8 @@
     <string name="settings_time_only">Show only the time</string>
     <string name="settings_time_only_note">The hour and the minute fill the screen, with the AM/PM marker where the clock reads in twelve hours, and nothing else: no seconds, no weekday, no date, no year, no month grid and no saying. This is what the app looked like on its first day; everything it grew since is still set where you left it and comes back the moment this is switched off.</string>
     <string name="settings_show_seconds">Show seconds</string>
+    <string name="settings_blink_colon">Blink the colon, once a second</string>
+    <string name="settings_blink_colon_note">What a table clock does: the colon between the hour and the minute is lit for half a second and dark for the other half, exactly on the second. It applies only where the time is written on one line and so has a colon — a screen turned sideways, for instance. Where the hour and the minute are stacked there is no colon and nothing changes. The digits never move: the line is measured with its colon whether it is being painted or not.</string>
     <string name="settings_hour12">Show the time as 12 hours, with AM and PM</string>
     <string name="settings_hour12_warning">Warning: did you know there is no settled agreement on how midnight and noon should be written, with AM and PM or in any other way? Different countries and different standards do it differently. A 12-hour clock brings confusion into communication, it can cause misunderstandings and disputes in contracts, and that can lead to loss and to accidents. If you want to use it anyway, please also decide below how midnight and noon should be shown — AM, PM, 0, NN, MN, or the 24-hour way.</string>
     <string name="settings_hour12_countries">How it is done elsewhere. Most clocks and phones: 12 PM at noon, 12 AM at midnight — which the United States\' own standards body calls ambiguous and advises against. The Philippines: 12 NN and 12 MN, which cannot be misread. Japan: the twelfth hour is written 0, so half past noon is 0:30 PM and midnight is 0:00 AM. Britain and the United States in writing: \"12 noon\" and \"12 midnight\" spelled out. Korea and China: the part of the day is named instead — daytime twelve, night twelve. Much of Europe and Latin America: the 24-hour clock for anything official, where 00:00 and 12:00 need no marker at all.</string>
@@ -60,6 +62,10 @@
     <string name="settings_date_name">Jul 12</string>
     <string name="settings_date_numeric">07-12</string>
     <string name="settings_colors">Colours</string>
+    <string name="settings_theme_colors">Take the colours from the system theme</string>
+    <string name="settings_theme_colors_note">Dark theme: white writing on black. Light theme: dark writing on white. The clock changes with the phone, without being restarted. Your own two colours are kept and come back the moment this is switched off.</string>
+    <string name="settings_theme_colors_dark">This phone is in its dark theme, so the clock is white on black.</string>
+    <string name="settings_theme_colors_light">This phone is in its light theme, so the clock is dark on white.</string>
     <string name="settings_text_color">Text colour</string>
     <string name="settings_background_color">Background colour</string>
     <string name="settings_color_same">The text and the background cannot be the same colour.</string>
@@ -331,7 +337,7 @@
     <string name="sound_phone_silent">This phone is on silent, so nothing will play — here or anywhere else in the app.</string>
     <string name="sound_card_bells">Bells</string>
     <string name="sound_bells_on">Let bells ring</string>
-    <string name="sound_bells_note">A bell rings while the clock is on screen. Touch the screen while one is ringing and it fades out and stops — that touch does nothing else. Nothing plays while the phone itself is on silent.</string>
+    <string name="sound_bells_note">A bell rings while the clock is on screen — except while a timer is counting, which has the right of way: a bell falling then is passed over rather than queued.  Touch the screen while one is ringing and it fades out and stops — that touch does nothing else. Nothing plays while the phone itself is on silent.</string>
     <string name="sound_bell_add">Add a bell…</string>
     <string name="sound_bell_none">No bells yet.</string>
     <string name="sound_bell_next">Next: in %1$s</string>
@@ -343,6 +349,9 @@
     <string name="sound_bell_days">Days</string>
     <string name="sound_bell_days_none">Choose at least one day, or this bell will never ring.</string>
     <string name="sound_bell_sound">Sound</string>
+    <string name="sound_bell_repeats">How many times it plays</string>
+    <string name="sound_bell_repeats_note">A chime of two or three seconds is easy to miss once and hard to miss three times over. Touching the screen while it is ringing fades it out and cancels the rest of the repeats, not only the pass that is playing.</string>
+    <string name="sound_bell_times">%1$d times</string>
     <string name="sound_bell_label">Name (optional)</string>
     <string name="sound_bell_chime">The built-in chime</string>
     <string name="sound_bell_every_day">Every day</string>

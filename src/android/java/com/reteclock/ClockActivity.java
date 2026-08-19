@@ -87,6 +87,13 @@ public class ClockActivity extends Activity {
         view = new ClockView(this, safeMode);
         // A bell is not part of the clock's drawing, but it happens on the clock's second.
         bells = new BellRinger(this);
+        // A timer counting has the right of way over a bell — see BellRinger.Busy.
+        bells.setBusy(new BellRinger.Busy() {
+            @Override
+            public boolean timerIsRunning() {
+                return timer != null && timer.isRunning();
+            }
+        });
         view.setOnSecond(new ClockView.OnSecond() {
             @Override
             public void second(long nowMs) {
@@ -250,6 +257,9 @@ public class ClockActivity extends Activity {
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
+        // The phone may have gone from its light theme to its dark one, which is a colour change
+        // here (issue #33) — the clock reads its colours again rather than waiting for a restart.
+        view.reloadOptions();
         // The strip changes sides; the clock re-measures itself as it always did.
         layOutScreen();
         hideSystemBars();
