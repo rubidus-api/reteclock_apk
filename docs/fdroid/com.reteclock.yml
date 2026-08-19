@@ -40,6 +40,16 @@ Builds:
 
 AllowedAPKSigningKeys: 90446b5280aa4ce34bfe8b33252ef6be902c744d4f5af203a5995a4bbd4c641d
 
+# How many versions stay in the main repository; everything older moves to the archive, which is
+# what the archive is for. This app has released often, and every version left in the main repo is
+# an entry in the index that every client downloads and a file every mirror carries. Four is the
+# current release plus three to fall back to.
+#
+# Written as an integer, which is what current fdroidserver expects; older versions of the tool
+# spell the same thing `4 versions`. Nothing here takes effect until this file is copied into a
+# fdroiddata merge request — this is the project's own copy of the recipe.
+ArchivePolicy: 4
+
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
 CurrentVersion: 0.2.2
