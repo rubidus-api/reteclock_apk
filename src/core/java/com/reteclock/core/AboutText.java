@@ -24,7 +24,7 @@ public final class AboutText {
      * @param androidRelease the version of Android this device is running, or null
      */
     public static String of(String version, String androidRelease) {
-        StringBuilder out = new StringBuilder("reteclock");
+        StringBuilder out = new StringBuilder("ReteClock");
         if (version != null && !version.isEmpty()) {
             out.append(' ').append(version);
         }
