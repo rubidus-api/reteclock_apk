@@ -1,0 +1,9 @@
+* The app is called ReteClock now, wherever you read it.
+* Show only the time: the hour and the minute fill the screen and nothing else
+  is drawn. What the app looked like on its first day, as an option.
+* The colon between the hour and the minute can blink once a second, the way a
+  table clock does, where the time is written on one line.
+* The clock can take its colours from the phone's own light or dark theme.
+* Fixed: the themed icon was inverted on Android 13 and later.
+* Fixed: after a timer finished, its play button did not come back.
+* Bells can ring several times over, and a timer counting has the right of way.
