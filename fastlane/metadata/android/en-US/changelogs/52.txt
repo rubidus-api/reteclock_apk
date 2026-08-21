@@ -1,0 +1,6 @@
+Fixed: a sound previewed on the sounds page went on offering Stop after it had
+finished. The player now says when it has fallen quiet and the row follows it.
+
+Fixed: "What the marker says" showed a fixed AM PM NN MN whatever noon and
+midnight conventions were chosen. Each button now says which marker it is and
+what it will actually read, such as "At noon · PM".
