@@ -922,6 +922,17 @@ public class ClockView extends View {
             // to centre the text of the moment inside the cell reserved for its widest case, so a
             // narrow reading sits where a wide one would and nothing moves as the clock ticks.
             float size = plan.textSize(slot);
+            // Where the marker is drawn beside this line and the layout kept room for it — the
+            // time-only clock — the line and the marker are centred *together*. What the marker
+            // actually takes can only be measured, and the slack would otherwise pile up on the
+            // right. Measured here, before any field's own style is applied, because measuring
+            // means setting the paint to the marker's style.
+            float markerSlack = 0f;
+            if (slot.rightLimit > 0f && time.meridiem != null
+                    && ClockLayout.ROLE_HOUR_MINUTE.equals(slot.role)) {
+                float kept = slot.rightLimit - (slot.centerX + slot.maxWidth / 2f);
+                markerSlack = Math.max(0f, kept - meridiemRoom(time.meridiem, size)) / 2f;
+            }
             // The badge belongs to the line, not to one of its parts: "Sat, Mor 24" is two parts
             // with no slack between them, and the room to put a badge in is at the line's ends.
             boolean carriesDate = false;
@@ -942,6 +953,7 @@ public class ClockView extends View {
                 paint.getFontMetrics(fontMetrics);
                 float baseline = slot.centerY - (fontMetrics.ascent + fontMetrics.descent) / 2f;
                 float textLeft = cellStart + (cellWidth - textWidth) / 2f;
+                textLeft += markerSlack;
                 write(canvas, blinked(slot, i, pieces[i], instant), textLeft, baseline);
 
                 if (isDateRole(part.role)) {
@@ -991,6 +1003,18 @@ public class ClockView extends View {
      * Where the hour and the minute are stacked instead, this is not used at all: there the marker
      * is a line of its own under the minute, placed by the layout like any other field.
      */
+    /**
+     * How much room the marker really wants beside a line: its gap and its own width.
+     *
+     * Measured with the marker's own style, because a user font can be far wider than the system
+     * one at the same size — the same reason {@link #drawMeridiemBeside} is willing to shrink it.
+     */
+    private float meridiemRoom(String text, float timeSize) {
+        float size = timeSize * 0.30f;
+        applyStyle(ClockLayout.ROLE_MERIDIEM, size);
+        return size * 0.35f + paint.measureText(text);
+    }
+
     private void drawMeridiemBeside(Canvas canvas, String text, float textRight, float lineRight,
             float baseline, float timeSize) {
         // Its own field, drawn the way every other field is drawn. It used to be a paint built here

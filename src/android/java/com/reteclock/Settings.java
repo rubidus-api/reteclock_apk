@@ -71,6 +71,7 @@ public final class Settings {
     public static final String KEY_QUOTE_ON = "quote_on";
     public static final String KEY_TIME_ONLY = "clock_only";
     public static final String KEY_BLINK_COLON = "clock_blink_colon";
+    public static final String KEY_TIME_ONLY_MARKER = "clock_only_marker";
     public static final String KEY_THEME_COLORS = "colors_from_theme";
     /** Whether the clock wanders a few pixels to spare the panel. On unless turned off. */
     public static final String KEY_BURN_IN_SHIFT = "burn_in_shift";
@@ -173,6 +174,7 @@ public final class Settings {
         out.put(KEY_QUOTE_ON, Boolean.valueOf(quoteOn(context)));
         out.put(KEY_TIME_ONLY, Boolean.valueOf(timeOnly(context)));
         out.put(KEY_BLINK_COLON, Boolean.valueOf(blinkColon(context)));
+        out.put(KEY_TIME_ONLY_MARKER, Boolean.valueOf(timeOnlyMarker(context)));
         out.put(KEY_THEME_COLORS, Boolean.valueOf(themeColors(context)));
         out.put(KEY_BURN_IN_SHIFT, Boolean.valueOf(burnInShift(context)));
         out.put(KEY_TIME_PERCENT_WIDE, Integer.valueOf(timePercent(context, KEY_TIME_PERCENT_WIDE)));
@@ -881,6 +883,21 @@ public final class Settings {
      * Off by default. It only has anything to do where the time is written on one line and so has a
      * colon — a wide screen; where the hour and the minute are stacked there is nothing to blink.
      */
+    /**
+     * Whether the AM/PM marker is kept while the clock shows only the time.
+     *
+     * On by default: a twelve-hour clock with no marker does not say which half of the day it is.
+     * Somebody who wants the two numbers and nothing else can drop it, and the digits then take the
+     * room it was keeping.
+     */
+    public static boolean timeOnlyMarker(Context context) {
+        return prefs(context).getBoolean(KEY_TIME_ONLY_MARKER, true);
+    }
+
+    public static void setTimeOnlyMarker(Context context, boolean marker) {
+        prefs(context).edit().putBoolean(KEY_TIME_ONLY_MARKER, marker).commit();
+    }
+
     public static boolean blinkColon(Context context) {
         return prefs(context).getBoolean(KEY_BLINK_COLON, false);
     }
@@ -1158,7 +1175,8 @@ public final class Settings {
                 hour12(context), noonStyle(context), midnightStyle(context),
                 customNames(context, calendarSystem(context)))
                 .withMarkers(markers(context))
-                .withTimeOnly(timeOnly(context));
+                .withTimeOnly(timeOnly(context))
+                .withTimeOnlyMarker(timeOnlyMarker(context));
     }
 
     /**

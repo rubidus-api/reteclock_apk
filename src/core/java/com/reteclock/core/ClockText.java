@@ -125,7 +125,10 @@ public final class ClockText {
             }
         }
         hour = shownHour;
-        meridiem = mark;
+        // The marker can be switched off while only the time is shown: the two numbers, and
+        // nothing to say which half of the day they belong to, for somebody who knows. Null rather
+        // than empty, because null is what the layout already reads as "there is no such field".
+        meridiem = options.showsMeridiem() ? mark : null;
         minute = pad2(time.minute);
         second = pad2(time.second);
         secondLabel = second + "s";
@@ -140,6 +143,8 @@ public final class ClockText {
         CalendarDate date = Calendars.dateOf(options.calendarSystem, shown);
         monthDay = options.dateStyle == ClockOptions.DATE_STYLE_NUMERIC
                 ? pad2(date.month) + "-" + pad2(date.day)
+                : options.dateStyle == ClockOptions.DATE_STYLE_DAY_MONTH
+                ? pad2(date.day) + "/" + pad2(date.month)
                 : options.names.month(date.month,
                         Calendars.monthName(date.system, date.year, date.month, options.nameStyle))
                         + " " + date.day;

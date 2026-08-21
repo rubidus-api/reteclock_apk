@@ -164,6 +164,13 @@ public class SettingsActivity extends Activity {
     private boolean bakeAgain;
     /** The two colour rows, rebuilt whenever a colour is picked so the swatches follow. */
     private LinearLayout colorSection;
+    /**
+     * Everything the twelve-hour clock brings with it, kept as a field so it can be rebuilt.
+     *
+     * Its contents describe each other — the marker buttons and the readings in the noon and
+     * midnight choices — so a change anywhere in it rebuilds all of it.
+     */
+    private LinearLayout twelveHourExtras;
 
     /** What the export will contain: every page and both file kinds until the user says otherwise. */
     private final Set<String> exportSections = new HashSet<String>(
@@ -316,6 +323,22 @@ public class SettingsActivity extends Activity {
         clock.addView(timeOnly);
         clock.addView(footer(getString(R.string.settings_time_only_note)));
 
+        // Only meaningful with both of the two above on, and kept beside the one it belongs to
+        // rather than hidden: a switch that appears and disappears is harder to find than one that
+        // is simply there.
+        final CheckBox timeOnlyMarker = new CheckBox(this);
+        timeOnlyMarker.setText(R.string.settings_time_only_marker);
+        timeOnlyMarker.setTextColor(TEXT_WHITE);
+        timeOnlyMarker.setChecked(Settings.timeOnlyMarker(this));
+        timeOnlyMarker.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                Settings.setTimeOnlyMarker(SettingsActivity.this, checked);
+            }
+        });
+        clock.addView(timeOnlyMarker);
+        clock.addView(footer(getString(R.string.settings_time_only_marker_note)));
+
         final CheckBox seconds = new CheckBox(this);
         seconds.setText(R.string.settings_show_seconds);
         seconds.setTextColor(TEXT_WHITE);
@@ -347,7 +370,7 @@ public class SettingsActivity extends Activity {
         // and the two questions about noon and midnight — lives in one box that is only there when
         // the twelve-hour clock is. On a 24-hour clock none of it applies: 00:00 and 12:00 say what
         // they are, and a screen full of warning about an ambiguity you do not have is just noise.
-        final LinearLayout twelveHourExtras = new LinearLayout(this);
+        twelveHourExtras = new LinearLayout(this);
         twelveHourExtras.setOrientation(LinearLayout.VERTICAL);
 
         final CheckBox twelveHour = new CheckBox(this);
@@ -364,75 +387,20 @@ public class SettingsActivity extends Activity {
         clock.addView(twelveHour);
         clock.addView(twelveHourExtras);
 
-        twelveHourExtras.addView(warning(getString(R.string.settings_hour12_warning)));
-        twelveHourExtras.addView(footer(getString(R.string.settings_hour12_countries)));
-        twelveHourExtras.addView(footer(getString(R.string.settings_hour12_note)));
-
-        // Before the conventions: what the marker actually says. AM and PM are Latin abbreviations
-        // that much of the world does not write in Latin, and the labels below are built from
-        // whatever is typed here, so the options keep showing the reading they produce.
-        final CustomMarkers marks = Settings.markers(this);
-        twelveHourExtras.addView(subheading(getString(R.string.settings_markers)));
-        FlowLayout markerRow = new FlowLayout(this, dp(6), dp(4));
-        markerRow.addView(markerButton(R.string.settings_marker_am, "AM", marks.amEntry(), 0));
-        markerRow.addView(markerButton(R.string.settings_marker_pm, "PM", marks.pmEntry(), 1));
-        markerRow.addView(markerButton(R.string.settings_marker_noon, "NN", marks.noonEntry(), 2));
-        markerRow.addView(markerButton(R.string.settings_marker_midnight, "MN",
-                marks.midnightEntry(), 3));
-        twelveHourExtras.addView(markerRow);
-        twelveHourExtras.addView(actionButton(getString(R.string.settings_markers_preset),
-                new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        chooseMarkerPreset();
-                    }
-                }));
-        twelveHourExtras.addView(footer(getString(R.string.settings_markers_note)));
-
-        // Noon and midnight are the one thing a twelve-hour clock cannot say plainly, and they are
-        // two separate questions rather than one. Each option is labelled with the reading itself,
-        // so nobody has to know which country's convention they are picking.
-        twelveHourExtras.addView(subheading(getString(R.string.settings_noon)));
-        // The examples are the instant the setting is about — noon itself, not some minute past
-        // it. "12:43 PM" made the reader work out which of the five numbers was the one in
-        // question. Side by side rather than one to a line: four short readings do not need four
-        // lines of screen.
-        twelveHourExtras.addView(inlineChoice(
-                new String[] {"12:00 " + marks.atNoon("PM"), "12:00 " + marks.atNoon("AM"),
-                    "12:00 " + marks.atNoon("NN"), "0:00 " + marks.atNoon("PM")},
-                Settings.noonStyle(this), new OnChoice() {
-                    @Override
-                    public void chose(int which) {
-                        Settings.setNoonStyle(SettingsActivity.this, which);
-                    }
-                }));
-
-        twelveHourExtras.addView(subheading(getString(R.string.settings_midnight)));
-        twelveHourExtras.addView(inlineChoice(
-                new String[] {"12:00 " + marks.atMidnight("AM"), "12:00 " + marks.atMidnight("PM"),
-                    "00:00", "12:00 " + marks.atMidnight("MN"),
-                    "0:00 " + marks.atMidnight("AM")},
-                Settings.midnightStyle(this), new OnChoice() {
-                    @Override
-                    public void chose(int which) {
-                        Settings.setMidnightStyle(SettingsActivity.this, which);
-                    }
-                }));
-
+        fillTwelveHourExtras();
         twelveHourExtras.setVisibility(Settings.hour12(this) ? View.VISIBLE : View.GONE);
 
 
         clock.addView(subheading(getString(R.string.settings_date_format)));
         clock.addView(inlineChoice(
                 new String[] {getString(R.string.settings_date_name),
-                    getString(R.string.settings_date_numeric)},
-                Settings.dateStyle(this) == ClockOptions.DATE_STYLE_NUMERIC ? 1 : 0,
+                    getString(R.string.settings_date_numeric),
+                    getString(R.string.settings_date_day_month)},
+                Settings.dateStyle(this),
                 new OnChoice() {
                     @Override
                     public void chose(int which) {
-                        Settings.setDateStyle(SettingsActivity.this,
-                                which == 1 ? ClockOptions.DATE_STYLE_NUMERIC
-                                        : ClockOptions.DATE_STYLE_NAME);
+                        Settings.setDateStyle(SettingsActivity.this, which);
                     }
                 }));
 
@@ -607,6 +575,77 @@ public class SettingsActivity extends Activity {
         root.addView(out);
 
         rebuildImportSection();
+    }
+
+
+    /**
+     * Everything a twelve-hour clock brings with it, built into its own box.
+     *
+     * Rebuilt rather than left standing whenever any of it changes, because all of it is written in
+     * terms of the rest: the four marker buttons show what the markers say, and the noon and
+     * midnight choices are labelled with the reading those markers produce. Applying a country's
+     * convention changes both at once, and before this the buttons above went on showing the old
+     * words until the screen was left and opened again.
+     */
+    private void fillTwelveHourExtras() {
+        twelveHourExtras.removeAllViews();
+        final CustomMarkers marks = Settings.markers(this);
+        twelveHourExtras.addView(warning(getString(R.string.settings_hour12_warning)));
+        twelveHourExtras.addView(footer(getString(R.string.settings_hour12_countries)));
+        twelveHourExtras.addView(footer(getString(R.string.settings_hour12_note)));
+
+        // Before the conventions: what the marker actually says. AM and PM are Latin abbreviations
+        // that much of the world does not write in Latin, and the labels below are built from
+        // whatever is typed here, so the options keep showing the reading they produce.
+        twelveHourExtras.addView(subheading(getString(R.string.settings_markers)));
+        FlowLayout markerRow = new FlowLayout(this, dp(6), dp(4));
+        markerRow.addView(markerButton(R.string.settings_marker_am, "AM", marks.amEntry(), 0));
+        markerRow.addView(markerButton(R.string.settings_marker_pm, "PM", marks.pmEntry(), 1));
+        markerRow.addView(markerButton(R.string.settings_marker_noon, "NN", marks.noonEntry(), 2));
+        markerRow.addView(markerButton(R.string.settings_marker_midnight, "MN",
+                marks.midnightEntry(), 3));
+        twelveHourExtras.addView(markerRow);
+        twelveHourExtras.addView(actionButton(getString(R.string.settings_markers_preset),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        chooseMarkerPreset();
+                    }
+                }));
+        twelveHourExtras.addView(footer(getString(R.string.settings_markers_note)));
+
+        // Noon and midnight are the one thing a twelve-hour clock cannot say plainly, and they are
+        // two separate questions rather than one. Each option is labelled with the reading itself,
+        // so nobody has to know which country's convention they are picking.
+        twelveHourExtras.addView(subheading(getString(R.string.settings_noon)));
+        // The examples are the instant the setting is about — noon itself, not some minute past
+        // it. "12:43 PM" made the reader work out which of the five numbers was the one in
+        // question. Side by side rather than one to a line: four short readings do not need four
+        // lines of screen.
+        twelveHourExtras.addView(inlineChoice(
+                new String[] {"12:00 " + marks.atNoon("PM"), "12:00 " + marks.atNoon("AM"),
+                    "12:00 " + marks.atNoon("NN"), "0:00 " + marks.atNoon("PM")},
+                Settings.noonStyle(this), new OnChoice() {
+                    @Override
+                    public void chose(int which) {
+                        Settings.setNoonStyle(SettingsActivity.this, which);
+                        fillTwelveHourExtras();
+                    }
+                }));
+
+        twelveHourExtras.addView(subheading(getString(R.string.settings_midnight)));
+        twelveHourExtras.addView(inlineChoice(
+                new String[] {"12:00 " + marks.atMidnight("AM"), "12:00 " + marks.atMidnight("PM"),
+                    "00:00", "12:00 " + marks.atMidnight("MN"),
+                    "0:00 " + marks.atMidnight("AM")},
+                Settings.midnightStyle(this), new OnChoice() {
+                    @Override
+                    public void chose(int which) {
+                        Settings.setMidnightStyle(SettingsActivity.this, which);
+                        fillTwelveHourExtras();
+                    }
+                }));
+
     }
 
     private String sectionLabel(String section) {
@@ -2111,7 +2150,8 @@ public class SettingsActivity extends Activity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         MarkerPresets.apply(SettingsActivity.this, which);
-                        recreate();
+                        // The markers and the two conventions all moved; the box says so at once.
+                        fillTwelveHourExtras();
                     }
                 })
                 .show();
@@ -2137,7 +2177,7 @@ public class SettingsActivity extends Activity {
                                         : which == 1 ? marks.withPm(typed)
                                         : which == 2 ? marks.withNoon(typed)
                                         : marks.withMidnight(typed));
-                        recreate();
+                        fillTwelveHourExtras();
                     }
                 })
                 .setNegativeButton(android.R.string.cancel, null)

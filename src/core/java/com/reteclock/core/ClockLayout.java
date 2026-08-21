@@ -59,6 +59,26 @@ public final class ClockLayout {
 
     /** And how much of a one-line time's width is kept back for it. */
     private static final float MERIDIEM_WIDTH_SHARE = 0.15f;
+    /**
+     * How much of the gap between two big lines is left above the marker under them.
+     *
+     * A marker is part of the time, not a line beside it: at the full gap it sits away on its own
+     * near the foot of the screen, which is how it reads as a caption rather than as the other half
+     * of "2:29 AM".
+     */
+    private static final float MERIDIEM_GAP_SHARE = 0.35f;
+    /**
+     * How much room the marker needs beside the time, as a share of the time's own size.
+     *
+     * The marker is drawn at 0.30 of the time and set off from it by a third of its own size, so
+     * two glyphs and their gap come to about this much. The ordinary wide layout keeps back a share
+     * of the *width* instead, which is right there because the side column is beyond it; with only
+     * the time on the screen there is nothing beyond it, and a share of the width that came out
+     * smaller than the marker left it squeezed against the edge.
+     */
+    private static final float MERIDIEM_ROOM_SHARE = 0.44f;
+    /** And never more than this much of the width, whatever the height says. */
+    private static final float MERIDIEM_ROOM_CAP = 0.30f;
 
     /** The width a time on one line may use, once the marker has been allowed for. */
     /**
@@ -70,11 +90,27 @@ public final class ClockLayout {
      * beside it, which is the same allowance the ordinary layout makes.
      */
     private static ClockLayout wideTimeOnly(int w, int h, ClockOptions options, float pad) {
+        float room = w - 2f * pad;
+        // The room kept for the marker is measured from the time's own size, not from the width:
+        // the marker is drawn in proportion to the time, and a slice of the width can be smaller
+        // than the marker on a wide, short screen — which is what squeezed it against the edge.
+        float reserve = options.showsMeridiem()
+                ? Math.min(room * MERIDIEM_ROOM_CAP, (h - 2f * pad) * MERIDIEM_ROOM_SHARE)
+                : 0f;
+        float box = room - reserve;
+        // The marker sits to the right of the line, in a slice the layout keeps back for it. With
+        // the date column gone there is nothing to the right *but* that slice, so the time is
+        // centred on what is left rather than on the screen — otherwise the pair is off-centre and
+        // the marker runs past the edge and is clipped.
+        float centerX = w / 2f - reserve / 2f;
         List<Slot> out = new ArrayList<Slot>(1);
-        out.add(new Slot(ROLE_HOUR_MINUTE,
+        Slot line = new Slot(ROLE_HOUR_MINUTE,
                 parts(new String[] {ROLE_HOUR, ROLE_MINUTE}, new String[] {"", ":"}),
-                w / 2f, h / 2f, h - 2f * pad,
-                timeBoxWidth(w - 2f * pad, options)));
+                centerX, h / 2f, h - 2f * pad, box);
+        // The marker may use the whole of the room kept for it, and no more: its right edge is the
+        // padding, which is where every other thing on this screen stops.
+        line.rightLimit = centerX + box / 2f + reserve;
+        out.add(line);
         return new ClockLayout(true, out, options, null);
     }
 
@@ -87,20 +123,22 @@ public final class ClockLayout {
      */
     private static ClockLayout tallTimeOnly(int w, int h, ClockOptions options, float pad,
             float boxWidth, float centerX, float gap) {
-        int lines = options.hour12 ? 2 : 1;              // gaps between the big lines and a marker
-        float content = h - 2f * pad - gap * lines;
-        float mainSize = options.hour12
-                ? content / (2f + MERIDIEM_SHARE)
-                : content / 2f;
-        float meridiemSize = options.hour12 ? mainSize * MERIDIEM_SHARE : 0f;
+        boolean marker = options.showsMeridiem();
+        // The marker belongs to the time rather than being a third line of its own, so it follows
+        // the minute at a fraction of the gap the two big lines keep between them. At the full gap
+        // it drifts towards the bottom of the screen and reads as something else entirely.
+        float markerGap = gap * MERIDIEM_GAP_SHARE;
+        float content = h - 2f * pad - gap - (marker ? markerGap : 0f);
+        float mainSize = marker ? content / (2f + MERIDIEM_SHARE) : content / 2f;
+        float meridiemSize = marker ? mainSize * MERIDIEM_SHARE : 0f;
 
         List<Slot> out = new ArrayList<Slot>(3);
         float cursor = pad;
         out.add(new Slot(ROLE_HOUR, centerX, cursor + mainSize / 2f, mainSize, boxWidth));
         cursor += mainSize + gap;
         out.add(new Slot(ROLE_MINUTE, centerX, cursor + mainSize / 2f, mainSize, boxWidth));
-        if (options.hour12) {
-            cursor += mainSize + gap;
+        if (marker) {
+            cursor += mainSize + markerGap;
             out.add(new Slot(ROLE_MERIDIEM, centerX, cursor + meridiemSize / 2f,
                     meridiemSize, boxWidth));
         }
@@ -108,7 +146,7 @@ public final class ClockLayout {
     }
 
     private static float timeBoxWidth(float boxWidth, ClockOptions options) {
-        return options.hour12 ? boxWidth * (1f - MERIDIEM_WIDTH_SHARE) : boxWidth;
+        return options.showsMeridiem() ? boxWidth * (1f - MERIDIEM_WIDTH_SHARE) : boxWidth;
     }
 
     /**
@@ -120,6 +158,9 @@ public final class ClockLayout {
      * digits end.
      */
     public static float meridiemLimit(Slot slot) {
+        if (slot.rightLimit > 0f) {
+            return slot.rightLimit;
+        }
         return slot.centerX + slot.maxWidth / 2f
                 + slot.maxWidth * MERIDIEM_WIDTH_SHARE / (1f - MERIDIEM_WIDTH_SHARE);
     }
@@ -189,6 +230,15 @@ public final class ClockLayout {
          * column meant to be level would come apart the moment one of its lines needed shrinking.
          */
         final String sizeGroup;
+        /**
+         * How far right the marker beside this line may reach, or 0 for "work it out".
+         *
+         * The room kept for the marker is the layout's business and it is not always the same
+         * share: with only the time on the screen it follows the marker's own size rather than a
+         * slice of the width. Carrying it on the line keeps the drawing code from having to know
+         * which layout it is in.
+         */
+        public float rightLimit;
 
         Slot(String role, float centerX, float centerY, float textSize, float maxWidth) {
             this(role, singlePart(role), centerX, centerY, textSize, maxWidth, null);
