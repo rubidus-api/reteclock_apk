@@ -1,0 +1,7 @@
+* A third date format: 12/07, the way most of the world writes a date.
+* The AM/PM marker can be left out while only the time is shown; the hour and
+  the minute then take the room it was keeping.
+* Fixed: picking a country's way of writing AM and PM left the buttons above it
+  showing the old words until the settings were opened again.
+* Fixed: the AM/PM marker could be squeezed against the edge of the screen while
+  only the time was shown. The time and its marker are now placed together.
