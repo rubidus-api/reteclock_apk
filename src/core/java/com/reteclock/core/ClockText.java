@@ -81,47 +81,11 @@ public final class ClockText {
                 shownHour = Integer.toString(time.hour % 12);
                 mark = options.markers.ordinary(morning ? "AM" : "PM");
             } else if (morning) {
-                switch (options.midnightStyle) {
-                    case ClockOptions.MIDNIGHT_PM:
-                        shownHour = "12";
-                        mark = options.markers.atMidnight("PM");
-                        break;
-                    case ClockOptions.MIDNIGHT_24H:
-                        shownHour = pad2(time.hour);   // the one hour written the 24-hour way
-                        mark = options.markers.atMidnight(null);
-                        break;
-                    case ClockOptions.MIDNIGHT_MN:
-                        shownHour = "12";
-                        mark = options.markers.atMidnight("MN");
-                        break;
-                    case ClockOptions.MIDNIGHT_ZERO:
-                        shownHour = "0";
-                        mark = options.markers.atMidnight("AM");
-                        break;
-                    default:
-                        shownHour = "12";
-                        mark = options.markers.atMidnight("AM");
-                        break;
-                }
+                shownHour = midnightHour(options.midnightStyle);
+                mark = options.markers.atMidnight(midnightMarker(options.midnightStyle));
             } else {
-                switch (options.noonStyle) {
-                    case ClockOptions.NOON_AM:
-                        shownHour = "12";
-                        mark = options.markers.atNoon("AM");
-                        break;
-                    case ClockOptions.NOON_NN:
-                        shownHour = "12";
-                        mark = options.markers.atNoon("NN");
-                        break;
-                    case ClockOptions.NOON_ZERO:
-                        shownHour = "0";
-                        mark = options.markers.atNoon("PM");
-                        break;
-                    default:
-                        shownHour = "12";
-                        mark = options.markers.atNoon("PM");
-                        break;
-                }
+                shownHour = noonHour(options.noonStyle);
+                mark = options.markers.atNoon(noonMarker(options.noonStyle));
             }
         }
         hour = shownHour;
@@ -185,5 +149,49 @@ public final class ClockText {
 
     private static String pad2(int value) {
         return value < 10 ? "0" + value : Integer.toString(value);
+    }
+
+    /**
+     * The built-in marker each noon convention writes, before the user's own markers replace it.
+     *
+     * Public because the settings screen has to say what the marker <em>will</em> read, and the
+     * only honest answer is the one the clock itself uses. Two copies of this table drift: the
+     * screen showed "NN" beside noon whatever convention was chosen (issue #35's neighbour).
+     */
+    public static String noonMarker(int noonStyle) {
+        switch (noonStyle) {
+            case ClockOptions.NOON_AM:
+                return "AM";
+            case ClockOptions.NOON_NN:
+                return "NN";
+            default:
+                return "PM";                 // NOON_PM and NOON_ZERO both read the afternoon marker
+        }
+    }
+
+    /** The hour that convention writes: twelve, or a bare zero. */
+    public static String noonHour(int noonStyle) {
+        return noonStyle == ClockOptions.NOON_ZERO ? "0" : "12";
+    }
+
+    /** As {@link #noonMarker}, for midnight; null is the 24-hour reading, which writes none. */
+    public static String midnightMarker(int midnightStyle) {
+        switch (midnightStyle) {
+            case ClockOptions.MIDNIGHT_PM:
+                return "PM";
+            case ClockOptions.MIDNIGHT_24H:
+                return null;
+            case ClockOptions.MIDNIGHT_MN:
+                return "MN";
+            default:
+                return "AM";                 // MIDNIGHT_AM and MIDNIGHT_ZERO both read AM
+        }
+    }
+
+    public static String midnightHour(int midnightStyle) {
+        if (midnightStyle == ClockOptions.MIDNIGHT_24H) {
+            return "00";                     // the one hour written the 24-hour way
+        }
+        return midnightStyle == ClockOptions.MIDNIGHT_ZERO ? "0" : "12";
     }
 }

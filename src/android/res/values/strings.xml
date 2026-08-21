@@ -52,6 +52,7 @@
     <string name="marker_preset_china">China — 上午, 下午, 12:00 下午, 12:00 上午</string>
     <string name="marker_preset_written">Written English — 12:00 noon, 12:00 midnight</string>
     <string name="marker_preset_midnight_24h">Midnight as 00:00 — twelve-hour all day, except that</string>
+    <string name="settings_marker_none">no marker</string>
     <string name="settings_marker_am">Before noon</string>
     <string name="settings_marker_pm">After noon</string>
     <string name="settings_marker_noon">At noon</string>

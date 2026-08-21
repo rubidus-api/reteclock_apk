@@ -80,6 +80,18 @@ public class SoundSettingsActivity extends Activity {
     private final SoundPlayer player = new SoundPlayer();
     /** Which sound the preview is playing, so its row can offer to stop it. */
     private String previewing = "";
+    /**
+     * Told by the player when it has fallen quiet, so a row stops offering *Stop*.
+     *
+     * A sound ends by itself and the screen had no way of knowing — the sound half of issue #29.
+     */
+    private final SoundPlayer.OnIdle idleListener = new SoundPlayer.OnIdle() {
+        @Override
+        public void idle() {
+            previewing = "";
+            rebuildSounds();
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -143,6 +155,8 @@ public class SoundSettingsActivity extends Activity {
         }));
         root.addView(bells);
 
+        // A sound that ends by itself leaves the row still offering *Stop*, which is the sound
+        // half of issue #29. The player says when it has fallen quiet and the rows are drawn again.
         rebuildSounds();
         rebuildBells();
 
@@ -153,10 +167,22 @@ public class SoundSettingsActivity extends Activity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        // Armed again on the way back in: onPause takes the listener off, and without this the
+        // rows would go back to sticking on *Stop* the second time the screen is opened.
+        player.setOnIdle(idleListener);
+        previewing = "";
+        rebuildSounds();
+    }
+
+    @Override
     protected void onPause() {
         super.onPause();
         // A preview belongs to the screen that started it. Leaving the screen stops it, or the phone
-        // plays a song at somebody from a window they have already left.
+        // plays a song at somebody from a window they have already left. The listener goes first:
+        // there is no point rebuilding rows for a screen on its way out.
+        player.setOnIdle(null);
         player.stopNow();
         previewing = "";
     }

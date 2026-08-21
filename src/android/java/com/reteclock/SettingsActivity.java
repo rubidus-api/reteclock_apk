@@ -43,6 +43,7 @@ import java.util.List;
 import com.reteclock.core.CustomMarkers;
 import com.reteclock.core.SettingsIni;
 import com.reteclock.core.ClockOptions;
+import com.reteclock.core.ClockText;
 import com.reteclock.core.FontLibrary;
 import com.reteclock.core.ImageFit;
 import com.reteclock.core.ImageRoles;
@@ -599,11 +600,15 @@ public class SettingsActivity extends Activity {
         // whatever is typed here, so the options keep showing the reading they produce.
         twelveHourExtras.addView(subheading(getString(R.string.settings_markers)));
         FlowLayout markerRow = new FlowLayout(this, dp(6), dp(4));
-        markerRow.addView(markerButton(R.string.settings_marker_am, "AM", marks.amEntry(), 0));
-        markerRow.addView(markerButton(R.string.settings_marker_pm, "PM", marks.pmEntry(), 1));
-        markerRow.addView(markerButton(R.string.settings_marker_noon, "NN", marks.noonEntry(), 2));
-        markerRow.addView(markerButton(R.string.settings_marker_midnight, "MN",
-                marks.midnightEntry(), 3));
+        // Each button shows the reading it will actually produce, not the word it falls back to:
+        // the noon and midnight conventions decide which built-in marker is written, so choosing
+        // "12:00 PM" for noon has to show the afternoon marker there and not a stale "NN".
+        markerRow.addView(markerButton(R.string.settings_marker_am, marks.ordinary("AM"), 0));
+        markerRow.addView(markerButton(R.string.settings_marker_pm, marks.ordinary("PM"), 1));
+        markerRow.addView(markerButton(R.string.settings_marker_noon,
+                marks.atNoon(ClockText.noonMarker(Settings.noonStyle(this))), 2));
+        markerRow.addView(markerButton(R.string.settings_marker_midnight,
+                marks.atMidnight(ClockText.midnightMarker(Settings.midnightStyle(this))), 3));
         twelveHourExtras.addView(markerRow);
         twelveHourExtras.addView(actionButton(getString(R.string.settings_markers_preset),
                 new View.OnClickListener() {
@@ -2119,10 +2124,18 @@ public class SettingsActivity extends Activity {
      * Editing one rebuilds the screen rather than the button, because the noon and midnight
      * options below are labelled with the reading they produce and that reading has just changed.
      */
-    private Button markerButton(final int label, final String built, String typed,
-            final int which) {
+    /**
+     * One marker, shown as what it is and what it reads: "At noon · PM".
+     *
+     * The reading is worked out by the clock's own rules, so the button changes when the noon or
+     * midnight convention changes, when a country's preset is applied, and when a marker is typed.
+     * Null is the 24-hour midnight, which writes nothing after the time.
+     */
+    private Button markerButton(final int label, String reading, final int which) {
         Button row = new Button(this);
-        row.setText(typed.length() == 0 ? built : typed);
+        row.setText(getString(label) + " \u00b7 "
+                + (reading == null || reading.length() == 0
+                        ? getString(R.string.settings_marker_none) : reading));
         row.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {

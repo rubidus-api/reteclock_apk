@@ -46,6 +46,25 @@ final class SoundPlayer {
     private static final int MSG_FADE = 1;
     private static final int MSG_END_POINT = 2;
 
+    /**
+     * Told when the player falls idle, for a screen whose buttons say what it is doing.
+     *
+     * A sound ends by itself, and the settings screen had no way of knowing: its row went on
+     * offering *Stop* long after there was nothing to stop (issue #29, the second half of it). The
+     * player is the only thing that knows when it stopped, so it is the thing that says so.
+     */
+    interface OnIdle {
+        void idle();
+    }
+
+    private OnIdle onIdle;
+    /** True while {@link #play} is replacing one sound with another: not an idle moment. */
+    private boolean replacing;
+
+    void setOnIdle(OnIdle listener) {
+        onIdle = listener;
+    }
+
     private MediaPlayer player;
     private SoundClip playing;
     /**
@@ -90,7 +109,11 @@ final class SoundPlayer {
      * asked for and then stops itself.
      */
     void play(File file, SoundClip clip, int times) {
+        // Stopping in order to start again is not falling idle; the screen would rebuild itself
+        // out from under the press that asked for this.
+        replacing = true;
         stopNow();
+        replacing = false;
         playsLeft = times < 1 ? 1 : times;
         if (file == null || !file.isFile()) {
             return;
@@ -248,6 +271,11 @@ final class SoundPlayer {
         playsLeft = 1;
         volume = VOLUME;
         release(going);
+        // However it ended — its own end, a fade, an error, or somebody leaving the screen — the
+        // sound is over and whoever is watching is told once.
+        if (going != null && !replacing && onIdle != null) {
+            onIdle.idle();
+        }
     }
 
     private static void release(MediaPlayer going) {
