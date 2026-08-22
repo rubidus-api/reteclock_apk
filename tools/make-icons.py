@@ -3,9 +3,9 @@
 adaptive icon's foreground and monochrome layers for API 26 and up, the 512x512 store icon, and the
 1024x500 feature graphic F-Droid shows at the top of the app page.
 
-The icon is drawn, not downloaded: a white rounded square carrying the name RETE across the top and
-the time 13:24 below it in seven-segment digits, so the launcher says both what the app is called
-and what it does. It is monochrome on purpose --- a white plate and near-black lettering, no third
+The icon is drawn, not downloaded: a mid-grey rounded square carrying the name RETE across the top
+and the time 13:24 below it in seven-segment digits, so the launcher says both what the app is
+called and what it does. It is monochrome on purpose --- a grey plate and white lettering, no third
 colour --- which is also what lets the same drawing serve as the themed icon Android 13 asks for.
 On the themed layer the lettering is a hole rather than ink, because there the system supplies both
 the colour of the plate and what shows through it.
@@ -46,10 +46,17 @@ ADAPTIVE_DENSITIES = {
 }
 SAFE_ZONE = 66.0 / 108.0
 
-PLATE = (255, 255, 255, 255)  # the white rounded square
-INK = (12, 12, 16, 255)  # the lettering on it, and the black the clock itself runs on
+# The icon is a mid-grey rounded square with white lettering on it, which is how a monochrome icon
+# sits among its neighbours: the plate carries the weight and the letters are the light part. It was
+# the other way round until 0.30.2 — a white plate with near-black lettering — and a white square is
+# the brightest thing on most home screens whatever else is on them.
+PLATE = (85, 89, 95, 255)  # the mid-grey rounded square
+LETTERING = (255, 255, 255, 255)  # the wordmark and the time on it
+
+# The clock's own two colours, which the feature graphic shows as they really are.
+INK = (12, 12, 16, 255)
 BACKGROUND = INK
-FOREGROUND = PLATE
+FOREGROUND = (255, 255, 255, 255)
 
 PLATE_RADIUS = 0.22  # corner radius of the plate, as a fraction of its side
 
@@ -260,7 +267,7 @@ def render(size):
     draw.rounded_rectangle(
         [0, 0, big - 1, big - 1], radius=big * PLATE_RADIUS, fill=PLATE
     )
-    draw_face(draw, (0, 0), big, INK)
+    draw_face(draw, (0, 0), big, LETTERING)
     return image.resize((size, size), Image.LANCZOS)
 
 
@@ -273,7 +280,7 @@ def render_adaptive_foreground(size):
     big = size * SUPERSAMPLE
     image = Image.new("RGBA", (big, big), (0, 0, 0, 0))
     side = big * SAFE_ZONE
-    draw_face(ImageDraw.Draw(image), ((big - side) / 2, (big - side) / 2), side, INK)
+    draw_face(ImageDraw.Draw(image), ((big - side) / 2, (big - side) / 2), side, LETTERING)
     return image.resize((size, size), Image.LANCZOS)
 
 
