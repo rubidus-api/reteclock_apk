@@ -1,0 +1,8 @@
+Fixed: the icon's digits were one shape rather than seven lit segments — every
+segment overlapped the one beside it at the corners, which reads as a digit in
+dark ink on a white plate and as a blob wherever the drawing is painted light on
+a colour, as a themed home screen does. The segments now stand apart, and stay
+apart under the outline a launcher adds.
+
+Fixed: the themed icon's wordmark is set in the regular face rather than the
+bold one, so it arrives at the weight the app icon has.
