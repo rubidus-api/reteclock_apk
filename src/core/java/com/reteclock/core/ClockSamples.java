@@ -33,13 +33,17 @@ public final class ClockSamples {
     public static List<String> of(String role, ClockOptions options) {
         if (ClockLayout.ROLE_HOUR.equals(role)) {
             if (options.hour12) {
-                // One to twelve, and no leading zero — "7:19", not "07:19", which is the whole
-                // point of asking for a twelve-hour clock. The Japanese way of writing noon and
-                // midnight adds a thirteenth string, "0", and a field sized without it is a field
-                // that can be asked to draw something it was never measured for.
+                // One to twelve, written the way the clock writes them — bare by default, and with
+                // a leading zero where that was asked for (R83). Taking the bare form for granted
+                // is what clipped the hour in issue #38: "08" is wider than "12" in most faces, so
+                // a field measured against "12" is a field asked to draw something wider than
+                // itself. The Japanese way of writing noon and midnight adds "0", and the 24-hour
+                // midnight adds "00": both are the convention's own reading rather than a padded
+                // number, so both are listed as they are written.
+                boolean padded = options.padding.hour(true);
                 List<String> out = new ArrayList<String>(14);
                 for (int value = 1; value <= 12; value++) {
-                    out.add(Integer.toString(value));
+                    out.add(Padding.write(value, padded));
                 }
                 if (options.noonStyle == ClockOptions.NOON_ZERO
                         || options.midnightStyle == ClockOptions.MIDNIGHT_ZERO) {
@@ -50,14 +54,14 @@ public final class ClockSamples {
                 }
                 return out;
             }
-            return twoDigitRange(0, 23);
+            return range(0, 23, options.padding.hour(false));
         }
         if (ClockLayout.ROLE_MINUTE.equals(role)) {
-            return twoDigitRange(0, 59);
+            return range(0, 59, options.padding.minute());
         }
         if (ClockLayout.ROLE_SECOND.equals(role)) {
             List<String> out = new ArrayList<String>(60);
-            for (String value : twoDigitRange(0, 59)) {
+            for (String value : range(0, 59, options.padding.second())) {
                 out.add(value + "s");
             }
             return out;
@@ -134,39 +138,54 @@ public final class ClockSamples {
     }
 
     /**
-     * Month and day.
+     * Month and day: every pair the clock can write, in the style in force.
      *
-     * Under the named style this is a month name and a day number, so the widest is the widest name
-     * beside the widest number — but which pair that is depends on the font, and measuring all 366
-     * combinations to find out would be wasteful. Every month is offered with the two- and
-     * one-digit day extremes, which is 36 strings and covers the pairing that actually wins.
-     *
-     * The numeric style is a fixed shape, so the digits are what vary.
+     * This used to offer each month against a handful of extreme days — 1, 8, 28, 30, 31 — on the
+     * reasoning that the widest pairing is in there somewhere. It is, for width; but a sample list
+     * that does not contain `Jan 2` is a list that cannot answer "is this string covered", and the
+     * check that walks a year and asks exactly that found the hole. Every day of every month is
+     * 372 strings, measured once when the layout is worked out and never again, which is cheap
+     * enough to be exact instead of clever.
      */
     private static List<String> monthDays(ClockOptions options) {
         List<String> out = new ArrayList<String>();
-        if (options.dateStyle == ClockOptions.DATE_STYLE_NUMERIC) {
-            for (String digit : DIGITS) {
-                out.add(digit + digit + "-" + digit + digit);
+        boolean padMonth = options.padding.month();
+        boolean padDay = options.padding.day(options.dateStyle);
+        if (options.dateStyle != ClockOptions.DATE_STYLE_NAME) {
+            // Both numeric styles: the same two numbers, told apart by their order and their
+            // separator. The day-first style went unlisted until now and was measured against
+            // month *names*, which are wider — wrong, though it only ever made the text small.
+            boolean dayFirst = options.dateStyle == ClockOptions.DATE_STYLE_DAY_MONTH;
+            String separator = dayFirst ? "/" : "-";
+            for (int month = 1; month <= MONTHS_AT_MOST; month++) {
+                String written = Padding.write(month, padMonth);
+                for (int day = 1; day <= DAYS_AT_MOST; day++) {
+                    String dayWritten = Padding.write(day, padDay);
+                    out.add(dayFirst ? dayWritten + separator + written
+                            : written + separator + dayWritten);
+                }
             }
-            // The real range never has a month above 12 or a day above 31, but a font can draw "1"
-            // wider than "9"; these are the shapes that actually occur at the extremes.
-            out.add("12-28");
-            out.add("12-30");
-            out.add("12-31");
-            out.add("11-11");
             return out;
         }
         for (String month : named(Calendars.monthNames(options.calendarSystem, options.nameStyle),
                 options, true)) {
-            out.add(month + " 1");
-            out.add(month + " 8");
-            out.add(month + " 28");
-            out.add(month + " 30");
-            out.add(month + " 31");
+            for (int day = 1; day <= DAYS_AT_MOST; day++) {
+                out.add(month + " " + Padding.write(day, padDay));
+            }
         }
         return out;
     }
+
+    /**
+     * The widest month and day numbers any calendar here writes.
+     *
+     * A calendar with thirteen months names thirteen of them, and the numeric styles are written in
+     * the Gregorian month numbers regardless; a day never reaches 32 anywhere. Offering a pair the
+     * calendar in force cannot produce costs a measurement and nothing else — the sizing takes the
+     * widest, and a string that is never drawn can only make the text smaller, never clipped.
+     */
+    private static final int MONTHS_AT_MOST = 13;
+    private static final int DAYS_AT_MOST = 31;
 
     /**
      * The year, in whichever calendar is counting.
@@ -198,10 +217,11 @@ public final class ClockSamples {
         return out;
     }
 
-    private static List<String> twoDigitRange(int from, int to) {
+    /** Every value in the range, written the way the clock in force writes it. */
+    private static List<String> range(int from, int to, boolean padded) {
         List<String> out = new ArrayList<String>(to - from + 1);
         for (int value = from; value <= to; value++) {
-            out.add(value < 10 ? "0" + value : String.valueOf(value));
+            out.add(Padding.write(value, padded));
         }
         return out;
     }
