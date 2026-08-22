@@ -554,7 +554,7 @@ picks up the shared JDK and Android SDK from it by itself. Anywhere else, point 
 
 ```sh
 export JAVA_HOME=/path/to/jdk-21              # only --release insists on this exact major version
-export ANDROID_SDK_ROOT=/path/to/android-sdk   # build-tools 35.0.0 + platforms;android-19
+export ANDROID_SDK_ROOT=/path/to/android-sdk   # build-tools 35.0.0 + platforms;android-19,34
 
 scripts/build.sh             # dist/reteclock-<version>-debug.apk, signed with a local dev key
 scripts/build.sh --release   # signed with your own release key (RETECLOCK_KEYSTORE)

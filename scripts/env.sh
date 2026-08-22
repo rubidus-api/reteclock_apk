@@ -9,6 +9,7 @@
 #   ANDROID_SDK_ROOT   Android SDK root (also accepted: ANDROID_HOME)
 #   ANDROID_BUILD_TOOLS_VERSION  build-tools directory name, default 35.0.0
 #   ANDROID_COMPILE_API          platform whose android.jar is compiled against, default 19
+#   ANDROID_RES_API              platform the *resources* are linked against, default 34
 #   JUNIT_JAR          junit-platform-console-standalone jar, for scripts/test.sh
 #   RETECLOCK_ROOT     project root, for callers outside scripts/; defaults to the caller's ../
 #   RETECLOCK_KEYSTORE, RETECLOCK_KEY_ALIAS, RETECLOCK_KEYSTORE_PASS
@@ -39,6 +40,13 @@ fi
 : "${ANDROID_SDK_ROOT:=${ANDROID_HOME:-}}"
 : "${ANDROID_BUILD_TOOLS_VERSION:=35.0.0}"
 : "${ANDROID_COMPILE_API:=19}"
+# Resources are linked against a modern platform while the Java is still compiled against
+# android-19. The two answer different questions: the bootclasspath is what stops a call to an API
+# the floor does not have, and it stays at 19; the resource linker only has to know that an
+# attribute *name* exists, and android-19 has never heard of the ones a launcher shortcut is
+# declared with (API 25). Linking newer changes no attribute the app already used — their ids are
+# fixed — and minSdk and targetSdk are still passed explicitly.
+: "${ANDROID_RES_API:=34}"
 
 fail() {
     echo "reteclock: $1" >&2
@@ -71,10 +79,12 @@ require_sdk() {
     [ -n "$ANDROID_SDK_ROOT" ] || fail "ANDROID_SDK_ROOT is not set (see scripts/env.sh)"
     BUILD_TOOLS="$ANDROID_SDK_ROOT/build-tools/$ANDROID_BUILD_TOOLS_VERSION"
     ANDROID_JAR="$ANDROID_SDK_ROOT/platforms/android-$ANDROID_COMPILE_API/android.jar"
+    ANDROID_RES_JAR="$ANDROID_SDK_ROOT/platforms/android-$ANDROID_RES_API/android.jar"
     AAPT2="$BUILD_TOOLS/aapt2"
     D8="$BUILD_TOOLS/d8"
     ZIPALIGN="$BUILD_TOOLS/zipalign"
     APKSIGNER="$BUILD_TOOLS/apksigner"
     [ -d "$BUILD_TOOLS" ] || fail "missing build-tools $ANDROID_BUILD_TOOLS_VERSION"
     [ -f "$ANDROID_JAR" ] || fail "missing platform android-$ANDROID_COMPILE_API"
+    [ -f "$ANDROID_RES_JAR" ] || fail "missing platform android-$ANDROID_RES_API (resources)"
 }

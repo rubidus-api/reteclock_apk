@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- What a long press on the home-screen icon offers. Read on API 25 and up; older versions
+     ignore it, and reach the settings from the clock itself — a tap on the face, or a long press.
+
+     One shortcut, because there is one thing worth reaching without going through the clock: the
+     settings. It is also the way in when a picture has made the clock unusable and the person
+     holding the phone would rather not wait for the app to notice. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="settings"
+        android:enabled="true"
+        android:icon="@drawable/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_settings_short"
+        android:shortcutLongLabel="@string/shortcut_settings_long">
+        <intent
+            android:action="android.intent.action.MAIN"
+            android:targetPackage="com.reteclock"
+            android:targetClass="com.reteclock.SettingsActivity" />
+    </shortcut>
+</shortcuts>

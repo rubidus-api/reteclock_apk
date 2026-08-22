@@ -35,7 +35,7 @@ Builds:
     commit: 665dc627dffc67e13c632c64766be1d0688271ce
     output: dist/reteclock-*-unsigned.apk
     build:
-      - sdkmanager "platforms;android-19" "build-tools;34.0.0"
+      - sdkmanager "platforms;android-19" "platforms;android-34" "build-tools;34.0.0"
       - scripts/build.sh --unsigned
 
 AllowedAPKSigningKeys: 90446b5280aa4ce34bfe8b33252ef6be902c744d4f5af203a5995a4bbd4c641d

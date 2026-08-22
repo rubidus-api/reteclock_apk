@@ -67,9 +67,9 @@ find "$ROOT/src/android/res" -type f | while read -r res; do
     "$AAPT2" compile -o "$FLAT" "$res"
 done
 
-echo "==> aapt2 link"
+echo "==> aapt2 link (against android-$ANDROID_RES_API)"
 "$AAPT2" link \
-    -I "$ANDROID_JAR" \
+    -I "$ANDROID_RES_JAR" \
     --manifest "$ROOT/src/android/AndroidManifest.xml" \
     --java "$GEN" \
     --min-sdk-version "$MIN_SDK" \

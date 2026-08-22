@@ -514,7 +514,7 @@ v2와 v3도 함께 붙이며, 일반 권한 둘(`WAKE_LOCK`과 타이머용 `VIB
 
 ```sh
 export JAVA_HOME=/path/to/jdk-21              # --release 만 이 메이저 버전을 정확히 요구합니다
-export ANDROID_SDK_ROOT=/path/to/android-sdk   # build-tools 35.0.0 + platforms;android-19
+export ANDROID_SDK_ROOT=/path/to/android-sdk   # build-tools 35.0.0 + platforms;android-19,34
 
 scripts/build.sh             # dist/reteclock-<버전>-debug.apk, 로컬 개발 키로 서명
 scripts/build.sh --release   # 자신의 릴리즈 키로 서명(RETECLOCK_KEYSTORE)

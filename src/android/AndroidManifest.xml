@@ -36,14 +36,21 @@
             android:label="@string/app_name"
             android:launchMode="singleTop"
             android:theme="@style/ClockTheme">
-            <!-- The dock still goes straight to the clock. The home-screen button does not: it
-                 opens the settings, which is the only way back in when an imported image or font
-                 has made the full-screen clock unusable. -->
+            <!-- The home-screen button opens the clock (issue #39), as it did before an unusable
+                 picture made a door necessary. The door is still there and still opens by itself:
+                 a run that never came back sends the next tap to the settings, and so does the
+                 switch for anybody who prefers it. See LaunchRoute. -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.DESK_DOCK" />
             </intent-filter>
+            <!-- Long-pressing the icon offers the settings, on the versions that have shortcuts
+                 (API 25 and up). Older ones ignore this, and reach the settings from the clock. -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
 
         <activity
@@ -67,11 +74,13 @@
         <activity
             android:name=".SettingsActivity"
             android:exported="true"
-            android:label="@string/app_name"
+            android:label="@string/settings_title"
             android:theme="@android:style/Theme.Black">
+            <!-- Exported without the launcher category: it is no longer the front door, but the
+                 icon's shortcut menu starts it, and that is the launcher starting it. -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 

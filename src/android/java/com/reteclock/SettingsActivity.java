@@ -226,10 +226,6 @@ public class SettingsActivity extends Activity {
 
         page = getIntent() == null ? PAGE_MAIN : getIntent().getIntExtra(EXTRA_PAGE, PAGE_MAIN);
 
-        if (page == PAGE_MAIN && bounceToClock()) {
-            return;
-        }
-
         // Getting here is proof the long-press hint has done its job.
         Settings.setHintSeen(this);
 
@@ -2502,27 +2498,6 @@ public class SettingsActivity extends Activity {
             }
         }
         Toast.makeText(this, R.string.settings_screensaver_no_screen, Toast.LENGTH_LONG).show();
-    }
-
-    /**
-     * Sends a home-screen launch straight on to the clock, when that is what the user asked for.
-     *
-     * The home-screen button opens this screen by default. It is the only door back into the app
-     * when a picture or a font has made the full-screen clock unusable — there are no buttons on a
-     * clock face, and a clock that has stopped answering will not take a long press. Whoever wants
-     * the old habit back turns the switch on; a run that never came back overrules it, because that
-     * is precisely the case the door exists for.
-     */
-    private boolean bounceToClock() {
-        Intent intent = getIntent();
-        boolean fromHomeScreen = intent != null
-                && intent.hasCategory(Intent.CATEGORY_LAUNCHER);
-        if (!fromHomeScreen || !Settings.directStart(this) || Settings.runUnfinished(this)) {
-            return false;
-        }
-        startActivity(new Intent(this, ClockActivity.class));
-        finish();
-        return true;
     }
 
     /** A full-width action in the accent, for the one thing a card invites you to do. */

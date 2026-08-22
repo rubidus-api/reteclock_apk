@@ -299,8 +299,10 @@
     <string name="hint_safe_mode">Started without images or imported fonts: the last run stopped answering. Press and hold for settings.</string>
     <string name="settings_card_start">Start</string>
     <string name="settings_start_clock">Start the clock</string>
+    <string name="shortcut_settings_short">Settings</string>
+    <string name="shortcut_settings_long">Open ReteClock settings</string>
     <string name="settings_direct_start">Home-screen button opens the clock directly</string>
-    <string name="settings_direct_start_note">Off, the button opens this screen — the way back in when an image or a font has made the clock unusable. A run that stopped answering opens this screen either way.</string>
+    <string name="settings_direct_start_note">On, tapping the icon shows the clock, and these settings are a tap on the clock away — or a long press on the app icon, on Android 7.1 and newer. Off, the button opens this screen instead, with the clock one press away. Either way, a run that stopped answering opens this screen: that is how the app lets you undo a picture or a font that made the clock unusable.</string>
     <string name="settings_safe_notice">The last run stopped answering, so the clock started without images or imported fonts. A large animated GIF is the usual reason: remove it below, or untick BG, and start the clock again.</string>
     <string name="settings_about">ReteClock %1$s\nRuns on Android 2.3 (API 9) and newer. Built for Android 4.4.\nThis device: Android %2$s</string>
     <!-- Sounds: the pool, how each one plays, and the bells that ring one at a time of day. -->

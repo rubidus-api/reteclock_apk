@@ -519,12 +519,14 @@ public final class Settings {
     /**
      * Whether the home-screen button opens the clock straight away.
      *
-     * Off by default: the button opens the settings, with the clock one press away. That is the way
-     * back in when an imported picture or font has made the clock unusable — the one thing a
-     * full-screen clock with no buttons cannot otherwise offer.
+     * On by default (issue #39): a clock app whose icon opens a settings screen is a clock app that
+     * costs a press every morning. It was off while the settings screen was the only way back in
+     * from an unusable picture; the mark now detects that case by itself and sends the tap to the
+     * settings anyway — see {@link com.reteclock.core.LaunchRoute}. Anybody who preferred the
+     * settings first still has the switch, and a stored answer of either kind is kept.
      */
     public static boolean directStart(Context context) {
-        return prefs(context).getBoolean(KEY_DIRECT_START, false);
+        return prefs(context).getBoolean(KEY_DIRECT_START, true);
     }
 
     public static void setDirectStart(Context context, boolean direct) {

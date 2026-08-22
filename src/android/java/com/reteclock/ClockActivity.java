@@ -15,6 +15,7 @@ import android.widget.Toast;
 
 import java.util.List;
 
+import com.reteclock.core.LaunchRoute;
 import com.reteclock.core.TimerPreset;
 import com.reteclock.core.Tones;
 
@@ -61,9 +62,35 @@ public class ClockActivity extends Activity {
         }
     };
 
+    /**
+     * Sends a home-screen tap to the settings when that is where it belongs.
+     *
+     * The button opens the clock (issue #39), which is what the app did before an unusable picture
+     * made a door necessary. Two things still open the door instead: the user asking for it, and a
+     * run that never came back — the case the door was built for, which the mark now detects rather
+     * than the launcher guarding against it. Anything that is not a person tapping the icon — the
+     * dock, the charger, the screensaver — goes to the clock whatever else is true.
+     */
+    private boolean routeToSettings() {
+        Intent intent = getIntent();
+        boolean fromHomeScreen = intent != null && intent.hasCategory(Intent.CATEGORY_LAUNCHER);
+        int route = LaunchRoute.of(fromHomeScreen, Settings.directStart(this),
+                Settings.runUnfinished(this));
+        if (route != LaunchRoute.SETTINGS) {
+            return false;
+        }
+        startActivity(new Intent(this, SettingsActivity.class));
+        finish();
+        return true;
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        if (routeToSettings()) {
+            return;
+        }
 
         int flags = WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
                 | WindowManager.LayoutParams.FLAG_FULLSCREEN;
