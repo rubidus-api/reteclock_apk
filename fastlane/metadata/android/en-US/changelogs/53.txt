@@ -1,0 +1,4 @@
+Changed: the launcher icon is the other way round — white lettering on a
+mid-grey plate, instead of near-black lettering on a white one, which is how a
+monochrome icon sits among its neighbours. The themed icon Android 13 and later
+draws is unchanged.
