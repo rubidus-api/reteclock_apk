@@ -1,0 +1,7 @@
+Fixed: the hour was drawn too large and cut off when it carried a leading zero.
+Text sizes come from the widest string a field can ever show, and the twelve-hour
+hour was still listed without its zero — so it was measured as "12" and drawn as
+"08". Every field is now measured as what it will really write.
+
+Fixed: the day-first date (12/07) was measured against month names, which are
+wider, so it was drawn smaller than it needed to be.
