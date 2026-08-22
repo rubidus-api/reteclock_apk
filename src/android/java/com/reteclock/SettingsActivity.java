@@ -44,6 +44,7 @@ import com.reteclock.core.CustomMarkers;
 import com.reteclock.core.SettingsIni;
 import com.reteclock.core.ClockOptions;
 import com.reteclock.core.ClockText;
+import com.reteclock.core.Padding;
 import com.reteclock.core.FontLibrary;
 import com.reteclock.core.ImageFit;
 import com.reteclock.core.ImageRoles;
@@ -172,6 +173,8 @@ public class SettingsActivity extends Activity {
      * midnight choices — so a change anywhere in it rebuilds all of it.
      */
     private LinearLayout twelveHourExtras;
+    /** The leading-zero buttons, which follow the clock and the date format above them. */
+    private LinearLayout paddingRow;
 
     /** What the export will contain: every page and both file kinds until the user says otherwise. */
     private final Set<String> exportSections = new HashSet<String>(
@@ -348,6 +351,7 @@ public class SettingsActivity extends Activity {
             @Override
             public void onCheckedChanged(CompoundButton button, boolean checked) {
                 Settings.setShowSeconds(SettingsActivity.this, checked);
+                fillPadding();      // the second's own leading zero is only worth offering when it shows
             }
         });
         clock.addView(seconds);
@@ -383,6 +387,7 @@ public class SettingsActivity extends Activity {
             public void onCheckedChanged(CompoundButton button, boolean checked) {
                 Settings.setHour12(SettingsActivity.this, checked);
                 twelveHourExtras.setVisibility(checked ? View.VISIBLE : View.GONE);
+                fillPadding();      // the two clocks pad the hour by their own conventions
             }
         });
         clock.addView(twelveHour);
@@ -402,8 +407,14 @@ public class SettingsActivity extends Activity {
                     @Override
                     public void chose(int which) {
                         Settings.setDateStyle(SettingsActivity.this, which);
+                        fillPadding();   // which numbers the date writes has just changed
                     }
                 }));
+
+        paddingRow = new LinearLayout(this);
+        paddingRow.setOrientation(LinearLayout.VERTICAL);
+        clock.addView(paddingRow);
+        fillPadding();
 
         final CheckBox wander = new CheckBox(this);
         wander.setText(R.string.settings_burn_in);
@@ -588,6 +599,72 @@ public class SettingsActivity extends Activity {
      * convention changes both at once, and before this the buttons above went on showing the old
      * words until the screen was left and opened again.
      */
+    /**
+     * The leading zeros: one button per field, saying what that field will be written as.
+     *
+     * Rebuilt rather than updated, because which buttons belong here depends on what is above:
+     * a month written as a name has no number to pad, and a second that is not shown has nothing to
+     * write. The hour and the day are asked of the form in force — see {@link Padding}.
+     */
+    private void fillPadding() {
+        if (paddingRow == null) {
+            return;                 // a switch above this one moved while the screen was being built
+        }
+        paddingRow.removeAllViews();
+        Padding padding = Settings.padding(this);
+        boolean twelve = Settings.hour12(this);
+        int style = Settings.dateStyle(this);
+        paddingRow.addView(subheading(getString(R.string.settings_padding)));
+        FlowLayout row = new FlowLayout(this, dp(6), dp(4));
+        row.addView(padButton(R.string.settings_padding_hour, padding.hour(twelve), PAD_HOUR));
+        row.addView(padButton(R.string.settings_padding_minute, padding.minute(), PAD_MINUTE));
+        if (Settings.showSeconds(this)) {
+            row.addView(padButton(R.string.settings_padding_second, padding.second(), PAD_SECOND));
+        }
+        if (Padding.monthIsANumber(style)) {
+            row.addView(padButton(R.string.settings_padding_month, padding.month(), PAD_MONTH));
+        }
+        row.addView(padButton(R.string.settings_padding_day, padding.day(style), PAD_DAY));
+        paddingRow.addView(row);
+        paddingRow.addView(footer(getString(R.string.settings_padding_note)));
+    }
+
+    private static final int PAD_HOUR = 0;
+    private static final int PAD_MINUTE = 1;
+    private static final int PAD_SECOND = 2;
+    private static final int PAD_MONTH = 3;
+    private static final int PAD_DAY = 4;
+
+    /** One field, shown as what it will read: "Hour · 08". A press turns it over. */
+    private Button padButton(int label, final boolean padded, final int which) {
+        Button button = new Button(this);
+        button.setText(getString(label) + " \u00b7 " + (padded ? "08" : "8"));
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Padding now = Settings.padding(SettingsActivity.this);
+                boolean twelve = Settings.hour12(SettingsActivity.this);
+                int style = Settings.dateStyle(SettingsActivity.this);
+                boolean wanted = !padded;
+                Padding next;
+                if (which == PAD_HOUR) {
+                    next = now.withHour(twelve, wanted);
+                } else if (which == PAD_MINUTE) {
+                    next = now.withMinute(wanted);
+                } else if (which == PAD_SECOND) {
+                    next = now.withSecond(wanted);
+                } else if (which == PAD_MONTH) {
+                    next = now.withMonth(wanted);
+                } else {
+                    next = now.withDay(style, wanted);
+                }
+                Settings.setPadding(SettingsActivity.this, next);
+                fillPadding();
+            }
+        });
+        return button;
+    }
+
     private void fillTwelveHourExtras() {
         twelveHourExtras.removeAllViews();
         final CustomMarkers marks = Settings.markers(this);

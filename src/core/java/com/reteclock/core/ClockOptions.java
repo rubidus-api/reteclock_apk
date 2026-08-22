@@ -93,6 +93,12 @@ public final class ClockOptions {
      * digits grow into the space it was keeping.
      */
     public final boolean timeOnlyMarker;
+    /**
+     * Which of the clock's numbers are written with a leading zero (`08` against `8`).
+     *
+     * Never null — {@link Padding#DEFAULTS} is what the clock has always drawn.
+     */
+    public final Padding padding;
 
     /** Noon reads `12 PM` — what nearly every clock does. */
     public static final int NOON_PM = 0;
@@ -125,28 +131,32 @@ public final class ClockOptions {
     public ClockOptions withCalendar(boolean showCalendar) {
         return new ClockOptions(showSeconds, dateStyle, timeFractionWide, timeFractionTall,
                 showCalendar, quote, calendarSystem, gregorianBadge, hijriOffsetDays, nameStyle,
-                weekdayStyle, hour12, noonStyle, midnightStyle, names, markers, timeOnly, timeOnlyMarker);
+                weekdayStyle, hour12, noonStyle, midnightStyle, names, markers, timeOnly,
+                timeOnlyMarker, padding);
     }
 
     /** The same options counting in another calendar. */
     public ClockOptions withCalendarSystem(int system, boolean badge, int hijriOffset) {
         return new ClockOptions(showSeconds, dateStyle, timeFractionWide, timeFractionTall,
                 calendar, quote, system, badge, hijriOffset, nameStyle, weekdayStyle, hour12,
-                noonStyle, midnightStyle, names, markers, timeOnly, timeOnlyMarker);
+                noonStyle, midnightStyle, names, markers, timeOnly,
+                timeOnlyMarker, padding);
     }
 
     /** The same options with the months spelled another way. */
     public ClockOptions withNameStyle(int style) {
         return new ClockOptions(showSeconds, dateStyle, timeFractionWide, timeFractionTall,
                 calendar, quote, calendarSystem, gregorianBadge, hijriOffsetDays, style,
-                weekdayStyle, hour12, noonStyle, midnightStyle, names, markers, timeOnly, timeOnlyMarker);
+                weekdayStyle, hour12, noonStyle, midnightStyle, names, markers, timeOnly,
+                timeOnlyMarker, padding);
     }
 
     /** The same options with the weekdays named the other way. */
     public ClockOptions withWeekdayStyle(int style) {
         return new ClockOptions(showSeconds, dateStyle, timeFractionWide, timeFractionTall,
                 calendar, quote, calendarSystem, gregorianBadge, hijriOffsetDays, nameStyle,
-                style, hour12, noonStyle, midnightStyle, names, markers, timeOnly, timeOnlyMarker);
+                style, hour12, noonStyle, midnightStyle, names, markers, timeOnly,
+                timeOnlyMarker, padding);
     }
 
     /** The same options on a twelve-hour clock, or back on a twenty-four hour one. */
@@ -158,14 +168,16 @@ public final class ClockOptions {
     public ClockOptions withHour12(boolean twelve, int noon, int midnight) {
         return new ClockOptions(showSeconds, dateStyle, timeFractionWide, timeFractionTall,
                 calendar, quote, calendarSystem, gregorianBadge, hijriOffsetDays, nameStyle,
-                weekdayStyle, twelve, noon, midnight, names, markers, timeOnly, timeOnlyMarker);
+                weekdayStyle, twelve, noon, midnight, names, markers, timeOnly,
+                timeOnlyMarker, padding);
     }
 
     /** The same options with the user's own AM, PM, noon and midnight markers. */
     public ClockOptions withMarkers(CustomMarkers markers) {
         return new ClockOptions(showSeconds, dateStyle, timeFractionWide, timeFractionTall,
                 calendar, quote, calendarSystem, gregorianBadge, hijriOffsetDays, nameStyle,
-                weekdayStyle, hour12, noonStyle, midnightStyle, names, markers, timeOnly, timeOnlyMarker);
+                weekdayStyle, hour12, noonStyle, midnightStyle, names, markers, timeOnly,
+                timeOnlyMarker, padding);
     }
 
     /** The same options showing the time alone, or the whole clock again. */
@@ -173,14 +185,23 @@ public final class ClockOptions {
         return new ClockOptions(showSeconds, dateStyle, timeFractionWide, timeFractionTall,
                 calendar, quote, calendarSystem, gregorianBadge, hijriOffsetDays, nameStyle,
                 weekdayStyle, hour12, noonStyle, midnightStyle, names, markers, only,
-                timeOnlyMarker);
+                timeOnlyMarker, padding);
     }
 
     /** The same options with the marker kept, or dropped, while only the time is shown. */
     public ClockOptions withTimeOnlyMarker(boolean marker) {
         return new ClockOptions(showSeconds, dateStyle, timeFractionWide, timeFractionTall,
                 calendar, quote, calendarSystem, gregorianBadge, hijriOffsetDays, nameStyle,
-                weekdayStyle, hour12, noonStyle, midnightStyle, names, markers, timeOnly, marker);
+                weekdayStyle, hour12, noonStyle, midnightStyle, names, markers, timeOnly, marker,
+                padding);
+    }
+
+    /** The same options with another answer to which numbers carry a leading zero. */
+    public ClockOptions withPadding(Padding padding) {
+        return new ClockOptions(showSeconds, dateStyle, timeFractionWide, timeFractionTall,
+                calendar, quote, calendarSystem, gregorianBadge, hijriOffsetDays, nameStyle,
+                weekdayStyle, hour12, noonStyle, midnightStyle, names, markers, timeOnly,
+                timeOnlyMarker, padding);
     }
 
     /** Whether a marker is drawn at all, which the time-only mode can switch off. */
@@ -192,7 +213,8 @@ public final class ClockOptions {
     public ClockOptions withNames(CustomNames names) {
         return new ClockOptions(showSeconds, dateStyle, timeFractionWide, timeFractionTall,
                 calendar, quote, calendarSystem, gregorianBadge, hijriOffsetDays, nameStyle,
-                weekdayStyle, hour12, noonStyle, midnightStyle, names, markers, timeOnly, timeOnlyMarker);
+                weekdayStyle, hour12, noonStyle, midnightStyle, names, markers, timeOnly,
+                timeOnlyMarker, padding);
     }
 
     public ClockOptions(boolean showSeconds, int dateStyle) {
@@ -288,6 +310,18 @@ public final class ClockOptions {
             boolean gregorianBadge, int hijriOffsetDays, int nameStyle, int weekdayStyle,
             boolean hour12, int noonStyle, int midnightStyle, CustomNames names,
             CustomMarkers markers, boolean timeOnly, boolean timeOnlyMarker) {
+        this(showSeconds, dateStyle, timeFractionWide, timeFractionTall, calendar, quote,
+                calendarSystem, gregorianBadge, hijriOffsetDays, nameStyle, weekdayStyle, hour12,
+                noonStyle, midnightStyle, names, markers, timeOnly, timeOnlyMarker,
+                Padding.DEFAULTS);
+    }
+
+    public ClockOptions(boolean showSeconds, int dateStyle, float timeFractionWide,
+            float timeFractionTall, boolean calendar, boolean quote, int calendarSystem,
+            boolean gregorianBadge, int hijriOffsetDays, int nameStyle, int weekdayStyle,
+            boolean hour12, int noonStyle, int midnightStyle, CustomNames names,
+            CustomMarkers markers, boolean timeOnly, boolean timeOnlyMarker, Padding padding) {
+        this.padding = padding == null ? Padding.DEFAULTS : padding;
         this.timeOnlyMarker = timeOnlyMarker;
         this.timeOnly = timeOnly;
         this.names = names == null ? CustomNames.NONE : names;

@@ -8,6 +8,7 @@ import java.io.File;
 import com.reteclock.core.ClockDefaults;
 import com.reteclock.core.ClockLayout;
 import com.reteclock.core.ClockOptions;
+import com.reteclock.core.Padding;
 import com.reteclock.core.CustomMarkers;
 import com.reteclock.core.CustomNames;
 import com.reteclock.core.SummerTime;
@@ -73,6 +74,8 @@ public final class Settings {
     public static final String KEY_BLINK_COLON = "clock_blink_colon";
     public static final String KEY_TIME_ONLY_MARKER = "clock_only_marker";
     public static final String KEY_THEME_COLORS = "colors_from_theme";
+    /** Which of the clock's numbers carry a leading zero; see {@link com.reteclock.core.Padding}. */
+    public static final String KEY_PADDING = "clock_padding";
     /** Whether the clock wanders a few pixels to spare the panel. On unless turned off. */
     public static final String KEY_BURN_IN_SHIFT = "burn_in_shift";
     public static final String KEY_RUN_ORIGIN = "timer_run_origin";
@@ -184,6 +187,7 @@ public final class Settings {
         out.put(KEY_NOON_STYLE, Integer.valueOf(noonStyle(context)));
         out.put(KEY_MIDNIGHT_STYLE, Integer.valueOf(midnightStyle(context)));
         out.put(KEY_MARKERS, markers(context).text());
+        out.put(KEY_PADDING, Integer.valueOf(padding(context).bits()));
 
         out.put(KEY_BACKGROUND_FIT, Integer.valueOf(backgroundFit(context)));
         out.put(KEY_BACKGROUND_STILL_SECONDS, Integer.valueOf(backgroundStillSeconds(context)));
@@ -1015,6 +1019,15 @@ public final class Settings {
         prefs(context).edit().putInt(KEY_NOON_STYLE, style).commit();
     }
 
+    /** Which numbers are written `08` rather than `8`. */
+    public static Padding padding(Context context) {
+        return Padding.ofBits(prefs(context).getInt(KEY_PADDING, Padding.DEFAULT_BITS));
+    }
+
+    public static void setPadding(Context context, Padding padding) {
+        prefs(context).edit().putInt(KEY_PADDING, padding.bits()).commit();
+    }
+
     public static int midnightStyle(Context context) {
         return prefs(context).getInt(KEY_MIDNIGHT_STYLE, ClockOptions.MIDNIGHT_AM);
     }
@@ -1176,7 +1189,8 @@ public final class Settings {
                 customNames(context, calendarSystem(context)))
                 .withMarkers(markers(context))
                 .withTimeOnly(timeOnly(context))
-                .withTimeOnlyMarker(timeOnlyMarker(context));
+                .withTimeOnlyMarker(timeOnlyMarker(context))
+                .withPadding(padding(context));
     }
 
     /**

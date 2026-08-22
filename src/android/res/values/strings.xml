@@ -52,6 +52,13 @@
     <string name="marker_preset_china">China — 上午, 下午, 12:00 下午, 12:00 上午</string>
     <string name="marker_preset_written">Written English — 12:00 noon, 12:00 midnight</string>
     <string name="marker_preset_midnight_24h">Midnight as 00:00 — twelve-hour all day, except that</string>
+    <string name="settings_padding">Leading zeros</string>
+    <string name="settings_padding_hour">Hour</string>
+    <string name="settings_padding_minute">Minute</string>
+    <string name="settings_padding_second">Second</string>
+    <string name="settings_padding_month">Month</string>
+    <string name="settings_padding_day">Day</string>
+    <string name="settings_padding_note">Each button shows how that number will be written; press it to turn it over. The hour and the day keep an answer for each form they are written in, because the conventions differ: a twelve-hour clock usually writes 8:05 where a twenty-four hour one writes 08:05, and Jul 5 is as ordinary as 07-05. So the hour button follows the clock above, and the day button follows the date format.</string>
     <string name="settings_marker_none">no marker</string>
     <string name="settings_marker_am">Before noon</string>
     <string name="settings_marker_pm">After noon</string>

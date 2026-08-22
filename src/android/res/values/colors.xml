@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- The mid-grey plate the launcher icon is drawn on, carrying white lettering. The adaptive
-         icon's background layer is this colour rather than a picture, because the launcher masks
-         the layer to its own shape and a flat colour is the only thing that survives every shape
-         unharmed. -->
-    <color name="ic_launcher_background">#FF55595F</color>
+    <!-- The plate the launcher icon is drawn on, carrying white lettering. It is the colour
+         retekey's icon uses, so the two apps by the same hand look like a pair. The adaptive icon's
+         background layer is this colour rather than a picture, because the launcher masks the layer
+         to its own shape and a flat colour is the only thing that survives every shape unharmed. -->
+    <color name="ic_launcher_background">#FF263238</color>
 </resources>

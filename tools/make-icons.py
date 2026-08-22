@@ -46,11 +46,12 @@ ADAPTIVE_DENSITIES = {
 }
 SAFE_ZONE = 66.0 / 108.0
 
-# The icon is a mid-grey rounded square with white lettering on it, which is how a monochrome icon
-# sits among its neighbours: the plate carries the weight and the letters are the light part. It was
-# the other way round until 0.30.2 — a white plate with near-black lettering — and a white square is
-# the brightest thing on most home screens whatever else is on them.
-PLATE = (85, 89, 95, 255)  # the mid-grey rounded square
+# The icon is a dark blue-grey rounded square with white lettering on it, which is how a monochrome
+# icon sits among its neighbours: the plate carries the weight and the letters are the light part.
+# It was the other way round until 0.30.2 — a white plate with near-black lettering — and a white
+# square is the brightest thing on most home screens whatever else is on them. The colour is the one
+# retekey's icon uses, so the two apps by the same hand look like a pair.
+PLATE = (38, 50, 56, 255)  # #263238, the same plate retekey is drawn on
 LETTERING = (255, 255, 255, 255)  # the wordmark and the time on it
 
 # The clock's own two colours, which the feature graphic shows as they really are.

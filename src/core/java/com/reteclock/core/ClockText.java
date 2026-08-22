@@ -26,11 +26,11 @@ public final class ClockText {
         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
     };
 
-    /** Two-digit hour, 24-hour clock: "00".."23". */
+    /** The hour as the clock in force writes it: "00".."23", or "1".."12" — see {@link Padding}. */
     public final String hour;
-    /** Two-digit minute: "00".."59". */
+    /** The minute, "00".."59" unless the leading zero was turned off. */
     public final String minute;
-    /** Two-digit second: "00".."59". */
+    /** The second, the same way. */
     public final String second;
     /** Second with unit suffix, as shown in the wide layout: "25s". */
     public final String secondLabel;
@@ -72,13 +72,13 @@ public final class ClockText {
         String shownHour;
         String mark;
         if (!options.hour12) {
-            shownHour = pad2(time.hour);
+            shownHour = Padding.write(time.hour, options.padding.hour(false));
             mark = null;
         } else {
             boolean twelfth = time.hour % 12 == 0;
             boolean morning = time.hour < 12;
             if (!twelfth) {
-                shownHour = Integer.toString(time.hour % 12);
+                shownHour = Padding.write(time.hour % 12, options.padding.hour(true));
                 mark = options.markers.ordinary(morning ? "AM" : "PM");
             } else if (morning) {
                 shownHour = midnightHour(options.midnightStyle);
@@ -93,8 +93,8 @@ public final class ClockText {
         // nothing to say which half of the day they belong to, for somebody who knows. Null rather
         // than empty, because null is what the layout already reads as "there is no such field".
         meridiem = options.showsMeridiem() ? mark : null;
-        minute = pad2(time.minute);
-        second = pad2(time.second);
+        minute = Padding.write(time.minute, options.padding.minute());
+        second = Padding.write(time.second, options.padding.second());
         secondLabel = second + "s";
         int weekdayIndex = CivilTime.weekday(time.jdn);
         weekday = options.names.weekday(weekdayIndex,
@@ -105,13 +105,15 @@ public final class ClockText {
             shown += options.hijriOffsetDays;
         }
         CalendarDate date = Calendars.dateOf(options.calendarSystem, shown);
+        String monthNumber = Padding.write(date.month, options.padding.month());
+        String dayNumber = Padding.write(date.day, options.padding.day(options.dateStyle));
         monthDay = options.dateStyle == ClockOptions.DATE_STYLE_NUMERIC
-                ? pad2(date.month) + "-" + pad2(date.day)
+                ? monthNumber + "-" + dayNumber
                 : options.dateStyle == ClockOptions.DATE_STYLE_DAY_MONTH
-                ? pad2(date.day) + "/" + pad2(date.month)
+                ? dayNumber + "/" + monthNumber
                 : options.names.month(date.month,
                         Calendars.monthName(date.system, date.year, date.month, options.nameStyle))
-                        + " " + date.day;
+                        + " " + dayNumber;
         year = Calendars.yearText(options.calendarSystem, shown);
         weekdayDate = weekday + ", " + monthDay;
         smallLine = options.showSeconds ? year + "   " + secondLabel : year;
