@@ -1,0 +1,12 @@
+Changed: tapping the app icon opens the clock again. It opened the settings
+because a badly chosen picture could make the full-screen clock stop answering,
+and the settings were the only way back to undo it. The app now notices that
+case by itself — a start that finds the previous run's mark still set opens the
+settings and loads no pictures or imported fonts — so the door no longer stands
+in the way of every launch.
+
+Changed: long-pressing the app icon offers "Settings" on Android 7.1 and newer,
+which goes straight there without starting the clock.
+
+Changed: "Show a calendar on the clock" is now the first thing on the time and
+date screen.
