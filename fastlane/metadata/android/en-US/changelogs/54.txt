@@ -1,0 +1,7 @@
+Added: a leading zero, or not, for each of the five numbers — hour, minute,
+second, month and day. One button per field in the general settings, reading
+"Hour · 08", and a press turns it over. The hour keeps its own answer for the
+twelve- and the twenty-four hour clock, and the day for "Jul 5" and "07-05".
+Nothing changes unless you ask: the defaults are what the clock drew before.
+
+Changed: the icon's plate is now the colour retekey's is.
