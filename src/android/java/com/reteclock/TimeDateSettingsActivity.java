@@ -65,6 +65,10 @@ public final class TimeDateSettingsActivity extends Activity {
         scroll.addView(root);
 
         root.addView(heading(getString(R.string.timedate_title)));
+        // Whether the month grid is drawn at all comes first: it is the switch that decides
+        // whether half of this screen matters, and it was sitting below the calendar system it
+        // governs, which reads as a detail of that choice rather than as the question above it.
+        addCalendarSwitch(root);
         addCalendarSystem(root);
         addCalendarGrid(root);
         addTimeSource(root);
@@ -233,7 +237,8 @@ public final class TimeDateSettingsActivity extends Activity {
         return out.toString();
     }
 
-    private void addCalendarGrid(LinearLayout root) {
+    /** The one switch this screen is about: whether the month grid is under the time at all. */
+    private void addCalendarSwitch(LinearLayout root) {
         LinearLayout card = card();
         final CheckBox on = new CheckBox(this);
         on.setText(R.string.calendar_show);
@@ -248,7 +253,9 @@ public final class TimeDateSettingsActivity extends Activity {
         card.addView(on);
         card.addView(note(getString(R.string.calendar_show_note)));
         root.addView(card);
+    }
 
+    private void addCalendarGrid(LinearLayout root) {
         LinearLayout week = card();
         week.addView(subheading(getString(R.string.calendar_week_start)));
         final RadioGroup weekChoice = new RadioGroup(this);
