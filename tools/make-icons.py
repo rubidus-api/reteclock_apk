@@ -169,26 +169,35 @@ def draw_segment_digit(draw, digit, box, thickness, fill):
     """Draws one seven-segment digit inside box = (x, y, x2, y2)."""
     x, y, x2, y2 = box
     half = thickness / 2
-    gap = thickness * 0.22  # keeps neighbouring segments from touching at the corners
+    # Every segment is inset by half a stroke *plus* the gap, so a horizontal one stops short of
+    # where the vertical one beside it begins. Insetting by the gap alone — which is what this did
+    # until 0.31.1 — left the two overlapping by half a stroke at every corner, and a digit came out
+    # as one solid blob rather than seven lit bars. It reads as a blob wherever the shape is light
+    # on a dark ground, which is what the themed icon is.
+    gap = thickness * 0.18
 
     def horizontal(cy):
+        left = x + half + gap
+        right = x2 - half - gap
         return [
-            (x + gap, cy),
-            (x + gap + half, cy - half),
-            (x2 - gap - half, cy - half),
-            (x2 - gap, cy),
-            (x2 - gap - half, cy + half),
-            (x + gap + half, cy + half),
+            (left, cy),
+            (left + half, cy - half),
+            (right - half, cy - half),
+            (right, cy),
+            (right - half, cy + half),
+            (left + half, cy + half),
         ]
 
     def vertical(cx, top, bottom):
+        high = top + half + gap
+        low = bottom - half - gap
         return [
-            (cx, top + gap),
-            (cx + half, top + gap + half),
-            (cx + half, bottom - gap - half),
-            (cx, bottom - gap),
-            (cx - half, bottom - gap - half),
-            (cx - half, top + gap + half),
+            (cx, high),
+            (cx + half, high + half),
+            (cx + half, low - half),
+            (cx, low),
+            (cx - half, low - half),
+            (cx - half, high + half),
         ]
 
     middle = (y + y2) / 2
@@ -209,10 +218,10 @@ def draw_segment_time(draw, text, box, fill):
     """Lays a string like "13:24" of digits and colons across box = (x, y, x2, y2)."""
     x, y, x2, y2 = box
     height = y2 - y
-    digit_width = height * 0.55
+    digit_width = height * 0.63
     colon_width = digit_width * 0.34
     spacing = digit_width * 0.16
-    thickness = height * 0.155
+    thickness = height * 0.13
 
     # A one lights only its right-hand pair, so on a full-width cell it drifts away from the digit
     # beside it. Give it a narrower cell instead and the line reads evenly.
@@ -242,8 +251,15 @@ def draw_segment_time(draw, text, box, fill):
         cursor += width + spacing
 
 
-def draw_face(draw, origin, side, fill):
-    """The name over the time, drawn inside the square at origin with the given side."""
+def draw_face(draw, origin, side, fill, bold=True):
+    """The name over the time, drawn inside the square at origin with the given side.
+
+    `bold` is the one thing the themed layer does differently. A themed home screen paints this
+    drawing as a light shape on a colour, and the launcher on the phone that reported it adds an
+    outline of its own; both make a glyph read heavier than the same glyph does as dark ink on the
+    plate. The wordmark is therefore set in the regular face there and the bold one here, so the two
+    arrive at the same weight rather than at the same file.
+    """
 
     def place(fractions):
         left, top, right, bottom = fractions
@@ -255,7 +271,8 @@ def draw_face(draw, origin, side, fill):
         )
 
     word_box = place(WORD_BOX)
-    font = fit_tracked(draw, WORDMARK, word_box, BOLD_FONT_CANDIDATES, TRACKING)
+    font = fit_tracked(draw, WORDMARK, word_box,
+                       BOLD_FONT_CANDIDATES if bold else FONT_CANDIDATES, TRACKING)
     draw_tracked(draw, WORDMARK, font, word_box, TRACKING, fill)
     draw_segment_time(draw, ICON_TIME, place(TIME_BOX), fill)
 
@@ -297,12 +314,17 @@ def render_monochrome(size):
     The layer is therefore the same shape as the adaptive foreground: the lettering, solid, inside
     the safe zone, and nothing else. Colour is irrelevant — only the alpha is read — but black keeps
     the file readable to a person opening it.
+
+    The one difference from the foreground is weight: the wordmark is set in the regular face rather
+    than the bold one, because a launcher that paints this layer light on a colour — and, on at
+    least one phone, outlines it as well — makes it read heavier than the same drawing does as ink
+    on the plate. Same drawing, corrected for how it is painted.
     """
     big = size * SUPERSAMPLE
     side = big * SAFE_ZONE
     image = Image.new("RGBA", (big, big), (0, 0, 0, 0))
     draw_face(ImageDraw.Draw(image), ((big - side) / 2, (big - side) / 2), side,
-              (0, 0, 0, 255))
+              (0, 0, 0, 255), False)
     return image.resize((size, size), Image.LANCZOS)
 
 
