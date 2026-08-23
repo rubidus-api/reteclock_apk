@@ -109,7 +109,7 @@ F-Droid 앱은 업데이트할 때마다 서명도 검사합니다.
 
 | 가로(눕힌 화면) | 세로(세운 화면) |
 |---|---|
-| <img src="docs/screenshots/timer-landscape.png" alt="가로 화면: 왼쪽에 세로 타이머 띠가 있고, 첫 구간은 지난 만큼 빨강 남은 만큼 청록이며 그 위에 초록 두 번째 구간이 있고, 옆에 시계가 있다" width="420"> | <img src="docs/screenshots/timer-portrait.png" alt="세로 화면: 위쪽 가로 타이머 띠에 25:00, 8:21, 16:39이 적혀 있고 막대가 일부 차 있으며 그 아래 시계가 있다" width="210"> |
+| <img src="docs/screenshots/timer-landscape.png" alt="가로 화면: 왼쪽에 세로 타이머 띠가 있고, 진행 중인 구간은 지난 만큼 주황이며 그 위에 초록 구간이 있고, 옆에 시계와 그 아래 한 줄짜리 날짜가 있다" width="420"> | <img src="docs/screenshots/timer-portrait.png" alt="세로 화면: 위쪽 가로 타이머 띠에 25:00, 8:21, 16:39이 적혀 있고 막대가 일부 차 있으며 그 아래 시계가 있다" width="210"> |
 
 25분짜리 작업 구간을 8분 지난 참이고, 뒤에 5분 휴식이 기다리고 있습니다. 꺼 두면 시계는 예전
 그대로입니다. 띠도, 조작 버튼도, 덧그려지는 것도 없습니다.

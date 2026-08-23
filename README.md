@@ -109,7 +109,7 @@ length, how far into it you are, and what is left of it.
 
 | Landscape (wide) | Portrait (tall) |
 |---|---|
-| <img src="docs/screenshots/timer-landscape.png" alt="Landscape: the timer strip down the left, its first interval part red for the time already spent and part teal for the time to come, a green second interval above it, and the clock beside it" width="420"> | <img src="docs/screenshots/timer-portrait.png" alt="Portrait: the timer strip across the top reading 25:00, 8:21 and 16:39, with the bar part filled, above the clock" width="210"> |
+| <img src="docs/screenshots/timer-landscape.png" alt="Landscape: the timer strip down the left, its running interval part orange for the time already spent, a green interval above it, and the clock beside it with the date on one line underneath" width="420"> | <img src="docs/screenshots/timer-portrait.png" alt="Portrait: the timer strip across the top reading 25:00, 8:21 and 16:39, with the bar part filled, above the clock" width="210"> |
 
 Eight minutes into a twenty-five minute stretch of work, with five minutes of rest waiting behind
 it. Switched off, the clock is exactly as it was: no strip, no controls, nothing extra drawn.
