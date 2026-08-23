@@ -26,7 +26,7 @@ keep the screen awake, and one to vibrate, which only the timer uses.
 
 **[⬇ Get it on F-Droid](https://f-droid.org/packages/com.reteclock/)** — recommended.
 
-**[⬇ Download reteclock-0.33.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.33.0/reteclock-0.33.0.apk)**
+**[⬇ Download reteclock-0.33.1.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.33.1/reteclock-0.33.1.apk)**
 — 317 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
 render GitHub's release page can still fetch it.
 
@@ -131,7 +131,7 @@ beyond keeping the screen awake. Copy the APK to the phone, open it, and the pho
 
 ## Which phones it runs on
 
-Published on F-Droid; the latest release is 0.33.0.
+Published on F-Droid; the latest release is 0.33.1.
 
 | | |
 |---|---|
@@ -228,9 +228,9 @@ In the order they appear on the screen.
   it stands upright. Everything else sizes itself to fill its share, and stops growing before it
   would no longer fit.
 - **Landscape — the line under the clock** — sideways, with the calendar off, the clock has the
-  whole width and the weekday, the date, the year and the seconds are one line underneath. Drag
-  those four into the order you read a date in. The month and the day move together, written the way
-  the date style says.
+  whole width and the weekday, the date, the year and the seconds are one line underneath. Each of
+  the four has an arrow either side of it; move them into the order you read a date in. The month and
+  the day move together, written the way the date style says.
 
 **Pictures**
 

@@ -87,7 +87,11 @@
     <string name="settings_ratio_tall">Portrait — the time’s share of the height: %1$d%%</string>
     <string name="settings_ratio_note">Everything sizes itself to fill its share, until it would not fit.</string>
     <string name="settings_date_order">Landscape — the line under the clock</string>
-    <string name="settings_date_order_note">Drag to put them in the order you read a date. This is the line under the clock in landscape, when the calendar is off; the month and the day travel together, written the way the date style says.</string>
+    <string name="settings_date_order_note">Move them into the order you read a date in. This is the line under the clock in landscape, when the calendar is off; the month and the day travel together, written the way the date style says.</string>
+    <string name="date_order_up">\u25B2</string>
+    <string name="date_order_down">\u25BC</string>
+    <string name="date_order_up_desc">Move up</string>
+    <string name="date_order_down_desc">Move down</string>
     <string name="date_field_weekday">Weekday</string>
     <string name="date_field_month_day">Month and day</string>
     <string name="date_field_year">Year</string>

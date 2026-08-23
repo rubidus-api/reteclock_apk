@@ -2313,80 +2313,99 @@ public class SettingsActivity extends Activity {
     }
 
     /**
-     * The order of the landscape date line, as rows that are dragged into place (R87, issue #42).
+     * The order of the landscape date line, one row per item, moved with two arrows (R87).
      *
-     * Built by hand rather than with a list widget: this app carries no support library, and
-     * `ListView` reordering arrived long after the Android versions it still runs on. A row follows
-     * the finger with {@link View#offsetTopAndBottom}, which has been there since API 1, and the
-     * order is worked out on release — one move, one save, one rebuild, rather than a rebuild on
-     * every pixel of the drag.
+     * It was a drag: a row followed the finger and the order was worked out on release. It crashed
+     * (issue #43), and the reason it crashed is the reason it is gone rather than repaired —
+     * rearranging the list is done *while the touch that asked for it is still being delivered*, and
+     * a view that removes itself mid-gesture is a class of bug rather than one bug. Arrows say the
+     * same thing in a way every Android this app runs on already knows how to do: no gesture to
+     * learn, nothing to hold, a target a shaking hand can hit, and something a screen reader can
+     * announce.
+     *
+     * The rebuild is posted rather than run inline for the same reason: it happens after the click
+     * that caused it has finished being dispatched, so no view is ever taken away from under a
+     * touch it is still handling.
      */
     private void rebuildDateOrder() {
         dateOrderList.removeAllViews();
         final java.util.List<String> fields = Settings.dateOrder(this).fields();
-        final int rowHeight = dp(44);
         for (int i = 0; i < fields.size(); i++) {
             final int index = i;
-            TextView row = new TextView(this);
-            // The handle says the row can be moved; nothing else on this screen can be.
-            row.setText("\u2261   " + dateFieldLabel(fields.get(i)));
-            row.setTextColor(TEXT_WHITE);
-            row.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f);
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
             row.setGravity(Gravity.CENTER_VERTICAL);
-            row.setPadding(dp(10), 0, dp(10), 0);
             GradientDrawable face = new GradientDrawable();
             face.setColor(0xFF1C1C1C);
             face.setCornerRadius(dp(6));
             row.setBackgroundDrawable(face);
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT, rowHeight);
-            params.bottomMargin = dp(4);
-            row.setLayoutParams(params);
-            row.setOnTouchListener(new View.OnTouchListener() {
-                private float startY;
-                private int offset;
+            LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            rowParams.bottomMargin = dp(4);
+            row.setLayoutParams(rowParams);
 
-                @Override
-                public boolean onTouch(View v, android.view.MotionEvent event) {
-                    int step = rowHeight + dp(4);
-                    switch (event.getAction()) {
-                        case android.view.MotionEvent.ACTION_DOWN:
-                            startY = event.getRawY();
-                            offset = 0;
-                            // The card is inside a scrolling screen, and a drag down the list and a
-                            // scroll down the page are the same gesture until somebody says which.
-                            v.getParent().requestDisallowInterceptTouchEvent(true);
-                            // Not setAlpha: that arrived in API 11 and this app still runs on 9.
-                            // A lit face says "this row is in your hand" just as well.
-                            ((GradientDrawable) v.getBackground()).setColor(0xFF2C3A38);
-                            return true;
-                        case android.view.MotionEvent.ACTION_MOVE: {
-                            int wanted = Math.round(event.getRawY() - startY);
-                            v.offsetTopAndBottom(wanted - offset);
-                            offset = wanted;
-                            return true;
-                        }
-                        case android.view.MotionEvent.ACTION_UP:
-                        case android.view.MotionEvent.ACTION_CANCEL: {
-                            ((GradientDrawable) v.getBackground()).setColor(0xFF1C1C1C);
-                            v.offsetTopAndBottom(-offset);
-                            int moved = Math.round((float) offset / (float) step);
-                            int target = Math.max(0, Math.min(fields.size() - 1, index + moved));
-                            if (target != index) {
-                                Settings.setDateOrder(SettingsActivity.this,
-                                        Settings.dateOrder(SettingsActivity.this)
-                                                .move(index, target));
-                            }
-                            rebuildDateOrder();
-                            return true;
-                        }
-                        default:
-                            return false;
-                    }
-                }
-            });
+            TextView label = new TextView(this);
+            label.setText(dateFieldLabel(fields.get(i)));
+            label.setTextColor(TEXT_WHITE);
+            label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f);
+            label.setPadding(dp(12), dp(12), dp(8), dp(12));
+            LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+            label.setLayoutParams(labelParams);
+            row.addView(label);
+
+            row.addView(moveButton(R.string.date_order_up, index > 0, index, index - 1));
+            row.addView(moveButton(R.string.date_order_down, index + 1 < fields.size(),
+                    index, index + 1));
             dateOrderList.addView(row);
         }
+    }
+
+    /**
+     * One arrow: it moves the item at {@code from} to {@code to}, or is there but does nothing.
+     *
+     * The end of the list keeps its arrow, dimmed and unpressable, rather than losing it — a row
+     * whose buttons come and go changes width as it moves, and the column of arrows would bend.
+     */
+    private View moveButton(int label, boolean enabled, final int from, final int to) {
+        TextView arrow = new TextView(this);
+        arrow.setText(label);
+        arrow.setTextColor(enabled ? ACCENT : 0xFF4A4A4A);
+        arrow.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f);
+        arrow.setGravity(Gravity.CENTER);
+        arrow.setPadding(dp(14), dp(12), dp(14), dp(12));
+        arrow.setContentDescription(getString(label == R.string.date_order_up
+                ? R.string.date_order_up_desc : R.string.date_order_down_desc));
+        if (!enabled) {
+            return arrow;
+        }
+        GradientDrawable resting = new GradientDrawable();
+        resting.setColor(Color.TRANSPARENT);
+        resting.setCornerRadius(dp(6));
+        GradientDrawable pressed = new GradientDrawable();
+        pressed.setColor(0x334DB6AC);
+        pressed.setCornerRadius(dp(6));
+        StateListDrawable states = new StateListDrawable();
+        states.addState(new int[] {android.R.attr.state_pressed}, pressed);
+        states.addState(new int[] {}, resting);
+        arrow.setBackgroundDrawable(states);
+        arrow.setClickable(true);
+        arrow.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Settings.setDateOrder(SettingsActivity.this,
+                        Settings.dateOrder(SettingsActivity.this).move(from, to));
+                // Posted: the click is still being delivered to this very button, and the rebuild
+                // takes it off the screen. See rebuildDateOrder.
+                dateOrderList.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        rebuildDateOrder();
+                    }
+                });
+            }
+        });
+        return arrow;
     }
 
     private TextView subheading(String text) {
