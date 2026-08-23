@@ -1,0 +1,9 @@
+Fixed: reordering the date line in the settings crashed the app. The rows were
+dragged, and a dragged row rearranged the list from inside the touch it was
+still handling — which takes the view out from under the gesture being
+delivered to it.
+
+The four items are moved with an up and a down arrow now: no gesture to learn,
+a target a shaking hand can hit, something a screen reader can announce, and the
+same behaviour on every Android this app runs on. An order you have already set
+is kept.
