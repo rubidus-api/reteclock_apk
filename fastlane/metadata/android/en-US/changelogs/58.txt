@@ -1,0 +1,17 @@
+Added: on a phone with a physical Menu key, that key opens the settings while
+the clock is on screen. It is the only key the clock takes — Back, Home and the
+volume rocker all reach the system untouched.
+
+Changed: a tap on the clock dims the screen, and the next tap gives it back, for
+the clock left running beside the bed. Only the clock's own window is dimmed:
+the phone's brightness setting is not touched, no permission is asked for, and
+giving it back hands the screen to whatever the phone itself is set to.
+
+Changed: the menu is behind a long press now rather than a tap, and it carries
+"Close the clock" — on a phone driven by gestures there may be no Back button
+and no navigation bar to leave a full-screen clock with.
+
+Changed: in landscape with the calendar off, the date is a line under the clock
+rather than a column beside it, so the time has the whole width. The order of
+that line — weekday, month and day, year, seconds — is set by dragging in the
+general settings.
