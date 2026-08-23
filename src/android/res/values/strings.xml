@@ -14,6 +14,7 @@
     <string name="settings_hour12_countries">How it is done elsewhere. Most clocks and phones: 12 PM at noon, 12 AM at midnight — which the United States\' own standards body calls ambiguous and advises against. The Philippines: 12 NN and 12 MN, which cannot be misread. Japan: the twelfth hour is written 0, so half past noon is 0:30 PM and midnight is 0:00 AM. Britain and the United States in writing: \"12 noon\" and \"12 midnight\" spelled out. Korea and China: the part of the day is named instead — daytime twelve, night twelve. Much of Europe and Latin America: the 24-hour clock for anything official, where 00:00 and 12:00 need no marker at all.</string>
     <string name="settings_hour12_note">Seven in the evening reads 7:19 rather than 19:19. Where the hour and the minute are on one line, AM or PM sits small just after the minute, on the same baseline; where they are stacked, it takes a line of its own under the minute.</string>
     <string name="menu_carry">Import / Export</string>
+    <string name="menu_exit">Close the clock</string>
     <string name="carry_export">EXPORT</string>
     <string name="carry_export_note">Tick which pages to carry. A settings file is plain text, one key to a line, in sections you can read and edit anywhere. A package is that same file with the fonts and pictures beside it, under fonts/ and img/ — what you want when the other phone has none of them.</string>
     <string name="carry_export_text">Write a settings file (.txt)…</string>
@@ -85,6 +86,12 @@
     <string name="settings_ratio_wide">Landscape — the time’s share of the width: %1$d%%</string>
     <string name="settings_ratio_tall">Portrait — the time’s share of the height: %1$d%%</string>
     <string name="settings_ratio_note">Everything sizes itself to fill its share, until it would not fit.</string>
+    <string name="settings_date_order">Landscape — the line under the clock</string>
+    <string name="settings_date_order_note">Drag to put them in the order you read a date. This is the line under the clock in landscape, when the calendar is off; the month and the day travel together, written the way the date style says.</string>
+    <string name="date_field_weekday">Weekday</string>
+    <string name="date_field_month_day">Month and day</string>
+    <string name="date_field_year">Year</string>
+    <string name="date_field_second">Seconds</string>
     <string name="settings_dock">Dock</string>
     <string name="settings_card_clock">Clock</string>
     <string name="settings_images">Images</string>
@@ -167,7 +174,7 @@
     <string name="settings_screensaver_note">Opens Android\'s own screensaver settings — it hides in a different place on every version. Pick ReteClock there, and choose when it should come on (while charging, or in a dock).</string>
     <string name="settings_screensaver_no_screen">This phone has no screensaver settings screen.</string>
     <string name="hint_long_press">Press and hold the clock for settings</string>
-    <string name="hint_touch">Touch the clock for the menu</string>
+    <string name="hint_touch">Tap to dim the screen, press and hold for the menu</string>
     <string name="menu_title">Main menu</string>
     <string name="menu_settings">General settings</string>
     <string name="menu_timer_settings">Timer settings</string>
@@ -296,7 +303,7 @@
     <string name="timer_interval_prealarm">Warning: %1$ds</string>
     <string name="timer_interval_prealarm_ask">Warning, seconds before the end (0 for none)</string>
     <string name="timer_interval_colour">Colour</string>
-    <string name="hint_safe_mode">Started without images or imported fonts: the last run stopped answering. Press and hold for settings.</string>
+    <string name="hint_safe_mode">Started without images or imported fonts: the last run stopped answering. Press and hold for the menu.</string>
     <string name="settings_card_start">Start</string>
     <string name="settings_start_clock">Start the clock</string>
     <string name="shortcut_settings_short">Settings</string>

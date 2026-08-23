@@ -26,7 +26,7 @@ keep the screen awake, and one to vibrate, which only the timer uses.
 
 **[⬇ Get it on F-Droid](https://f-droid.org/packages/com.reteclock/)** — recommended.
 
-**[⬇ Download reteclock-0.32.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.32.0/reteclock-0.32.0.apk)**
+**[⬇ Download reteclock-0.33.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.33.0/reteclock-0.33.0.apk)**
 — 317 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
 render GitHub's release page can still fetch it.
 
@@ -81,7 +81,7 @@ Screenshots taken on Android 4.4.2.
 
 | Landscape (wide) | Portrait (tall) |
 |---|---|
-| <img src="docs/screenshots/landscape.png" alt="Landscape: a large bold HH:MM on the left, with seconds, weekday, date and year in a column on the right" width="420"> | <img src="docs/screenshots/portrait.png" alt="Portrait: bold hour and minute stacked, then the weekday with the date, then the year and the seconds" width="210"> |
+| <img src="docs/screenshots/landscape.png" alt="Landscape: a large bold HH:MM across the screen, with the weekday, date, year and seconds on one line underneath" width="420"> | <img src="docs/screenshots/portrait.png" alt="Portrait: bold hour and minute stacked, then the weekday with the date, then the year and the seconds" width="210"> |
 
 The hour and the minute take every pixel the other lines do not need, and those lines are then
 sized to whatever is left, so nothing is ever cut off, whatever phone you run it on. The text and
@@ -131,7 +131,7 @@ beyond keeping the screen awake. Copy the APK to the phone, open it, and the pho
 
 ## Which phones it runs on
 
-Published on F-Droid; the latest release is 0.32.0.
+Published on F-Droid; the latest release is 0.33.0.
 
 | | |
 |---|---|
@@ -144,19 +144,23 @@ running, so you never have to guess.
 
 ## Settings
 
-**The home-screen button opens the settings**, and so does **pressing and holding the clock**. The
-clock says so once when you first open it, and stops mentioning it after you have been there — and
-it never mentions it when the charger started the clock, so it stays quiet on a bedside stand.
-
-**A tap on the clock opens the main menu**, which is where the settings divide up: *General
+**Press and hold the clock** to open the main menu, which is where the settings divide up: *General
 settings*, *Timer settings*, *Time and date settings*, *Fonts*, *Pictures*, *Sounds and bells* and
-*Import / Export*, each its own screen. The general settings do not link to the others — one list of where things are
-is enough, and it is the main menu.
+*Import / Export*, each its own screen — and **Close the clock**, for phones driven by gestures
+where a full-screen app is otherwise awkward to leave. The general settings do not link to the
+others — one list of where things are is enough, and it is the main menu.
 
-The button opens this screen rather than the clock on purpose. A full-screen clock has no controls
-on its face, so if a picture or a font you added ever makes it unusable, this is the way back in.
-And if the clock does stop answering, the next start leaves your images and fonts out and says so,
-so you can undo whatever caused it.
+**A tap dims the screen**, and the next tap gives it back — for the clock left running beside the
+bed. Only the clock's own window is dimmed; the phone's brightness setting is untouched, and giving
+it back hands the screen to whatever the phone itself is set to. On a phone that still has a
+physical **Menu key**, that key opens the general settings directly. The clock names both gestures
+once when you first open it, and stops mentioning them after you have been there — and it never
+mentions them when the charger started the clock, so it stays quiet on a bedside stand.
+
+**The home-screen button opens the clock**, and long-pressing the icon offers *Settings* on Android
+7.1 and newer. A full-screen clock has no controls on its face, so if a picture or a font you added
+ever makes it unusable, the next start leaves your images and fonts out, says so, and opens the
+settings by itself — which is the way back in.
 
 <img src="docs/screenshots/settings.png" alt="Settings: the screensaver row at the top, then show seconds, the twelve-hour option, the date format side by side, and the switch that lets the clock wander" width="240"> <img src="docs/screenshots/fields.png" alt="The Fonts page: the font library with each font's size and the total, then each field on two lines — its name with bold, italic, underline and outline, and its font — including AM / PM and the calendar's three parts" width="240">
 
@@ -220,9 +224,13 @@ In the order they appear on the screen.
 **Size**
 
 - **Room for the time** — two sliders, one for each way you hold the phone: how much of the width
-  the hour and minute take when it lies sideways, and how much of the height when it stands
-  upright. Everything else sizes itself to fill its share, and stops growing before it would no
-  longer fit.
+  the hour and minute take beside a calendar when it lies sideways, and how much of the height when
+  it stands upright. Everything else sizes itself to fill its share, and stops growing before it
+  would no longer fit.
+- **Landscape — the line under the clock** — sideways, with the calendar off, the clock has the
+  whole width and the weekday, the date, the year and the seconds are one line underneath. Drag
+  those four into the order you read a date in. The month and the day move together, written the way
+  the date style says.
 
 **Pictures**
 
@@ -483,10 +491,10 @@ the calculation part company. My thanks for your understanding.
   your display.
 
   With the calendar on, the clock rearranges itself around it. Sideways, the time reads down the
-  left — hour, minute, and the seconds smaller beneath — and the calendar takes the whole of the
-  side column where the date and year used to be. Upright, the time becomes one line above the
-  grid. Either way the weekday, the date and the year go: the calendar says them better. The slider
-  that decides how much room the time takes still decides it.
+  left — hour, minute, and the seconds smaller beneath — and the calendar takes the right of the
+  screen. Upright, the time becomes one line above the grid. Either way the weekday, the date and
+  the year go: the calendar says them better. The slider that decides how much room the time takes
+  still decides it — that arrangement is the one it applies to.
 
 **A saying**
 

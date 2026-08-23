@@ -455,6 +455,15 @@ public class SettingsActivity extends Activity {
         clock.addView(ratioRow(R.string.settings_ratio_wide, Settings.KEY_TIME_PERCENT_WIDE));
         clock.addView(ratioRow(R.string.settings_ratio_tall, Settings.KEY_TIME_PERCENT_TALL));
         clock.addView(footer(getString(R.string.settings_ratio_note)));
+
+        // Directly under the two proportions, because it answers the same question about the same
+        // screen: what landscape does with the room the clock does not take (issue #42).
+        clock.addView(subheading(getString(R.string.settings_date_order)));
+        dateOrderList = new LinearLayout(this);
+        dateOrderList.setOrientation(LinearLayout.VERTICAL);
+        clock.addView(dateOrderList);
+        rebuildDateOrder();
+        clock.addView(footer(getString(R.string.settings_date_order_note)));
         root.addView(clock);
 
         // The fonts, the pictures and the settings file are not linked from here. They are
@@ -2284,6 +2293,100 @@ public class SettingsActivity extends Activity {
         view.setHorizontallyScrolling(true);
         view.setMovementMethod(new android.text.method.ScrollingMovementMethod());
         return view;
+    }
+
+    /** The rows of the date-order list, rebuilt after every move. */
+    private LinearLayout dateOrderList;
+
+    /** What each draggable item is called on the screen. */
+    private String dateFieldLabel(String role) {
+        if (com.reteclock.core.ClockLayout.ROLE_WEEKDAY.equals(role)) {
+            return getString(R.string.date_field_weekday);
+        }
+        if (com.reteclock.core.ClockLayout.ROLE_MONTH_DAY.equals(role)) {
+            return getString(R.string.date_field_month_day);
+        }
+        if (com.reteclock.core.ClockLayout.ROLE_YEAR.equals(role)) {
+            return getString(R.string.date_field_year);
+        }
+        return getString(R.string.date_field_second);
+    }
+
+    /**
+     * The order of the landscape date line, as rows that are dragged into place (R87, issue #42).
+     *
+     * Built by hand rather than with a list widget: this app carries no support library, and
+     * `ListView` reordering arrived long after the Android versions it still runs on. A row follows
+     * the finger with {@link View#offsetTopAndBottom}, which has been there since API 1, and the
+     * order is worked out on release — one move, one save, one rebuild, rather than a rebuild on
+     * every pixel of the drag.
+     */
+    private void rebuildDateOrder() {
+        dateOrderList.removeAllViews();
+        final java.util.List<String> fields = Settings.dateOrder(this).fields();
+        final int rowHeight = dp(44);
+        for (int i = 0; i < fields.size(); i++) {
+            final int index = i;
+            TextView row = new TextView(this);
+            // The handle says the row can be moved; nothing else on this screen can be.
+            row.setText("\u2261   " + dateFieldLabel(fields.get(i)));
+            row.setTextColor(TEXT_WHITE);
+            row.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(dp(10), 0, dp(10), 0);
+            GradientDrawable face = new GradientDrawable();
+            face.setColor(0xFF1C1C1C);
+            face.setCornerRadius(dp(6));
+            row.setBackgroundDrawable(face);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, rowHeight);
+            params.bottomMargin = dp(4);
+            row.setLayoutParams(params);
+            row.setOnTouchListener(new View.OnTouchListener() {
+                private float startY;
+                private int offset;
+
+                @Override
+                public boolean onTouch(View v, android.view.MotionEvent event) {
+                    int step = rowHeight + dp(4);
+                    switch (event.getAction()) {
+                        case android.view.MotionEvent.ACTION_DOWN:
+                            startY = event.getRawY();
+                            offset = 0;
+                            // The card is inside a scrolling screen, and a drag down the list and a
+                            // scroll down the page are the same gesture until somebody says which.
+                            v.getParent().requestDisallowInterceptTouchEvent(true);
+                            // Not setAlpha: that arrived in API 11 and this app still runs on 9.
+                            // A lit face says "this row is in your hand" just as well.
+                            ((GradientDrawable) v.getBackground()).setColor(0xFF2C3A38);
+                            return true;
+                        case android.view.MotionEvent.ACTION_MOVE: {
+                            int wanted = Math.round(event.getRawY() - startY);
+                            v.offsetTopAndBottom(wanted - offset);
+                            offset = wanted;
+                            return true;
+                        }
+                        case android.view.MotionEvent.ACTION_UP:
+                        case android.view.MotionEvent.ACTION_CANCEL: {
+                            ((GradientDrawable) v.getBackground()).setColor(0xFF1C1C1C);
+                            v.offsetTopAndBottom(-offset);
+                            int moved = Math.round((float) offset / (float) step);
+                            int target = Math.max(0, Math.min(fields.size() - 1, index + moved));
+                            if (target != index) {
+                                Settings.setDateOrder(SettingsActivity.this,
+                                        Settings.dateOrder(SettingsActivity.this)
+                                                .move(index, target));
+                            }
+                            rebuildDateOrder();
+                            return true;
+                        }
+                        default:
+                            return false;
+                    }
+                }
+            });
+            dateOrderList.addView(row);
+        }
     }
 
     private TextView subheading(String text) {

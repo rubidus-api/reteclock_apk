@@ -12,14 +12,17 @@ import java.util.List;
  * its box, so a long string is scaled down instead of being clipped. This class stays free of
  * android.* imports and is unit tested on a plain JVM.
  *
- * Wide screens (width > height):
+ * Wide screens (width > height), since issue #42:
  *
- *   +---------------------------+--------------+
- *   |                           |  25s         |
- *   |        13:45              |  Sun         |
- *   |                           |  Jul 12      |
- *   |                           |  2026        |
- *   +---------------------------+--------------+
+ *   +------------------------------------------+
+ *   |                                          |
+ *   |               13:45                      |
+ *   |                                          |
+ *   |          Sun  Jul 12  2026  25s          |
+ *   +------------------------------------------+
+ *
+ * The date used to be a column on the right, which cost the time nearly forty per cent of the
+ * width. What is on the line under the clock, and in what order, is the user's ({@link DateOrder}).
  *
  * Tall screens (height >= width):
  *
@@ -280,6 +283,17 @@ public final class ClockLayout {
 
     /** The name under which the four side lines agree to be one size. */
     private static final String SIDE_GROUP = "side";
+
+    /**
+     * How much of a wide screen's usable height the date line under the clock takes, and the air
+     * between the two.
+     *
+     * A caption, not a second clock: at much more than this the line starts competing with the
+     * time it belongs to, and the whole point of moving it under there was to give the time the
+     * room the side column was taking.
+     */
+    private static final float WIDE_DATE_LINE = 0.14f;
+    private static final float WIDE_DATE_GAP = 0.04f;
 
     /** The date and small lines' split of what the tall time leaves, 0.075 : 0.050 as always. */
     private static final float TALL_DATE_SHARE = 0.6f;
@@ -609,53 +623,65 @@ public final class ClockLayout {
         if (options.calendar) {
             return wideWithCalendar(w, h, options, pad);
         }
-        float[] calendar = null;
-        // The user's dial: how much of the width belongs to the big time. The rest is the side
-        // column's region, and its lines grow with it.
-        float mainWidth = w * options.timeFractionWide;
-        float sideWidth = w - mainWidth;
-        float sideCenterX = mainWidth + sideWidth / 2f;
-        float sideBoxWidth = sideWidth - 2f * pad;
+        return wideDateBelow(w, h, options, pad);
+    }
 
-        List<Slot> out = new ArrayList<Slot>(5);
+    /**
+     * The wide arrangement since issue #42: the time across the screen, the date on a line under it.
+     *
+     * It was a big time on the left and a column of four small lines on the right, and the column
+     * cost the time nearly forty per cent of the width it could have had — on the one shape of
+     * screen where a clock is most likely to be read from across a room. The four lines are one
+     * line along the bottom now, in the order the user set ({@link DateOrder}), and the time has
+     * the screen.
+     *
+     * The date line's height is a fixed share rather than the landscape dial. The dial divides the
+     * *width* between the time and what stands beside it, and after this nothing stands beside it
+     * unless the calendar is on — which is the layout the dial still governs.
+     */
+    private static ClockLayout wideDateBelow(int w, int h, ClockOptions options, float pad) {
+        float room = h - 2f * pad;
+        float dateSize = room * WIDE_DATE_LINE;
+        float gap = room * WIDE_DATE_GAP;
+        float timeHeight = room - dateSize - gap;
 
-        // The big time takes the full height between the paddings; the view scales it down only if
-        // it would be wider than its share of the screen.
-        out.add(new Slot(ROLE_HOUR_MINUTE,
+        List<Slot> out = new ArrayList<Slot>(2);
+        out.add(wideTimeLine(w, options, pad, pad + timeHeight / 2f, timeHeight));
+
+        List<String> shown = options.dateOrder.shown(options.showSeconds);
+        String[] roles = new String[shown.size()];
+        String[] separators = new String[shown.size()];
+        for (int i = 0; i < shown.size(); i++) {
+            roles[i] = shown.get(i);
+            // Nothing but space between the fields: which field comes first is the user's, so a
+            // comma written into the line would be punctuation for an order they may have moved
+            // away from. The space is a gap, so no field's underline can reach it either.
+            separators[i] = i == 0 ? "" : "   ";
+        }
+        out.add(new Slot(ROLE_SMALL_LINE, parts(roles, separators),
+                w / 2f, pad + timeHeight + gap + dateSize / 2f, dateSize, w - 2f * pad));
+        return new ClockLayout(true, out, options, null);
+    }
+
+    /**
+     * The hour and minute on one line, centred on a wide screen, with room kept for the marker.
+     *
+     * Shared by the time-only screen and the ordinary wide clock, which differ only in how much
+     * height is left for it once the date line has had its share.
+     */
+    private static Slot wideTimeLine(int w, ClockOptions options, float pad, float centerY,
+            float height) {
+        float room = w - 2f * pad;
+        float reserve = options.showsMeridiem()
+                ? Math.min(room * MERIDIEM_ROOM_CAP, height * MERIDIEM_ROOM_SHARE)
+                : 0f;
+        float box = room - reserve;
+        float centerX = w / 2f - reserve / 2f;
+        Slot line = new Slot(ROLE_HOUR_MINUTE,
                 parts(new String[] {ROLE_HOUR, ROLE_MINUTE}, new String[] {"", ":"}),
-                mainWidth / 2f, h / 2f, h - 2f * pad,
-                timeBoxWidth(mainWidth - 2f * pad, options)));
-
-        List<String> roles = new ArrayList<String>(4);
-        List<Float> sizes = new ArrayList<Float>(4);
-        if (options.showSeconds) {
-            roles.add(ROLE_SECOND);
-            sizes.add(SIDE_LINE);
-        }
-        roles.add(ROLE_WEEKDAY);
-        sizes.add(SIDE_LINE);
-        roles.add(ROLE_MONTH_DAY);
-        sizes.add(SIDE_LINE);
-        roles.add(ROLE_YEAR);
-        sizes.add(SIDE_LINE);
-
-        // The block is scaled, proportions intact, to exactly the height between the paddings:
-        // the lines are as big as their region allows and no bigger. A line still too wide for
-        // the side's width is shrunk by the plan, the same way it always was.
-        float proportionTotal = SIDE_LINE_GAP * (sizes.size() - 1);
-        for (float size : sizes) {
-            proportionTotal += size;
-        }
-        float scale = (h - 2f * pad) / proportionTotal;
-        float lineGap = SIDE_LINE_GAP * scale;
-        float cursor = pad;
-        for (int i = 0; i < sizes.size(); i++) {
-            float size = sizes.get(i) * scale;
-            out.add(new Slot(roles.get(i), sideCenterX, cursor + size / 2f, size, sideBoxWidth,
-                    SIDE_GROUP));
-            cursor += size + lineGap;
-        }
-        return new ClockLayout(true, out, options, calendar);
+                centerX, centerY, height, box);
+        line.rightLimit = centerX + box / 2f + reserve;
+        return line;
     }
 
     /**

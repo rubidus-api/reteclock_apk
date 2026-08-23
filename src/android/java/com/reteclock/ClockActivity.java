@@ -127,8 +127,10 @@ public class ClockActivity extends Activity {
                 bells.tick(nowMs);
             }
         });
-        // A tap opens the menu; a long press is the old way straight to the settings, kept because
-        // people who have used the app know it.
+        // A tap dims the screen and the next one gives it back (issue #41); the menu is behind a
+        // long press. The tap used to open the menu, which cost the clock the one gesture a bedside
+        // clock actually wants and, on a phone driven by gestures rather than buttons, put a dialog
+        // in the way of every attempt to swipe the app away.
         view.setClickable(true);
         // The calendar's arrows are part of the clock's own face, so a touch is offered to them
         // before it is taken as "open the menu". They exist only while the calendar does.
@@ -160,14 +162,14 @@ public class ClockActivity extends Activity {
         view.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                ClockMenu.show(ClockActivity.this);
+                toggleDim();
             }
         });
         view.setLongClickable(true);
         view.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
-                startActivity(new Intent(ClockActivity.this, SettingsActivity.class));
+                ClockMenu.show(ClockActivity.this);
                 return true;
             }
         });
@@ -449,6 +451,51 @@ public class ClockActivity extends Activity {
             return;
         }
         Toast.makeText(this, R.string.hint_touch, Toast.LENGTH_LONG).show();
+    }
+
+    /** Whether the screen is being held at {@link com.reteclock.core.ScreenDim#DIM}. */
+    private boolean dimmed;
+
+    /**
+     * Dims the screen, or gives it back to the phone's own setting (issue #41, R86).
+     *
+     * Only this window is touched — the system brightness is left exactly as the user set it, no
+     * permission is asked for, and the dark ends with the clock however it ends.
+     */
+    private void toggleDim() {
+        dimmed = com.reteclock.core.ScreenDim.next(dimmed);
+        WindowManager.LayoutParams params = getWindow().getAttributes();
+        params.screenBrightness = com.reteclock.core.ScreenDim.brightness(dimmed);
+        getWindow().setAttributes(params);
+    }
+
+    /**
+     * The Menu key opens the settings (issue #40, R85).
+     *
+     * A phone that still has the key carries the label this clock's bare face cannot draw, and it
+     * is the first thing somebody looking for the settings presses. {@link KeyRoute} names the one
+     * key that is taken; everything else — Back above all — reaches the platform untouched, which
+     * is what lets the clock be left.
+     */
+    @Override
+    public boolean onKeyDown(int keyCode, android.view.KeyEvent event) {
+        if (com.reteclock.core.KeyRoute.onClock(keyCode) == com.reteclock.core.KeyRoute.SETTINGS) {
+            startActivity(new Intent(this, SettingsActivity.class));
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
+    }
+
+    /**
+     * And the release with it: the platform opens its own (empty) options panel on the Menu key's
+     * way up, and a press that has already opened the settings must not also leave a panel behind.
+     */
+    @Override
+    public boolean onKeyUp(int keyCode, android.view.KeyEvent event) {
+        if (com.reteclock.core.KeyRoute.onClock(keyCode) == com.reteclock.core.KeyRoute.SETTINGS) {
+            return true;
+        }
+        return super.onKeyUp(keyCode, event);
     }
 
     @Override

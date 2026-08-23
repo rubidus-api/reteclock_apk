@@ -64,6 +64,8 @@ public final class Settings {
     /** One key per calendar: the user's own month names, and their own weekday names. */
     /** What the twelve-hour clock writes after the time, as the user typed it. */
     public static final String KEY_MARKERS = "markers";
+    /** The order of the date line under a landscape clock (issue #42). */
+    public static final String KEY_DATE_ORDER = "date_order";
     public static final String KEY_NAMES_MONTHS = "names_months_";
     public static final String KEY_NAMES_WEEKDAYS = "names_weekdays_";
     public static final String KEY_HOUR12 = "clock_hour12";
@@ -187,6 +189,7 @@ public final class Settings {
         out.put(KEY_NOON_STYLE, Integer.valueOf(noonStyle(context)));
         out.put(KEY_MIDNIGHT_STYLE, Integer.valueOf(midnightStyle(context)));
         out.put(KEY_MARKERS, markers(context).text());
+        out.put(KEY_DATE_ORDER, dateOrder(context).text());
         out.put(KEY_PADDING, Integer.valueOf(padding(context).bits()));
 
         out.put(KEY_BACKGROUND_FIT, Integer.valueOf(backgroundFit(context)));
@@ -1192,7 +1195,8 @@ public final class Settings {
                 .withMarkers(markers(context))
                 .withTimeOnly(timeOnly(context))
                 .withTimeOnlyMarker(timeOnlyMarker(context))
-                .withPadding(padding(context));
+                .withPadding(padding(context))
+                .withDateOrder(dateOrder(context));
     }
 
     /**
@@ -1202,6 +1206,16 @@ public final class Settings {
      * the third month of the Gregorian one, and somebody who renames both should not have the two
      * fight over one slot.
      */
+    /** How the date line under a wide clock is arranged (issue #42). */
+    public static com.reteclock.core.DateOrder dateOrder(Context context) {
+        return com.reteclock.core.DateOrder.parse(
+                prefs(context).getString(KEY_DATE_ORDER, null));
+    }
+
+    public static void setDateOrder(Context context, com.reteclock.core.DateOrder order) {
+        prefs(context).edit().putString(KEY_DATE_ORDER, order.text()).commit();
+    }
+
     public static CustomMarkers markers(Context context) {
         return CustomMarkers.parse(prefs(context).getString(KEY_MARKERS, ""));
     }

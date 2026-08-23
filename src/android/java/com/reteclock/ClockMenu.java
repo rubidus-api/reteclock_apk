@@ -131,6 +131,25 @@ final class ClockMenu {
                     }
                 }));
 
+        // The way out. On a phone driven by gestures there may be no Back button on the screen and
+        // no navigation bar to swipe from, and this clock fills the screen and keeps it awake —
+        // so the menu that the settings live in also carries the door (issue #41).
+        card.addView(choice(activity, activity.getString(R.string.menu_exit),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        dialog.dismiss();
+                        // Everything this app has open, not merely the screen on top: the clock is
+                        // often reached through the settings, and finishing one of the two would
+                        // leave the other standing where the user expected the home screen.
+                        if (Build.VERSION.SDK_INT >= 16) {
+                            activity.finishAffinity();
+                        } else {
+                            activity.finish();
+                        }
+                    }
+                }));
+
         View rule = new View(activity);
         rule.setBackgroundColor(CARD_STROKE);
         rule.setLayoutParams(new LinearLayout.LayoutParams(
