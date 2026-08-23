@@ -703,8 +703,8 @@ public final class ClockLayout {
         float bigSize = content * (options.showSeconds ? 0.40f : 0.50f);
         float secondSize = content * 0.20f;
         // The marker is a line, so it costs height: the digits give it up rather than the seconds.
-        float meridiemSize = options.hour12 ? bigSize * MERIDIEM_SHARE : 0f;
-        if (options.hour12) {
+        float meridiemSize = options.showsMeridiem() ? bigSize * MERIDIEM_SHARE : 0f;
+        if (options.showsMeridiem()) {
             bigSize -= meridiemSize / 2f;
         }
 
@@ -714,7 +714,7 @@ public final class ClockLayout {
         cursor += bigSize + gap;
         out.add(new Slot(ROLE_MINUTE, centerX, cursor + bigSize / 2f, bigSize, boxWidth));
         cursor += bigSize + gap;
-        if (options.hour12) {
+        if (options.showsMeridiem()) {
             out.add(new Slot(ROLE_MERIDIEM, centerX, cursor + meridiemSize / 2f,
                     meridiemSize, boxWidth));
             cursor += meridiemSize + gap;
@@ -752,10 +752,10 @@ public final class ClockLayout {
         // Two big lines, and a small one under them when the clock is on twelve hours. The marker
         // comes out of the time's own share, so everything below it stays where it was.
         float timeShare = content * options.timeFractionTall;
-        float mainSize = options.hour12
+        float mainSize = options.showsMeridiem()
                 ? (timeShare - gap) / (2f + MERIDIEM_SHARE)
                 : timeShare / 2f;
-        float meridiemSize = options.hour12 ? mainSize * MERIDIEM_SHARE : 0f;
+        float meridiemSize = options.showsMeridiem() ? mainSize * MERIDIEM_SHARE : 0f;
         float rest = content * (1f - options.timeFractionTall);
         float dateSize = rest * TALL_DATE_SHARE;
         float smallSize = rest * (1f - TALL_DATE_SHARE);
@@ -766,7 +766,7 @@ public final class ClockLayout {
         cursor += mainSize + gap;
         out.add(new Slot(ROLE_MINUTE, centerX, cursor + mainSize / 2f, mainSize, boxWidth));
         cursor += mainSize + gap;
-        if (options.hour12) {
+        if (options.showsMeridiem()) {
             out.add(new Slot(ROLE_MERIDIEM, centerX, cursor + meridiemSize / 2f,
                     meridiemSize, boxWidth));
             cursor += meridiemSize + gap;

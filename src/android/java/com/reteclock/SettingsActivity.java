@@ -323,22 +323,6 @@ public class SettingsActivity extends Activity {
         clock.addView(timeOnly);
         clock.addView(footer(getString(R.string.settings_time_only_note)));
 
-        // Only meaningful with both of the two above on, and kept beside the one it belongs to
-        // rather than hidden: a switch that appears and disappears is harder to find than one that
-        // is simply there.
-        final CheckBox timeOnlyMarker = new CheckBox(this);
-        timeOnlyMarker.setText(R.string.settings_time_only_marker);
-        timeOnlyMarker.setTextColor(TEXT_WHITE);
-        timeOnlyMarker.setChecked(Settings.timeOnlyMarker(this));
-        timeOnlyMarker.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton button, boolean checked) {
-                Settings.setTimeOnlyMarker(SettingsActivity.this, checked);
-            }
-        });
-        clock.addView(timeOnlyMarker);
-        clock.addView(footer(getString(R.string.settings_time_only_marker_note)));
-
         final CheckBox seconds = new CheckBox(this);
         seconds.setText(R.string.settings_show_seconds);
         seconds.setTextColor(TEXT_WHITE);
@@ -388,6 +372,23 @@ public class SettingsActivity extends Activity {
         });
         clock.addView(twelveHour);
         clock.addView(twelveHourExtras);
+
+        // The AM/PM switch belongs to the twelve-hour clock, and it used to sit under the time-only
+        // one — where it also only worked (issue #44). It is inside that box now, above everything
+        // the marker's wording is decided by: "should there be one" comes before "what should it
+        // say".
+        final CheckBox markerShown = new CheckBox(this);
+        markerShown.setText(R.string.settings_marker_shown);
+        markerShown.setTextColor(TEXT_WHITE);
+        markerShown.setChecked(Settings.markerShown(this));
+        markerShown.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                Settings.setMarkerShown(SettingsActivity.this, checked);
+            }
+        });
+        twelveHourExtras.addView(markerShown);
+        twelveHourExtras.addView(footer(getString(R.string.settings_marker_shown_note)));
 
         fillTwelveHourExtras();
         twelveHourExtras.setVisibility(Settings.hour12(this) ? View.VISIBLE : View.GONE);

@@ -74,7 +74,14 @@ public final class Settings {
     public static final String KEY_QUOTE_ON = "quote_on";
     public static final String KEY_TIME_ONLY = "clock_only";
     public static final String KEY_BLINK_COLON = "clock_blink_colon";
-    public static final String KEY_TIME_ONLY_MARKER = "clock_only_marker";
+    /**
+     * Whether the AM/PM marker is drawn (issue #44).
+     *
+     * The stored name says `clock_only` because the switch began life scoped to the
+     * time-only screen. It is kept as it is on purpose: renaming the key would throw away
+     * the answer everybody has already given.
+     */
+    public static final String KEY_MARKER_SHOWN = "clock_only_marker";
     public static final String KEY_THEME_COLORS = "colors_from_theme";
     /** Which of the clock's numbers carry a leading zero; see {@link com.reteclock.core.Padding}. */
     public static final String KEY_PADDING = "clock_padding";
@@ -179,7 +186,7 @@ public final class Settings {
         out.put(KEY_QUOTE_ON, Boolean.valueOf(quoteOn(context)));
         out.put(KEY_TIME_ONLY, Boolean.valueOf(timeOnly(context)));
         out.put(KEY_BLINK_COLON, Boolean.valueOf(blinkColon(context)));
-        out.put(KEY_TIME_ONLY_MARKER, Boolean.valueOf(timeOnlyMarker(context)));
+        out.put(KEY_MARKER_SHOWN, Boolean.valueOf(markerShown(context)));
         out.put(KEY_THEME_COLORS, Boolean.valueOf(themeColors(context)));
         out.put(KEY_BURN_IN_SHIFT, Boolean.valueOf(burnInShift(context)));
         out.put(KEY_TIME_PERCENT_WIDE, Integer.valueOf(timePercent(context, KEY_TIME_PERCENT_WIDE)));
@@ -899,12 +906,12 @@ public final class Settings {
      * Somebody who wants the two numbers and nothing else can drop it, and the digits then take the
      * room it was keeping.
      */
-    public static boolean timeOnlyMarker(Context context) {
-        return prefs(context).getBoolean(KEY_TIME_ONLY_MARKER, true);
+    public static boolean markerShown(Context context) {
+        return prefs(context).getBoolean(KEY_MARKER_SHOWN, true);
     }
 
-    public static void setTimeOnlyMarker(Context context, boolean marker) {
-        prefs(context).edit().putBoolean(KEY_TIME_ONLY_MARKER, marker).commit();
+    public static void setMarkerShown(Context context, boolean marker) {
+        prefs(context).edit().putBoolean(KEY_MARKER_SHOWN, marker).commit();
     }
 
     public static boolean blinkColon(Context context) {
@@ -1194,7 +1201,7 @@ public final class Settings {
                 customNames(context, calendarSystem(context)))
                 .withMarkers(markers(context))
                 .withTimeOnly(timeOnly(context))
-                .withTimeOnlyMarker(timeOnlyMarker(context))
+                .withMarkerShown(markerShown(context))
                 .withPadding(padding(context))
                 .withDateOrder(dateOrder(context));
     }

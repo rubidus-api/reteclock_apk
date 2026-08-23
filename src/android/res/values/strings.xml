@@ -4,8 +4,6 @@
     <string name="settings_title">ReteClock settings</string>
     <string name="settings_time_only">Show only the time</string>
     <string name="settings_time_only_note">The hour and the minute fill the screen, with the AM/PM marker where the clock reads in twelve hours, and nothing else: no seconds, no weekday, no date, no year, no month grid and no saying. This is what the app looked like on its first day; everything it grew since is still set where you left it and comes back the moment this is switched off.</string>
-    <string name="settings_time_only_marker">…and keep AM/PM there</string>
-    <string name="settings_time_only_marker_note">Only applies while the two above are on: showing the time alone, on a twelve-hour clock. Off, the hour and the minute are all that is drawn and they take the room the marker was keeping.</string>
     <string name="settings_show_seconds">Show seconds</string>
     <string name="settings_blink_colon">Blink the colon, once a second</string>
     <string name="settings_blink_colon_note">What a table clock does: the colon between the hour and the minute is lit for half a second and dark for the other half, exactly on the second. It applies only where the time is written on one line and so has a colon — a screen turned sideways, for instance. Where the hour and the minute are stacked there is no colon and nothing changes. The digits never move: the line is measured with its colon whether it is being painted or not.</string>
@@ -44,6 +42,8 @@
     <string name="settings_open_pictures">Pictures</string>
     <string name="settings_burn_in">Let the clock wander, to spare the screen</string>
     <string name="settings_burn_in_note">Everything on screen drifts a few pixels at a time around a circle it takes hours to complete, so that no bright shape sits on the same pixels all day. It never leaves the margin, so nothing is clipped. Leave this on for a phone left showing the time — an OLED panel that has drawn the same numerals in the same place for months keeps them faintly forever. Turn it off if you would rather the clock held perfectly still; an LCD has nothing to burn in.</string>
+    <string name="settings_marker_shown">Show AM / PM</string>
+    <string name="settings_marker_shown_note">Off, the clock still reads in twelve hours but writes no marker at all — with the date and the calendar on screen as well as without them. The time takes the room the marker was keeping.</string>
     <string name="settings_markers">What the marker says</string>
     <string name="settings_markers_preset">Use a country\'s way of writing it…</string>
     <string name="marker_preset_default">Most clocks and phones — AM, PM, 12:00 PM, 12:00 AM (the default)</string>

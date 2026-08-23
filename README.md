@@ -26,7 +26,7 @@ keep the screen awake, and one to vibrate, which only the timer uses.
 
 **[⬇ Get it on F-Droid](https://f-droid.org/packages/com.reteclock/)** — recommended.
 
-**[⬇ Download reteclock-0.33.1.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.33.1/reteclock-0.33.1.apk)**
+**[⬇ Download reteclock-0.33.2.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.33.2/reteclock-0.33.2.apk)**
 — 317 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
 render GitHub's release page can still fetch it.
 
@@ -131,7 +131,7 @@ beyond keeping the screen awake. Copy the APK to the phone, open it, and the pho
 
 ## Which phones it runs on
 
-Published on F-Droid; the latest release is 0.33.1.
+Published on F-Droid; the latest release is 0.33.2.
 
 | | |
 |---|---|
@@ -175,6 +175,9 @@ In the order they appear on the screen.
   Where the hour and the minute share a line, the marker sits small just after the minute on the
   same baseline; where they are stacked, it takes a line of its own under the minute: `12` over `03`
   over `AM`. Either way the layout keeps room for it, so nothing shifts when AM becomes PM.
+- **Show AM / PM** — off, the clock still reads in twelve hours but writes no marker at all, on every
+  screen it has: with the date, with a calendar, and with the time alone. The time takes the room the
+  marker was keeping.
 - **What the marker says** — AM and PM are Latin abbreviations, and much of the world does not
   write them in Latin. Write your own for before noon, after noon, noon itself and midnight — 오전
   and 오후, 午前 and 午後, a dot, an arrow, nothing at all. Nothing is checked, so a long marker takes
