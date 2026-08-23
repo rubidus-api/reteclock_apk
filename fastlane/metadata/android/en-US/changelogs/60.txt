@@ -1,0 +1,9 @@
+Fixed: "Show AM / PM" now hides the marker everywhere rather than only on the
+screen that shows the time and nothing else. Three of the layouts never asked
+the switch, so with the date or a calendar on screen the marker stayed however
+it was set. Wherever it is off now, nothing is drawn and no room is kept: the
+time takes the space back. Your existing answer is carried over.
+
+Changed: the switch has moved to where it belongs — inside the twelve-hour
+clock's own box in the general settings, above the choices about what the marker
+should say.
