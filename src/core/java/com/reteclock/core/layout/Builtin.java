@@ -28,13 +28,53 @@ public final class Builtin {
      * cannot yet say it.
      */
     public static List<LayoutBox> of(int screenW, int screenH, ClockOptions options) {
-        if (!options.timeOnly) {
-            return null;                       // the full clock, the calendar and the saying: not yet
+        if (options.calendar || options.quote) {
+            return null;                       // the calendar and the saying: not yet
         }
         float pad = ClockLayout.paddingPx(screenW, screenH);
-        return screenW > screenH
-                ? wideTimeOnly(screenW, screenH, options, pad)
-                : tallTimeOnly(screenW, screenH, options, pad);
+        boolean wide = screenW > screenH;
+        if (options.timeOnly) {
+            return wide
+                    ? wideTimeOnly(screenW, screenH, options, pad)
+                    : tallTimeOnly(screenW, screenH, options, pad);
+        }
+        return wide ? null : tallFull(screenW, screenH, options, pad);
+    }
+
+    /**
+     * The whole clock standing up: the time, the marker where there is one, the date, and the small
+     * line under it.
+     *
+     * The dial the user sets splits the height between the time and the rest; the marker comes out
+     * of the time's own share, so turning it on does not move the date.
+     */
+    private static List<LayoutBox> tallFull(int w, int h, ClockOptions options, float pad) {
+        float boxWidth = w - 2f * pad;
+        float gap = h * 0.020f;
+        float content = h - 2f * pad - 3f * gap;
+        boolean marker = options.showsMeridiem();
+
+        float timeShare = content * options.timeFractionTall;
+        float mainSize = marker ? (timeShare - gap) / (2f + 0.22f) : timeShare / 2f;
+        float meridiemSize = marker ? mainSize * 0.22f : 0f;
+        float rest = content * (1f - options.timeFractionTall);
+        float dateSize = rest * 0.6f;
+        float smallSize = rest * (1f - 0.6f);
+
+        List<LayoutBox> out = new ArrayList<LayoutBox>(5);
+        float cursor = pad;
+        out.add(line(ClockLayout.ROLE_HOUR, w, h, pad, cursor, mainSize, boxWidth));
+        cursor += mainSize + gap;
+        out.add(line(ClockLayout.ROLE_MINUTE, w, h, pad, cursor, mainSize, boxWidth));
+        cursor += mainSize + gap;
+        if (marker) {
+            out.add(line(ClockLayout.ROLE_MERIDIEM, w, h, pad, cursor, meridiemSize, boxWidth));
+            cursor += meridiemSize + gap;
+        }
+        out.add(line(ClockLayout.ROLE_WEEKDAY_DATE, w, h, pad, cursor, dateSize, boxWidth));
+        cursor += dateSize + gap;
+        out.add(line(ClockLayout.ROLE_SMALL_LINE, w, h, pad, cursor, smallSize, boxWidth));
+        return out;
     }
 
     /**
