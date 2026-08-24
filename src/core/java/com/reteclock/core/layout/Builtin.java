@@ -38,7 +38,38 @@ public final class Builtin {
                     ? wideTimeOnly(screenW, screenH, options, pad)
                     : tallTimeOnly(screenW, screenH, options, pad);
         }
-        return wide ? null : tallFull(screenW, screenH, options, pad);
+        return wide
+                ? wideFull(screenW, screenH, options, pad)
+                : tallFull(screenW, screenH, options, pad);
+    }
+
+    /**
+     * The whole clock lying down, since issue #42: the time across the screen, the date under it.
+     *
+     * The date line's fields are in the order the user set, and the seconds are on it only while
+     * they are switched on — so this is one box holding a line whose parts the options decide.
+     */
+    private static List<LayoutBox> wideFull(int w, int h, ClockOptions options, float pad) {
+        float room = h - 2f * pad;
+        float dateSize = room * 0.14f;
+        float gap = room * 0.04f;
+        float timeHeight = room - dateSize - gap;
+
+        float across = w - 2f * pad;
+        float reserve = options.showsMeridiem()
+                ? Math.min(across * 0.30f, timeHeight * 0.44f)
+                : 0f;
+        float box = across - reserve;
+        float left = w / 2f - reserve / 2f - box / 2f;
+
+        List<LayoutBox> out = new ArrayList<LayoutBox>(2);
+        out.add(LayoutBox.of(ClockLayout.ROLE_HOUR_MINUTE)
+                .at(Anchor.TOP_LEFT, left / w, pad / h)
+                .sized(box / w, timeHeight / h)
+                .aligned(Anchor.MIDDLE_CENTRE));
+        out.add(line(ClockLayout.ROLE_SMALL_LINE, w, h, pad,
+                pad + timeHeight + gap, dateSize, across));
+        return out;
     }
 
     /**

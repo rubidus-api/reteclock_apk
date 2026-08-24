@@ -38,9 +38,16 @@ public final class Line {
     private Line() {
     }
 
-    /** What this field is made of: itself, or the fields the app's own line puts together. */
-    public static List<Part> of(String field, ClockOptions options) {
-        List<Part> out = new ArrayList<Part>(2);
+    /**
+     * What this field is made of: itself, or the fields the app's own line puts together.
+     *
+     * The orientation is asked for because one line differs by it. Standing up, the small line is
+     * the year with the seconds; lying down it is the date line of issue #42 — the weekday, the
+     * date, the year and the seconds, in the order the user set. Same name, different line, and a
+     * caller that did not say which way up the phone was would get the wrong one half the time.
+     */
+    public static List<Part> of(String field, ClockOptions options, boolean wide) {
+        List<Part> out = new ArrayList<Part>(4);
         if (ClockLayout.ROLE_HOUR_MINUTE.equals(field)) {
             out.add(new Part(ClockLayout.ROLE_HOUR, ""));
             out.add(new Part(ClockLayout.ROLE_MINUTE, ":"));
@@ -48,9 +55,18 @@ public final class Line {
             out.add(new Part(ClockLayout.ROLE_WEEKDAY, ""));
             out.add(new Part(ClockLayout.ROLE_MONTH_DAY, ", "));
         } else if (ClockLayout.ROLE_SMALL_LINE.equals(field)) {
-            out.add(new Part(ClockLayout.ROLE_YEAR, ""));
-            if (options != null && options.showSeconds) {
-                out.add(new Part(ClockLayout.ROLE_SECOND, "   "));
+            if (wide) {
+                java.util.List<String> shown = options == null
+                        ? java.util.Collections.<String>emptyList()
+                        : options.dateOrder.shown(options.showSeconds);
+                for (int i = 0; i < shown.size(); i++) {
+                    out.add(new Part(shown.get(i), i == 0 ? "" : "   "));
+                }
+            } else {
+                out.add(new Part(ClockLayout.ROLE_YEAR, ""));
+                if (options != null && options.showSeconds) {
+                    out.add(new Part(ClockLayout.ROLE_SECOND, "   "));
+                }
             }
         } else {
             out.add(new Part(field, ""));
@@ -59,8 +75,8 @@ public final class Line {
     }
 
     /** Whether this field is a line of several rather than one on its own. */
-    public static boolean isComposite(String field, ClockOptions options) {
-        return of(field, options).size() > 1;
+    public static boolean isComposite(String field, ClockOptions options, boolean wide) {
+        return of(field, options, wide).size() > 1;
     }
 
     /**
@@ -72,8 +88,8 @@ public final class Line {
      * number or the comparison between them means nothing.
      */
     public static float widest(String field, ClockOptions options, ClockLayout.Metrics metrics,
-            float textSize) {
-        List<Part> parts = of(field, options);
+            float textSize, boolean wide) {
+        List<Part> parts = of(field, options, wide);
         float total = 0f;
         for (int i = 0; i < parts.size(); i++) {
             String separator = i + 1 < parts.size() ? parts.get(i + 1).separatorBefore : "";

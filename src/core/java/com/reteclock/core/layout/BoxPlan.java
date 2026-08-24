@@ -121,7 +121,8 @@ public final class BoxPlan {
             float textSize = height;
             // A field that is a line of several — the weekday with the date, the year with the
             // seconds — is measured as the line it is, or a box would be sized for its first field.
-            float needed = Line.widest(box.field, options, metrics, textSize);
+            float needed = Line.widest(box.field, options, metrics, textSize,
+                    screenW > screenH);
             float width = box.widthOn(screenW, needed);
 
             if (needed > width && width > 0f) {
