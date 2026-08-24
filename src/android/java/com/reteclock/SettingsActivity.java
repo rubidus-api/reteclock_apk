@@ -890,8 +890,14 @@ public class SettingsActivity extends Activity {
         SettingsPackage.clearStaging(this);
         pendingImport = null;
         rebuildImportSection();
-        toast(getString(R.string.carry_import_done, result.settingsApplied,
-                result.fontsAdded + result.imagesAdded + result.soundsAdded, result.dropped));
+        // Layouts are only mentioned when some arrived: a line about zero of something is a line
+        // about a feature the reader may not have, on a screen they came to for another reason.
+        int files = result.fontsAdded + result.imagesAdded + result.soundsAdded;
+        toast(result.layoutsAdded > 0
+                ? getString(R.string.carry_import_done_layouts, result.settingsApplied, files,
+                        result.dropped, result.layoutsAdded)
+                : getString(R.string.carry_import_done, result.settingsApplied, files,
+                        result.dropped));
     }
 
     /** The picture pool and what each picture is for. */

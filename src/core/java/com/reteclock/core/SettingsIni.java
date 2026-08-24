@@ -74,6 +74,7 @@ public final class SettingsIni {
         {"clock_midnight_style", "i", "clock"},
         {"markers", "s", "clock"},
         {"date_order", "s", "clock"},
+        {"layouts", "s", "clock"},
         {"start_when_charging", "b", "clock"},
         {"stay_unlocked", "b", "clock"},
         {"direct_start", "b", "clock"},

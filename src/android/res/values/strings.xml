@@ -27,6 +27,7 @@
     <string name="carry_import_do">Bring in what is ticked</string>
     <string name="carry_import_nothing">Nothing in this file could be read as settings.</string>
     <string name="carry_import_done">Brought in %1$d settings and %2$d files. %3$d names dropped, because what they pointed at is not here.</string>
+    <string name="carry_import_done_layouts">Brought in %1$d settings, %2$d files and %4$d layouts. %3$d names dropped, because what they pointed at is not here.</string>
     <string name="carry_and_more">" and %1$d more"</string>
     <string name="carry_refused">Refused: %1$s</string>
     <string name="carry_fonts">The font files</string>

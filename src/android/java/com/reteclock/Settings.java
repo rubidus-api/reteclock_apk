@@ -66,6 +66,13 @@ public final class Settings {
     public static final String KEY_MARKERS = "markers";
     /** The order of the date line under a landscape clock (issue #42). */
     public static final String KEY_DATE_ORDER = "date_order";
+    /**
+     * The layouts the user has drawn, and which one is in force (RFC-0005).
+     *
+     * One key rather than one per preset: the book is a single value that has to stay
+     * consistent — a chosen index means nothing without the list it points into.
+     */
+    public static final String KEY_LAYOUTS = "layouts";
     public static final String KEY_NAMES_MONTHS = "names_months_";
     public static final String KEY_NAMES_WEEKDAYS = "names_weekdays_";
     public static final String KEY_HOUR12 = "clock_hour12";
@@ -197,6 +204,7 @@ public final class Settings {
         out.put(KEY_MIDNIGHT_STYLE, Integer.valueOf(midnightStyle(context)));
         out.put(KEY_MARKERS, markers(context).text());
         out.put(KEY_DATE_ORDER, dateOrder(context).text());
+        out.put(KEY_LAYOUTS, layouts(context).text());
         out.put(KEY_PADDING, Integer.valueOf(padding(context).bits()));
 
         out.put(KEY_BACKGROUND_FIT, Integer.valueOf(backgroundFit(context)));
@@ -1213,6 +1221,17 @@ public final class Settings {
      * the third month of the Gregorian one, and somebody who renames both should not have the two
      * fight over one slot.
      */
+    /** The layouts the user has drawn, with Automatic always first (RFC-0005). */
+    public static com.reteclock.core.layout.LayoutBook layouts(Context context) {
+        return com.reteclock.core.layout.LayoutBook.parse(
+                prefs(context).getString(KEY_LAYOUTS, null));
+    }
+
+    public static void setLayouts(Context context,
+            com.reteclock.core.layout.LayoutBook book) {
+        prefs(context).edit().putString(KEY_LAYOUTS, book.text()).commit();
+    }
+
     /** How the date line under a wide clock is arranged (issue #42). */
     public static com.reteclock.core.DateOrder dateOrder(Context context) {
         return com.reteclock.core.DateOrder.parse(
