@@ -71,6 +71,7 @@ public final class LayoutSettingsActivity extends Activity {
         presetList.setOrientation(LinearLayout.VERTICAL);
         which.addView(presetList);
         which.addView(note(getString(R.string.layout_which_note)));
+        which.addView(note(getString(R.string.layout_edit_note)));
         root.addView(which);
 
         automaticCard = card();
@@ -133,6 +134,14 @@ public final class LayoutSettingsActivity extends Activity {
                             refresh();
                         }
                     }));
+            // Editing is the point of a drawn layout, so it comes before the housekeeping.
+            row.addView(button(getString(R.string.layout_edit), index > 0,
+                    new Runnable() {
+                        @Override
+                        public void run() {
+                            askWhichWayUp(index);
+                        }
+                    }));
             row.addView(button(getString(R.string.layout_rename), index > 0,
                     new Runnable() {
                         @Override
@@ -167,6 +176,31 @@ public final class LayoutSettingsActivity extends Activity {
         return book.add(LayoutPreset.of(getString(R.string.layout_new_name),
                 com.reteclock.core.layout.Builtin.of(shorter, longer, options),
                 com.reteclock.core.layout.Builtin.of(longer, shorter, options)));
+    }
+
+    /**
+     * Which way up to edit.
+     *
+     * A layout holds both (D2) and they are drawn separately, so the question has to be asked
+     * before the canvas opens rather than after — a canvas that guessed would be a canvas that
+     * silently edited the wrong one.
+     */
+    private void askWhichWayUp(final int index) {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.layout_which_way)
+                .setItems(new CharSequence[] {
+                    getString(R.string.layout_upright), getString(R.string.layout_sideways)},
+                    new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            android.content.Intent intent = new android.content.Intent(
+                                    LayoutSettingsActivity.this, LayoutEditorActivity.class);
+                            intent.putExtra(LayoutEditorActivity.EXTRA_INDEX, index);
+                            intent.putExtra(LayoutEditorActivity.EXTRA_LANDSCAPE, which == 1);
+                            startActivity(intent);
+                        }
+                    })
+                .show();
     }
 
     private void askName(final LayoutBook book, final int index) {

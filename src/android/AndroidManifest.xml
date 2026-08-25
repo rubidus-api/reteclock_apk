@@ -91,6 +91,18 @@
             android:theme="@android:style/Theme.Black" />
 
         <activity
+            android:name=".LayoutEditorActivity"
+            android:exported="false"
+            android:label="@string/layout_title"
+            android:theme="@android:style/Theme.Black" />
+
+        <activity
+            android:name=".LayoutFieldsActivity"
+            android:exported="false"
+            android:label="@string/layout_fields_title"
+            android:theme="@android:style/Theme.Black" />
+
+        <activity
             android:name=".SettingsActivity"
             android:exported="true"
             android:label="@string/settings_title"
