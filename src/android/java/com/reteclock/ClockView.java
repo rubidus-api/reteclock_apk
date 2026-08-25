@@ -823,16 +823,52 @@ public class ClockView extends View {
     private void rebuild(int w, int h) {
         // The background is the size of the view; the text is laid out in what the strip leaves.
         refreshSlideForSize(w, h);
-        layout = ClockLayout.of(Math.max(1, w - insetLeft), Math.max(1, h - insetTop), options);
-        // Worked out once with the layout rather than at every tick: it decides the redraw cadence.
-        layoutHasColon = hasColon(layout);
-        plan = layout.plan(new ClockLayout.Metrics() {
+        int usableW = Math.max(1, w - insetLeft);
+        int usableH = Math.max(1, h - insetTop);
+        ClockLayout.Metrics metrics = new ClockLayout.Metrics() {
             @Override
             public float width(String role, String text, float textSize) {
                 applyStyle(role, textSize);
                 return paint.measureText(text);
             }
-        });
+        };
+        layout = drawn(usableW, usableH, metrics);
+        if (layout == null) {
+            layout = ClockLayout.of(usableW, usableH, options);
+        }
+        // Worked out once with the layout rather than at every tick: it decides the redraw cadence.
+        layoutHasColon = hasColon(layout);
+        plan = layout.plan(metrics);
+    }
+
+    /**
+     * The layout the user drew for this way up, or null to let the app arrange it (RFC-0005).
+     *
+     * Null covers four cases and they are all the same case: there is no drawn layout to use.
+     * Automatic is chosen; the chosen preset leaves this orientation to the app; the preset draws
+     * nothing at all; or something in it threw. The last one is why this is wrapped: a layout is
+     * data the user typed into, and it may travel here from another phone in a package. A clock
+     * that will not draw because of a file is the one fault the clock face gives no way back from,
+     * so the built-in arrangement is always underneath.
+     */
+    private ClockLayout drawn(int w, int h, ClockLayout.Metrics metrics) {
+        try {
+            com.reteclock.core.layout.LayoutPreset preset =
+                    Settings.layouts(getContext()).chosen();
+            if (preset.isAutomatic()) {
+                return null;
+            }
+            java.util.List<com.reteclock.core.layout.LayoutBox> boxes =
+                    w > h ? preset.landscape() : preset.portrait();
+            if (boxes.isEmpty()) {
+                return null;
+            }
+            ClockLayout composed = com.reteclock.core.layout.Composed.of(boxes, w, h, options,
+                    metrics);
+            return composed == null || composed.slots().isEmpty() ? null : composed;
+        } catch (RuntimeException broken) {
+            return null;
+        }
     }
 
     @Override
