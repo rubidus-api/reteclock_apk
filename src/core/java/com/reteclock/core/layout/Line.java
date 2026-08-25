@@ -41,10 +41,16 @@ public final class Line {
     /**
      * What this field is made of: itself, or the fields the app's own line puts together.
      *
-     * The orientation is asked for because one line differs by it. Standing up, the small line is
-     * the year with the seconds; lying down it is the date line of issue #42 — the weekday, the
-     * date, the year and the seconds, in the order the user set. Same name, different line, and a
-     * caller that did not say which way up the phone was would get the wrong one half the time.
+     * The orientation is asked for because one line differs by it — and in fact `small_line` names
+     * three different lines, which is worth saying plainly:
+     *
+     * - standing up, with no calendar: the year, and the seconds beside it;
+     * - lying down: the date line of issue #42 — weekday, date, year, seconds, in the user's order;
+     * - standing up with a calendar under the clock: the seconds alone, because the grid says the
+     *   rest better than a line of text can.
+     *
+     * A caller that did not say which way up the phone was would get the wrong one about half the
+     * time, and the symptom would look like a font problem rather than a layout one.
      */
     public static List<Part> of(String field, ClockOptions options, boolean wide) {
         List<Part> out = new ArrayList<Part>(4);
@@ -55,7 +61,13 @@ public final class Line {
             out.add(new Part(ClockLayout.ROLE_WEEKDAY, ""));
             out.add(new Part(ClockLayout.ROLE_MONTH_DAY, ", "));
         } else if (ClockLayout.ROLE_SMALL_LINE.equals(field)) {
-            if (wide) {
+            if (options != null && options.calendar && !wide) {
+                // With a month under the clock the small line is the seconds and nothing else: the
+                // grid says the weekday, the date and the year better than a line of text can.
+                if (options.showSeconds) {
+                    out.add(new Part(ClockLayout.ROLE_SECOND, ""));
+                }
+            } else if (wide) {
                 java.util.List<String> shown = options == null
                         ? java.util.Collections.<String>emptyList()
                         : options.dateOrder.shown(options.showSeconds);
