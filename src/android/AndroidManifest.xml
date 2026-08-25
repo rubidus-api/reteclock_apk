@@ -84,6 +84,25 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".LayoutSettingsActivity"
+            android:exported="false"
+            android:label="@string/layout_title"
+            android:theme="@android:style/Theme.Black" />
+
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="true"
+            android:label="@string/settings_title"
+            android:theme="@android:style/Theme.Black">
+            <!-- Exported without the launcher category: it is no longer the front door, but the
+                 icon's shortcut menu starts it, and that is the launcher starting it. -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
         <service
             android:name=".ClockDreamService"
             android:exported="true"

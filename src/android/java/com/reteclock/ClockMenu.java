@@ -97,6 +97,18 @@ final class ClockMenu {
         // The fonts and the pictures are two more of these categories rather than two buttons
         // buried in the first one: this menu is where the app says what its settings are divided
         // into, and a list of forty photographs is not a paragraph of the clock's own screen.
+        // Where everything goes: which layout is in force, and what steers the automatic one
+        // (RFC-0005, D7). Beside the settings pages rather than inside one of them, because it is a
+        // category of its own — the main menu is where this app says what its settings divide into.
+        card.addView(choice(activity, activity.getString(R.string.menu_layout),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        dialog.dismiss();
+                        activity.startActivity(
+                                new Intent(activity, LayoutSettingsActivity.class));
+                    }
+                }));
         card.addView(choice(activity, activity.getString(R.string.menu_fonts),
                 new View.OnClickListener() {
                     @Override
