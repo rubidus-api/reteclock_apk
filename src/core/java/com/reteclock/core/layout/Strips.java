@@ -12,6 +12,8 @@ package com.reteclock.core.layout;
  *
  * 1. **They may not share an edge.** A second strip asking for an edge that is taken is moved to the
  *    opposite one rather than halving it.
+ * 1a. **The saying only runs along the top or the bottom.** Down a side it would be a column two
+ *    words wide. The timer may take any of the four: it is a bar and a few numbers, not a sentence.
  * 2. **The timer is placed first**, at the full length of its edge. It is the one with controls, and
  *    a control that moves depending on what else is switched on is a control people press by
  *    mistake.
@@ -95,7 +97,14 @@ public final class Strips {
             first = cut(content, firstEdge, thickness);
         }
 
+        // The saying runs along the top or the bottom and nowhere else: a sentence down the side of
+        // a screen is a column two words wide, which is not reading. Asked for a side it takes the
+        // foot — and the top if the timer is already at the foot, since the one rule it cannot
+        // break is sharing an edge.
         int secondEdge = valid(sayingEdge) ? sayingEdge : NONE;
+        if (secondEdge == LEFT || secondEdge == RIGHT) {
+            secondEdge = BOTTOM;
+        }
         if (secondEdge != NONE && secondEdge == firstEdge) {
             secondEdge = opposite(secondEdge);
         }

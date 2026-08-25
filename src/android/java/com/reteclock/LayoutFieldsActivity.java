@@ -598,12 +598,27 @@ public final class LayoutFieldsActivity extends Activity {
     private View edgeRow(final int which) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
-        int now = boxes().get(which).edge;
-        int[] labels = {R.string.layout_edge_none, R.string.layout_align_top,
-            R.string.layout_align_bottom, R.string.layout_align_left, R.string.layout_align_right};
-        int[] edges = {com.reteclock.core.layout.Strips.NONE,
-            com.reteclock.core.layout.Strips.TOP, com.reteclock.core.layout.Strips.BOTTOM,
-            com.reteclock.core.layout.Strips.LEFT, com.reteclock.core.layout.Strips.RIGHT};
+        LayoutBox box = boxes().get(which);
+        int now = box.edge;
+        // The saying is offered the top and the bottom and nothing else: a sentence down the side
+        // of a screen is a column two words wide. The timer may go anywhere — it is a bar and a few
+        // numbers, and it reads perfectly well turned on its side.
+        boolean sentence = ClockLayout.ROLE_QUOTE.equals(box.field);
+        int[] labels = sentence
+                ? new int[] {R.string.layout_edge_none, R.string.layout_align_top,
+                    R.string.layout_align_bottom}
+                : new int[] {R.string.layout_edge_none, R.string.layout_align_top,
+                    R.string.layout_align_bottom, R.string.layout_align_left,
+                    R.string.layout_align_right};
+        int[] edges = sentence
+                ? new int[] {com.reteclock.core.layout.Strips.NONE,
+                    com.reteclock.core.layout.Strips.TOP,
+                    com.reteclock.core.layout.Strips.BOTTOM}
+                : new int[] {com.reteclock.core.layout.Strips.NONE,
+                    com.reteclock.core.layout.Strips.TOP,
+                    com.reteclock.core.layout.Strips.BOTTOM,
+                    com.reteclock.core.layout.Strips.LEFT,
+                    com.reteclock.core.layout.Strips.RIGHT};
         for (int i = 0; i < edges.length; i++) {
             final int wanted = edges[i];
             TextView button = new TextView(this);
