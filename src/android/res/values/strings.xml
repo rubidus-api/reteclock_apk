@@ -99,10 +99,10 @@
     <string name="layout_which_way">Which way up</string>
     <string name="layout_upright">Upright</string>
     <string name="layout_sideways">Sideways</string>
-    <string name="layout_number_left">Left edge (%% of the screen)</string>
-    <string name="layout_number_top">Top edge (%% of the screen)</string>
-    <string name="layout_number_width">Width (%% of the screen)</string>
-    <string name="layout_number_height">Height (%% of the screen)</string>
+    <string name="layout_number_left">Left edge, as a percentage of the screen</string>
+    <string name="layout_number_top">Top edge, as a percentage of the screen</string>
+    <string name="layout_number_width">Width, as a percentage of the screen</string>
+    <string name="layout_number_height">Height, as a percentage of the screen</string>
     <string name="layout_complaint_empty">Nothing would be drawn: every box is hidden.</string>
     <string name="layout_complaint_off_screen">%1$s is partly off the screen.</string>
     <string name="layout_complaint_overlap">%1$s overlaps %2$s.</string>

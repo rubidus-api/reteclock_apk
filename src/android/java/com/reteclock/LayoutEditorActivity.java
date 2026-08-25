@@ -128,6 +128,7 @@ public final class LayoutEditorActivity extends Activity {
             public void run() {
                 if (!undo.isEmpty()) {
                     boxes = undo.remove(undo.size() - 1);
+                    save();
                     canvas.invalidate();
                     refreshComplaints();
                 }
@@ -164,6 +165,13 @@ public final class LayoutEditorActivity extends Activity {
         }
     }
 
+    /**
+     * Writes the layout down.
+     *
+     * After every gesture rather than only on the way out. Leaving by the back button does call
+     * onPause, but a process killed from outside does not — and the first emulator pass lost a
+     * move exactly that way. A preferences write is cheap; minutes of fiddling are not.
+     */
     private void save() {
         LayoutBook book = Settings.layouts(this);
         LayoutPreset preset = book.get(index);
@@ -342,6 +350,7 @@ public final class LayoutEditorActivity extends Activity {
             float[] now = Grab.apply(was, grabbed, dx, dy, screenW(), screenH(), dp(8));
             remember();
             boxes.set(selected, write(box, now));
+            save();
         }
     }
 
@@ -411,6 +420,7 @@ public final class LayoutEditorActivity extends Activity {
                                     Math.max(dp(8), wanted[2]), Math.max(dp(8), wanted[3])},
                                 Grab.INSIDE, 0f, 0f, screenW(), screenH(), dp(8));
                         boxes.set(which, write(box, safe));
+                        save();
                         canvas.invalidate();
                         refreshComplaints();
                     }
@@ -430,7 +440,9 @@ public final class LayoutEditorActivity extends Activity {
         field.setText(Integer.toString(Math.round(fraction * 100f)));
         field.setInputType(android.text.InputType.TYPE_CLASS_NUMBER
                 | android.text.InputType.TYPE_NUMBER_FLAG_SIGNED);
-        field.setTextColor(TEXT_WHITE);
+        // No colour is set on purpose. A dialog is the platform's window, not this app's dark one,
+        // and its edit boxes are light: the app's white would be white on white — which is exactly
+        // what the first emulator pass showed, four fields that looked empty and were not.
         form.addView(field);
         return field;
     }
