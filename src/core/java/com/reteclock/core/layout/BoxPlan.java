@@ -39,6 +39,9 @@ public final class BoxPlan {
     /** Nothing at all would be drawn — the one mistake with no way back from the clock face. */
     public static final int NOTHING_DRAWN = 3;
 
+    /** The timer's strip, as a field the engine places without looking inside it (D6, D9). */
+    public static final String FIELD_TIMER = "timer";
+
     /**
      * The height a box arrives at when nothing has said otherwise, as a share of the shorter edge.
      *
@@ -111,19 +114,42 @@ public final class BoxPlan {
         List<Complaint> said = new ArrayList<Complaint>();
         float defaultHeight = Math.min(screenW, screenH) * DEFAULT_HEIGHT_SHARE;
 
+        // The timer and the saying are not boxes among the others: each takes a whole edge, and
+        // everything else is placed in what is left (D9). Which edge is read off the box's own
+        // anchor — a box anchored to the foot of the screen is a strip along the foot — and its
+        // thickness is the size it was given on that axis.
+        LayoutBox timerBox = findStrip(boxes, FIELD_TIMER);
+        LayoutBox sayingBox = findStrip(boxes, ClockLayout.ROLE_QUOTE);
+        Strips strips = Strips.of(screenW, screenH,
+                edgeOf(timerBox), thicknessOf(timerBox, screenW, screenH),
+                edgeOf(sayingBox), thicknessOf(sayingBox, screenW, screenH));
+        float[] room = strips.content();
+
+        if (timerBox != null && strips.timer() != null) {
+            out.add(new Placed(FIELD_TIMER, strips.timer(),
+                    strips.timer()[3], timerBox.align));
+        }
+        if (sayingBox != null && strips.saying() != null) {
+            out.add(new Placed(ClockLayout.ROLE_QUOTE, strips.saying(),
+                    strips.saying()[3], sayingBox.align));
+        }
+
         for (LayoutBox box : boxes) {
             if (box == null || !box.shown) {
                 continue;
             }
+            if (box == timerBox || box == sayingBox) {
+                continue;                       // already placed, as a strip
+            }
             // The box's height is the size its field is drawn at: a line of text is as tall as its
             // type. Width is either the box's own or whatever that type needs.
-            float height = box.heightOn(screenH, defaultHeight);
+            float height = box.heightOn(Math.round(room[3]), defaultHeight);
             float textSize = height;
             // A field that is a line of several — the weekday with the date, the year with the
             // seconds — is measured as the line it is, or a box would be sized for its first field.
             float needed = Line.widest(box.field, options, metrics, textSize,
                     screenW > screenH);
-            float width = box.widthOn(screenW, needed);
+            float width = box.widthOn(Math.round(room[2]), needed);
 
             if (needed > width && width > 0f) {
                 float fitted = ClockLayout.shrinkToFit(textSize, needed, width);
@@ -135,10 +161,14 @@ public final class BoxPlan {
                 said.add(new Complaint(SHRUNK, box.field, null, 0f));
             }
 
-            float[] rect = box.rectOn(screenW, screenH, width, height);
-            if (rect[0] < -0.5f || rect[1] < -0.5f
-                    || rect[0] + rect[2] > screenW + 0.5f
-                    || rect[1] + rect[3] > screenH + 0.5f) {
+            // Placed against what the strips left, then moved into place on the screen. That is
+            // what makes switching a strip on push the clock over rather than draw over it.
+            float[] rect = box.rectOn(Math.round(room[2]), Math.round(room[3]), width, height);
+            rect[0] += room[0];
+            rect[1] += room[1];
+            if (rect[0] < room[0] - 0.5f || rect[1] < room[1] - 0.5f
+                    || rect[0] + rect[2] > room[0] + room[2] + 0.5f
+                    || rect[1] + rect[3] > room[1] + room[3] + 0.5f) {
                 said.add(new Complaint(OFF_SCREEN, box.field, null, 1f));
             }
             out.add(new Placed(box.field, rect, textSize, box.align));
@@ -155,6 +185,59 @@ public final class BoxPlan {
             said.add(new Complaint(NOTHING_DRAWN, null, null, 1f));
         }
         return new BoxPlan(out, said);
+    }
+
+    /** The first box for this field that says it is a strip, or null when there is none. */
+    private static LayoutBox findStrip(List<LayoutBox> boxes, String field) {
+        for (LayoutBox box : boxes) {
+            if (box != null && box.shown && box.isStrip() && field.equals(box.field)) {
+                return box;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Which edge a strip's box is asking for, read off its anchor.
+     *
+     * Top or bottom wins over left or right when the anchor names both — a box anchored to the
+     * bottom-left is at the bottom, which is the reading a person looking at the canvas would give
+     * it. A strip anchored to the middle of the screen has not named an edge, and takes the foot,
+     * because that is where a sentence goes.
+     */
+    private static int edgeOf(LayoutBox box) {
+        if (box == null) {
+            return Strips.NONE;
+        }
+        if (box.isStrip()) {
+            return box.edge;
+        }
+        int vertical = Anchor.vertical(box.anchor);
+        if (vertical == Anchor.TOP) {
+            return Strips.TOP;
+        }
+        if (vertical == Anchor.BOTTOM) {
+            return Strips.BOTTOM;
+        }
+        int horizontal = Anchor.horizontal(box.anchor);
+        if (horizontal == Anchor.LEFT) {
+            return Strips.LEFT;
+        }
+        if (horizontal == Anchor.RIGHT) {
+            return Strips.RIGHT;
+        }
+        return Strips.BOTTOM;
+    }
+
+    /** How deep the strip is: the size the box was given on the axis its edge runs across. */
+    private static float thicknessOf(LayoutBox box, int screenW, int screenH) {
+        if (box == null) {
+            return 0f;
+        }
+        int edge = edgeOf(box);
+        return edge == Strips.TOP || edge == Strips.BOTTOM
+                ? box.heightOn(screenH, screenH * DEFAULT_HEIGHT_SHARE)
+                : box.widthOn(screenW, screenW * DEFAULT_HEIGHT_SHARE);
     }
 
     /**

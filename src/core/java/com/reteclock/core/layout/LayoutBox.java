@@ -39,9 +39,24 @@ public final class LayoutBox {
     public final boolean locked;
     /** Whether it is on the layout at all. A hidden box keeps its place for when it comes back. */
     public final boolean shown;
+    /**
+     * The edge this box takes whole, or {@link Strips#NONE} for an ordinary box (D9).
+     *
+     * Only the timer's strip and the saying use it. It is stated rather than guessed from the
+     * anchor, because "anchored to the foot" and "is a strip along the foot" are different claims:
+     * the app's own arrangement puts the saying at the foot *with padding round it*, and that is an
+     * ordinary box that happens to be low down.
+     */
+    public final int edge;
 
     private LayoutBox(String field, int anchor, float x, float y, float width, float height,
             int align, boolean locked, boolean shown) {
+        this(field, anchor, x, y, width, height, align, locked, shown, Strips.NONE);
+    }
+
+    private LayoutBox(String field, int anchor, float x, float y, float width, float height,
+            int align, boolean locked, boolean shown, int edge) {
+        this.edge = edge < Strips.TOP || edge > Strips.RIGHT ? Strips.NONE : edge;
         this.field = field;
         this.anchor = anchor < 0 || anchor >= Anchor.COUNT ? Anchor.MIDDLE_CENTRE : anchor;
         this.align = align < 0 || align >= Anchor.COUNT ? Anchor.MIDDLE_CENTRE : align;
@@ -61,25 +76,35 @@ public final class LayoutBox {
 
     /** The same box, measured from another anchor and offset. */
     public LayoutBox at(int anchor, float x, float y) {
-        return new LayoutBox(field, anchor, x, y, width, height, align, locked, shown);
+        return new LayoutBox(field, anchor, x, y, width, height, align, locked, shown, edge);
     }
 
     /** The same box at another size; {@link #NATURAL} for either gives that axis back to the field. */
     public LayoutBox sized(float width, float height) {
-        return new LayoutBox(field, anchor, x, y, width, height, align, locked, shown);
+        return new LayoutBox(field, anchor, x, y, width, height, align, locked, shown, edge);
     }
 
     /** The same box with its contents sitting somewhere else inside it. */
     public LayoutBox aligned(int align) {
-        return new LayoutBox(field, anchor, x, y, width, height, align, locked, shown);
+        return new LayoutBox(field, anchor, x, y, width, height, align, locked, shown, edge);
     }
 
     public LayoutBox locked(boolean locked) {
-        return new LayoutBox(field, anchor, x, y, width, height, align, locked, shown);
+        return new LayoutBox(field, anchor, x, y, width, height, align, locked, shown, edge);
     }
 
     public LayoutBox shown(boolean shown) {
-        return new LayoutBox(field, anchor, x, y, width, height, align, locked, shown);
+        return new LayoutBox(field, anchor, x, y, width, height, align, locked, shown, edge);
+    }
+
+    /** The same box taking a whole edge, or {@link Strips#NONE} to make it an ordinary box again. */
+    public LayoutBox onEdge(int edge) {
+        return new LayoutBox(field, anchor, x, y, width, height, align, locked, shown, edge);
+    }
+
+    /** Whether this box is a strip along an edge rather than a rectangle among the others. */
+    public boolean isStrip() {
+        return edge != Strips.NONE;
     }
 
     /** Whether the field decides this axis rather than the box. */
@@ -135,7 +160,7 @@ public final class LayoutBox {
                 .append(x).append('|').append(y).append('|')
                 .append(width).append('|').append(height).append('|')
                 .append(align).append('|').append(locked ? 1 : 0).append('|')
-                .append(shown ? 1 : 0);
+                .append(shown ? 1 : 0).append('|').append(edge);
         return out.toString();
     }
 
@@ -161,7 +186,8 @@ public final class LayoutBox {
                 floatAt(parts, 5, NATURAL),
                 intAt(parts, 6, Anchor.MIDDLE_CENTRE),
                 intAt(parts, 7, 0) != 0,
-                intAt(parts, 8, 1) != 0);
+                intAt(parts, 8, 1) != 0,
+                intAt(parts, 9, Strips.NONE));
     }
 
     private static int intAt(String[] parts, int index, int fallback) {

@@ -79,6 +79,7 @@ public final class LayoutFieldsActivity extends Activity {
         title.setPadding(0, 0, 0, dp(10));
         root.addView(title);
 
+        root.addView(addBar());
         root.addView(alignBar());
 
         list = new LinearLayout(this);
@@ -176,6 +177,20 @@ public final class LayoutFieldsActivity extends Activity {
             });
             card.addView(locked);
 
+            TextView remove = new TextView(this);
+            remove.setText(R.string.layout_field_remove);
+            remove.setTextColor(0xFFE57373);
+            remove.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f);
+            remove.setPadding(0, dp(6), 0, dp(6));
+            remove.setClickable(true);
+            remove.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    remove(which);
+                }
+            });
+            card.addView(remove);
+
             card.addView(subheading(getString(R.string.layout_field_align_h)));
             card.addView(alignRow(which, true));
             card.addView(subheading(getString(R.string.layout_field_align_v)));
@@ -183,6 +198,124 @@ public final class LayoutFieldsActivity extends Activity {
 
             list.addView(card);
         }
+    }
+
+    // ---- putting a field back ---------------------------------------------------------------
+
+    /**
+     * Every field this app can draw, in the order they are offered.
+     *
+     * A layout that never had a box for the seconds has no way to gain one from the canvas — there
+     * is nothing there to drag. So the list, which is where a layout's contents are decided, is
+     * where a field is put back.
+     */
+    private static final String[] EVERY_FIELD = {
+        ClockLayout.ROLE_HOUR_MINUTE,
+        ClockLayout.ROLE_HOUR,
+        ClockLayout.ROLE_MINUTE,
+        ClockLayout.ROLE_MERIDIEM,
+        ClockLayout.ROLE_SECOND,
+        ClockLayout.ROLE_WEEKDAY,
+        ClockLayout.ROLE_MONTH_DAY,
+        ClockLayout.ROLE_YEAR,
+        ClockLayout.ROLE_WEEKDAY_DATE,
+        ClockLayout.ROLE_SMALL_LINE,
+        com.reteclock.core.layout.Builtin.FIELD_CALENDAR,
+        ClockLayout.ROLE_QUOTE,
+    };
+
+    private View addBar() {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setPadding(0, 0, 0, dp(8));
+        TextView add = new TextView(this);
+        add.setText(R.string.layout_field_add);
+        add.setTextColor(ACCENT);
+        add.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f);
+        add.setGravity(Gravity.CENTER);
+        add.setPadding(dp(10), dp(12), dp(10), dp(12));
+        GradientDrawable face = new GradientDrawable();
+        face.setColor(ROW);
+        face.setCornerRadius(dp(6));
+        add.setBackgroundDrawable(face);
+        add.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+        add.setClickable(true);
+        add.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                askWhichField();
+            }
+        });
+        row.addView(add);
+        return row;
+    }
+
+    /** The fields this layout has no box for, offered by name. */
+    private void askWhichField() {
+        final List<String> missing = new ArrayList<String>();
+        List<LayoutBox> current = boxes();
+        for (int i = 0; i < EVERY_FIELD.length; i++) {
+            boolean already = false;
+            for (int j = 0; j < current.size(); j++) {
+                if (current.get(j).field.equals(EVERY_FIELD[i])) {
+                    already = true;
+                    break;
+                }
+            }
+            if (!already) {
+                missing.add(EVERY_FIELD[i]);
+            }
+        }
+        if (missing.isEmpty()) {
+            android.widget.Toast.makeText(this, R.string.layout_field_all_there,
+                    android.widget.Toast.LENGTH_SHORT).show();
+            return;
+        }
+        CharSequence[] names = new CharSequence[missing.size()];
+        for (int i = 0; i < missing.size(); i++) {
+            names[i] = fieldLabel(this, missing.get(i));
+        }
+        new android.app.AlertDialog.Builder(this)
+                .setTitle(R.string.layout_field_add)
+                .setItems(names, new android.content.DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(android.content.DialogInterface dialog, int which) {
+                        List<LayoutBox> out = new ArrayList<LayoutBox>(boxes());
+                        // In the middle, at the size a new box starts at. It is somewhere the user
+                        // can certainly see it and drag it from, which is the whole requirement:
+                        // a box added off in a corner would look like nothing having happened.
+                        out.add(LayoutBox.of(missing.get(which))
+                                .at(Anchor.MIDDLE_CENTRE, 0f, 0f)
+                                .sized(0.6f,
+                                        com.reteclock.core.layout.BoxPlan.DEFAULT_HEIGHT_SHARE));
+                        write(out);
+                        rebuild();
+                    }
+                })
+                .show();
+    }
+
+    /** Taking a field off this layout. The box goes; the field itself is always addable again. */
+    private void remove(final int which) {
+        final LayoutBox box = boxes().get(which);
+        new android.app.AlertDialog.Builder(this)
+                .setMessage(getString(R.string.layout_field_remove_ask,
+                        fieldLabel(this, box.field)))
+                .setPositiveButton(R.string.layout_field_remove,
+                        new android.content.DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(android.content.DialogInterface dialog, int i) {
+                                List<LayoutBox> out = new ArrayList<LayoutBox>(boxes());
+                                out.remove(which);
+                                write(out);
+                                selected.clear();
+                                rebuild();
+                            }
+                        })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
     }
 
     // ---- aligning a selection --------------------------------------------------------------

@@ -115,6 +115,10 @@
     <string name="layout_same_size">Same size</string>
     <string name="layout_fields_title">Fields</string>
     <string name="layout_fields_note">Fonts and decorations are not here: they are on the Fonts page and apply wherever a field is drawn, in every layout. A hidden box keeps its place for when it comes back.</string>
+    <string name="layout_field_add">Put a field on this layout…</string>
+    <string name="layout_field_all_there">Every field is already on this layout.</string>
+    <string name="layout_field_remove">Take off this layout</string>
+    <string name="layout_field_remove_ask">Take %1$s off this layout? You can put it back from the list above.</string>
     <string name="layout_field_shown">Shown</string>
     <string name="layout_field_locked">Locked — cannot be dragged</string>
     <string name="layout_field_align_h">Writing sits</string>
