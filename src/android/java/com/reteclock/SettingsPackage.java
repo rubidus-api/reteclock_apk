@@ -519,9 +519,23 @@ final class SettingsPackage {
         }
         // The layouts, added under free names. Done after the settings loop so that a package
         // carrying both a book and loose files lands as one merge rather than two.
+        //
+        // A package made by this app carries every drawn layout *twice* — once as a file under
+        // layouts/ and once inside the sender's book in settings.ini — so the same preset arrives by
+        // two roads. Adding both gave "Sent one" and "Sent one 2", which is the merge working
+        // exactly as told and producing nonsense. Identical presets are one preset: compared by
+        // what they say, since that is all a preset is.
         if (!arriving.isEmpty()) {
             com.reteclock.core.layout.LayoutBook book = Settings.layouts(context);
+            Set<String> known = new java.util.HashSet<String>();
+            for (int i = 0; i < book.size(); i++) {
+                known.add(book.get(i).text());
+            }
             for (int i = 0; i < arriving.size(); i++) {
+                String said = arriving.get(i).text();
+                if (!known.add(said)) {
+                    continue;             // the same layout again, by the other road
+                }
                 book = book.add(arriving.get(i));
                 result.layoutsAdded++;
             }
