@@ -191,6 +191,16 @@ public final class LayoutFieldsActivity extends Activity {
             });
             card.addView(remove);
 
+            // The timer and the saying are strips, and a strip's question is which edge, not where
+            // its writing sits: alignment inside a band that is the width of the screen says
+            // nothing. So each gets the question that means something for it.
+            if (isStrip(box.field)) {
+                card.addView(subheading(getString(R.string.layout_field_edge)));
+                card.addView(edgeRow(which));
+                list.addView(card);
+                continue;
+            }
+
             card.addView(subheading(getString(R.string.layout_field_align_h)));
             card.addView(alignRow(which, true));
             card.addView(subheading(getString(R.string.layout_field_align_v)));
@@ -222,6 +232,7 @@ public final class LayoutFieldsActivity extends Activity {
         ClockLayout.ROLE_SMALL_LINE,
         com.reteclock.core.layout.Builtin.FIELD_CALENDAR,
         ClockLayout.ROLE_QUOTE,
+        com.reteclock.core.layout.BoxPlan.FIELD_TIMER,
     };
 
     private View addBar() {
@@ -286,10 +297,19 @@ public final class LayoutFieldsActivity extends Activity {
                         // In the middle, at the size a new box starts at. It is somewhere the user
                         // can certainly see it and drag it from, which is the whole requirement:
                         // a box added off in a corner would look like nothing having happened.
-                        out.add(LayoutBox.of(missing.get(which))
+                        String field = missing.get(which);
+                        LayoutBox added = LayoutBox.of(field)
                                 .at(Anchor.MIDDLE_CENTRE, 0f, 0f)
                                 .sized(0.6f,
-                                        com.reteclock.core.layout.BoxPlan.DEFAULT_HEIGHT_SHARE));
+                                        com.reteclock.core.layout.BoxPlan.DEFAULT_HEIGHT_SHARE);
+                        if (isStrip(field)) {
+                            // A strip arrives as one, along the foot: added as an ordinary box in
+                            // the middle it would sit on top of the clock and look like a mistake.
+                            added = added.at(Anchor.BOTTOM_CENTRE, 0f, 0f)
+                                    .sized(1f, 0.12f)
+                                    .onEdge(com.reteclock.core.layout.Strips.BOTTOM);
+                        }
+                        out.add(added);
                         write(out);
                         rebuild();
                     }
@@ -562,6 +582,64 @@ public final class LayoutFieldsActivity extends Activity {
         return row;
     }
 
+    /** Whether this field is one of the two that take a whole edge (D9). */
+    private static boolean isStrip(String field) {
+        return com.reteclock.core.layout.BoxPlan.FIELD_TIMER.equals(field)
+                || ClockLayout.ROLE_QUOTE.equals(field);
+    }
+
+    /**
+     * Four buttons and an off: which edge this strip takes.
+     *
+     * "Not a strip" is offered because the saying can also be an ordinary box — that is what the
+     * app's own arrangement makes it, a line low on the screen with padding round it — and somebody
+     * who wants it that way should not have to delete it and start again.
+     */
+    private View edgeRow(final int which) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        int now = boxes().get(which).edge;
+        int[] labels = {R.string.layout_edge_none, R.string.layout_align_top,
+            R.string.layout_align_bottom, R.string.layout_align_left, R.string.layout_align_right};
+        int[] edges = {com.reteclock.core.layout.Strips.NONE,
+            com.reteclock.core.layout.Strips.TOP, com.reteclock.core.layout.Strips.BOTTOM,
+            com.reteclock.core.layout.Strips.LEFT, com.reteclock.core.layout.Strips.RIGHT};
+        for (int i = 0; i < edges.length; i++) {
+            final int wanted = edges[i];
+            TextView button = new TextView(this);
+            button.setText(labels[i]);
+            button.setTextColor(edges[i] == now ? ACCENT : TEXT_DIM);
+            button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f);
+            button.setGravity(Gravity.CENTER);
+            button.setPadding(dp(4), dp(10), dp(4), dp(10));
+            GradientDrawable face = new GradientDrawable();
+            face.setColor(edges[i] == now ? 0x334DB6AC : ROW);
+            face.setCornerRadius(dp(6));
+            button.setBackgroundDrawable(face);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+            params.rightMargin = dp(3);
+            button.setLayoutParams(params);
+            button.setClickable(true);
+            button.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    List<LayoutBox> out = new ArrayList<LayoutBox>(boxes());
+                    out.set(which, out.get(which).onEdge(wanted));
+                    write(out);
+                    list.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            rebuild();
+                        }
+                    });
+                }
+            });
+            row.addView(button);
+        }
+        return row;
+    }
+
     /** What a field is called on screen. Shared with the editor, so both say the same words. */
     static String fieldLabel(Activity activity, String field) {
         if (field == null) {
@@ -602,6 +680,9 @@ public final class LayoutFieldsActivity extends Activity {
         }
         if (ClockLayout.ROLE_QUOTE.equals(field)) {
             return activity.getString(R.string.layout_field_saying);
+        }
+        if (com.reteclock.core.layout.BoxPlan.FIELD_TIMER.equals(field)) {
+            return activity.getString(R.string.layout_field_timer);
         }
         return field;
     }

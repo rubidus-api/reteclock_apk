@@ -188,6 +188,15 @@ public class ClockView extends View {
      */
     private int insetLeft;
     private int insetTop;
+    /**
+     * And the far edges, for a strip that is not on the left or the top.
+     *
+     * The timer used to be on the left when the phone lay down and on the top when it stood up, and
+     * two numbers said all there was to say. A drawn layout may put it on any of the four
+     * (RFC-0005, D9), so the clock has to be able to be told about the other two as well.
+     */
+    private int insetRight;
+    private int insetBottom;
 
     /** The sayings, read once from the app's own resources, and which one is showing. */
     private java.util.List<com.reteclock.core.Quotes.Saying> sayings;
@@ -810,11 +819,19 @@ public class ClockView extends View {
      */
     /** Tells the clock how much of itself the timer's strip is covering. */
     void setContentInset(int left, int top) {
-        if (left == insetLeft && top == insetTop) {
+        setContentInset(left, top, 0, 0);
+    }
+
+    /** How much of the view something else is using, on each side. */
+    void setContentInset(int left, int top, int right, int bottom) {
+        if (left == insetLeft && top == insetTop
+                && right == insetRight && bottom == insetBottom) {
             return;
         }
         insetLeft = left;
         insetTop = top;
+        insetRight = right;
+        insetBottom = bottom;
         layout = null;
         plan = null;
         invalidate();
@@ -823,8 +840,8 @@ public class ClockView extends View {
     private void rebuild(int w, int h) {
         // The background is the size of the view; the text is laid out in what the strip leaves.
         refreshSlideForSize(w, h);
-        int usableW = Math.max(1, w - insetLeft);
-        int usableH = Math.max(1, h - insetTop);
+        int usableW = Math.max(1, w - insetLeft - insetRight);
+        int usableH = Math.max(1, h - insetTop - insetBottom);
         ClockLayout.Metrics metrics = new ClockLayout.Metrics() {
             @Override
             public float width(String role, String text, float textSize) {
@@ -948,7 +965,8 @@ public class ClockView extends View {
             }
         }
         if (foreground != null) {
-            updateForegroundShader(Math.max(1, w - insetLeft), Math.max(1, h - insetTop),
+            updateForegroundShader(Math.max(1, w - insetLeft - insetRight),
+                    Math.max(1, h - insetTop - insetBottom),
                     textShow == null ? 0L : textShow.frameMs(elapsed));
         }
         paint.setShader(foreground != null ? foregroundShader : null);

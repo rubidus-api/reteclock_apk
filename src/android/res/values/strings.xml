@@ -121,6 +121,9 @@
     <string name="layout_field_remove_ask">Take %1$s off this layout? You can put it back from the list above.</string>
     <string name="layout_field_shown">Shown</string>
     <string name="layout_field_locked">Locked — cannot be dragged</string>
+    <string name="layout_field_edge">Which edge it takes</string>
+    <string name="layout_edge_none">Not a strip</string>
+    <string name="layout_field_timer">Timer strip</string>
     <string name="layout_field_align_h">Writing sits</string>
     <string name="layout_field_align_v">and</string>
     <string name="layout_align_left">Left</string>
