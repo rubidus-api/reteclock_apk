@@ -107,6 +107,12 @@
     <string name="layout_complaint_off_screen">%1$s is partly off the screen.</string>
     <string name="layout_complaint_overlap">%1$s overlaps %2$s.</string>
     <string name="layout_complaint_shrunk">%1$s is too small for what it can show — the writing shrinks to %2$d%%.</string>
+    <string name="layout_align_title">Line up the ticked fields</string>
+    <string name="layout_align_pick">Tick two or more fields above to line them up.</string>
+    <string name="layout_align_count">%1$d ticked.</string>
+    <string name="layout_spread_x">Spread across</string>
+    <string name="layout_spread_y">Spread down</string>
+    <string name="layout_same_size">Same size</string>
     <string name="layout_fields_title">Fields</string>
     <string name="layout_fields_note">Fonts and decorations are not here: they are on the Fonts page and apply wherever a field is drawn, in every layout. A hidden box keeps its place for when it comes back.</string>
     <string name="layout_field_shown">Shown</string>
@@ -359,14 +365,14 @@
     <string name="timer_interval_prealarm">Warning: %1$ds</string>
     <string name="timer_interval_prealarm_ask">Warning, seconds before the end (0 for none)</string>
     <string name="timer_interval_colour">Colour</string>
-    <string name="hint_safe_mode">Started without images or imported fonts: the last run stopped answering. Press and hold for the menu.</string>
+    <string name="hint_safe_mode">Started without images, imported fonts or your own layout: the last run stopped answering. Press and hold for the menu.</string>
     <string name="settings_card_start">Start</string>
     <string name="settings_start_clock">Start the clock</string>
     <string name="shortcut_settings_short">Settings</string>
     <string name="shortcut_settings_long">Open ReteClock settings</string>
     <string name="settings_direct_start">Home-screen button opens the clock directly</string>
     <string name="settings_direct_start_note">On, tapping the icon shows the clock, and these settings are a tap on the clock away — or a long press on the app icon, on Android 7.1 and newer. Off, the button opens this screen instead, with the clock one press away. Either way, a run that stopped answering opens this screen: that is how the app lets you undo a picture or a font that made the clock unusable.</string>
-    <string name="settings_safe_notice">The last run stopped answering, so the clock started without images or imported fonts. A large animated GIF is the usual reason: remove it below, or untick BG, and start the clock again.</string>
+    <string name="settings_safe_notice">The last run stopped answering, so the clock started without images, imported fonts, or a layout of your own — the app arranged it instead. A large animated GIF is the usual reason: remove it below, or untick BG, and start the clock again. Nothing was thrown away; the next healthy run has it all back.</string>
     <string name="settings_about">ReteClock %1$s\nRuns on Android 2.3 (API 9) and newer. Built for Android 4.4.\nThis device: Android %2$s</string>
     <!-- Sounds: the pool, how each one plays, and the bells that ring one at a time of day. -->
     <string name="menu_sounds">Sounds</string>

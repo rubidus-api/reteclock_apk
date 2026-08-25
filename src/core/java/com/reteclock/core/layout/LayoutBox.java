@@ -103,6 +103,22 @@ public final class LayoutBox {
         return Anchor.rect(anchor, x * screenW, y * screenH, widthPx, heightPx, screenW, screenH);
     }
 
+    /**
+     * The same box, sitting at this rectangle on a screen of this size.
+     *
+     * The anchor is kept. It is the user's statement about what the box is measured from — a
+     * corner, an edge, the middle — and dragging the box somewhere is not a change of mind about
+     * that; a box anchored to the bottom of the screen should still be anchored there after it has
+     * been nudged. So the offset is worked out for the anchor the box already has.
+     *
+     * @param rect left, top, width, height, in pixels
+     */
+    public LayoutBox placedAt(float[] rect, int screenW, int screenH) {
+        float x = Anchor.offsetX(anchor, rect[0], rect[2], screenW) / screenW;
+        float y = Anchor.offsetY(anchor, rect[1], rect[3], screenH) / screenH;
+        return at(anchor, x, y).sized(rect[2] / screenW, rect[3] / screenH);
+    }
+
     /** The pixel width this box asks for, or {@code natural} where it leaves that to the field. */
     public float widthOn(int screenW, float natural) {
         return naturalWidth() ? natural : width * screenW;

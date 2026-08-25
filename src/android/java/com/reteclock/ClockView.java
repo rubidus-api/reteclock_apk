@@ -852,6 +852,14 @@ public class ClockView extends View {
      * so the built-in arrangement is always underneath.
      */
     private ClockLayout drawn(int w, int h, ClockLayout.Metrics metrics) {
+        if (safeMode) {
+            // A run that never came back leaves its mark, and this run does not repeat whatever it
+            // was doing. A drawn layout is one of the things it may have been doing: it is the
+            // user's own arithmetic, arriving through a file, in numbers nobody checked by drawing
+            // them. So a safe start is arranged by the app, exactly as it loads no imported
+            // pictures or fonts (R84). The layout is not thrown away — it comes back next time.
+            return null;
+        }
         try {
             com.reteclock.core.layout.LayoutPreset preset =
                     Settings.layouts(getContext()).chosen();

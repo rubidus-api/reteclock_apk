@@ -50,6 +50,14 @@ public final class LayoutFieldsActivity extends Activity {
     private int index;
     private boolean landscape;
     private LinearLayout list;
+    /**
+     * Which fields the align buttons act on.
+     *
+     * Kept for as long as the screen is open and no longer: a selection is a sentence being spoken,
+     * not a setting. Saving it would mean a user who came back tomorrow found three boxes already
+     * ticked and no memory of why.
+     */
+    private final java.util.Set<Integer> selected = new java.util.HashSet<Integer>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,6 +78,8 @@ public final class LayoutFieldsActivity extends Activity {
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f);
         title.setPadding(0, 0, 0, dp(10));
         root.addView(title);
+
+        root.addView(alignBar());
 
         list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
@@ -118,10 +128,24 @@ public final class LayoutFieldsActivity extends Activity {
             params.bottomMargin = dp(8);
             card.setLayoutParams(params);
 
-            TextView name = new TextView(this);
+            // The name is the tick: selecting a field for the align buttons and reading its name
+            // are the same act, and two controls a millimetre apart would be two ways to miss.
+            final CheckBox name = new CheckBox(this);
             name.setText(fieldLabel(this, box.field));
             name.setTextColor(TEXT_WHITE);
             name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f);
+            name.setChecked(selected.contains(Integer.valueOf(which)));
+            name.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton button, boolean checked) {
+                    if (checked) {
+                        selected.add(Integer.valueOf(which));
+                    } else {
+                        selected.remove(Integer.valueOf(which));
+                    }
+                    refreshAlignBar();
+                }
+            });
             card.addView(name);
 
             final CheckBox shown = new CheckBox(this);
@@ -159,6 +183,191 @@ public final class LayoutFieldsActivity extends Activity {
 
             list.addView(card);
         }
+    }
+
+    // ---- aligning a selection --------------------------------------------------------------
+
+    private LinearLayout alignCard;
+    private TextView alignNote;
+
+    /**
+     * The align and distribute buttons, acting on whatever is ticked (T072).
+     *
+     * On this screen rather than on the canvas because aligning is a statement about *several*
+     * boxes, and choosing several things on a canvas means a rubber band, a modifier key, or a
+     * long press that already means something else. A list has checkboxes.
+     */
+    private View alignCard() {
+        alignCard = new LinearLayout(this);
+        alignCard.setOrientation(LinearLayout.VERTICAL);
+        GradientDrawable face = new GradientDrawable();
+        face.setColor(CARD);
+        face.setCornerRadius(dp(8));
+        alignCard.setBackgroundDrawable(face);
+        alignCard.setPadding(dp(12), dp(10), dp(12), dp(10));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        params.bottomMargin = dp(10);
+        alignCard.setLayoutParams(params);
+        return alignCard;
+    }
+
+    private View alignBar() {
+        View card = alignCard();
+        alignCard.addView(subheading(getString(R.string.layout_align_title)));
+
+        LinearLayout edges = new LinearLayout(this);
+        edges.setOrientation(LinearLayout.HORIZONTAL);
+        edges.addView(action(R.string.layout_align_left, Op.LEFT));
+        edges.addView(action(R.string.layout_align_centre, Op.CENTRE_X));
+        edges.addView(action(R.string.layout_align_right, Op.RIGHT));
+        alignCard.addView(edges);
+
+        LinearLayout sides = new LinearLayout(this);
+        sides.setOrientation(LinearLayout.HORIZONTAL);
+        sides.addView(action(R.string.layout_align_top, Op.TOP));
+        sides.addView(action(R.string.layout_align_middle, Op.MIDDLE_Y));
+        sides.addView(action(R.string.layout_align_bottom, Op.BOTTOM));
+        alignCard.addView(sides);
+
+        LinearLayout more = new LinearLayout(this);
+        more.setOrientation(LinearLayout.HORIZONTAL);
+        more.addView(action(R.string.layout_spread_x, Op.SPREAD_X));
+        more.addView(action(R.string.layout_spread_y, Op.SPREAD_Y));
+        more.addView(action(R.string.layout_same_size, Op.SAME_SIZE));
+        alignCard.addView(more);
+
+        alignNote = new TextView(this);
+        alignNote.setTextColor(TEXT_DIM);
+        alignNote.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f);
+        alignNote.setPadding(0, dp(6), 0, 0);
+        alignCard.addView(alignNote);
+        refreshAlignBar();
+        return card;
+    }
+
+    /** Which operation a button asks for. */
+    private static final class Op {
+        static final int LEFT = 0;
+        static final int CENTRE_X = 1;
+        static final int RIGHT = 2;
+        static final int TOP = 3;
+        static final int MIDDLE_Y = 4;
+        static final int BOTTOM = 5;
+        static final int SPREAD_X = 6;
+        static final int SPREAD_Y = 7;
+        static final int SAME_SIZE = 8;
+    }
+
+    private View action(int label, final int op) {
+        TextView button = new TextView(this);
+        button.setText(label);
+        button.setTextColor(ACCENT);
+        button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f);
+        button.setGravity(Gravity.CENTER);
+        button.setPadding(dp(6), dp(10), dp(6), dp(10));
+        GradientDrawable face = new GradientDrawable();
+        face.setColor(ROW);
+        face.setCornerRadius(dp(6));
+        button.setBackgroundDrawable(face);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        params.rightMargin = dp(4);
+        params.bottomMargin = dp(4);
+        button.setLayoutParams(params);
+        button.setClickable(true);
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                apply(op);
+            }
+        });
+        return button;
+    }
+
+    /** How many are ticked, and what that lets the buttons do. */
+    private void refreshAlignBar() {
+        if (alignNote == null) {
+            return;
+        }
+        int count = selected.size();
+        alignNote.setText(count < 2
+                ? getString(R.string.layout_align_pick)
+                : getString(R.string.layout_align_count, count));
+    }
+
+    /**
+     * Runs one operation over the ticked boxes.
+     *
+     * The rectangles are worked out on the phone's own screen, moved by the pure functions in
+     * {@link com.reteclock.core.layout.Align}, and written back with each box keeping the anchor it
+     * had. Fewer than two ticked does nothing, which is what a drawing program does too.
+     */
+    private void apply(int op) {
+        if (selected.size() < 2) {
+            return;
+        }
+        List<LayoutBox> all = new ArrayList<LayoutBox>(boxes());
+        List<Integer> which = new ArrayList<Integer>(selected);
+        java.util.Collections.sort(which);
+
+        float[][] rects = new float[which.size()][];
+        for (int i = 0; i < which.size(); i++) {
+            rects[i] = rectOf(all.get(which.get(i).intValue()));
+        }
+
+        float[][] moved;
+        if (op == Op.LEFT) {
+            moved = com.reteclock.core.layout.Align.left(rects);
+        } else if (op == Op.CENTRE_X) {
+            moved = com.reteclock.core.layout.Align.centreX(rects);
+        } else if (op == Op.RIGHT) {
+            moved = com.reteclock.core.layout.Align.right(rects);
+        } else if (op == Op.TOP) {
+            moved = com.reteclock.core.layout.Align.top(rects);
+        } else if (op == Op.MIDDLE_Y) {
+            moved = com.reteclock.core.layout.Align.middleY(rects);
+        } else if (op == Op.BOTTOM) {
+            moved = com.reteclock.core.layout.Align.bottom(rects);
+        } else if (op == Op.SPREAD_X) {
+            moved = com.reteclock.core.layout.Align.distributeX(rects);
+        } else if (op == Op.SPREAD_Y) {
+            moved = com.reteclock.core.layout.Align.distributeY(rects);
+        } else {
+            moved = com.reteclock.core.layout.Align.sameSize(rects);
+        }
+
+        for (int i = 0; i < which.size(); i++) {
+            int at = which.get(i).intValue();
+            all.set(at, all.get(at).placedAt(moved[i], screenW(), screenH()));
+        }
+        write(all);
+        list.post(new Runnable() {
+            @Override
+            public void run() {
+                rebuild();
+            }
+        });
+    }
+
+    /** Where a box sits on the phone's screen, at the size the editor treats as its own. */
+    private float[] rectOf(LayoutBox box) {
+        float width = box.widthOn(screenW(), screenW() * 0.4f);
+        float height = box.heightOn(screenH(),
+                screenH() * com.reteclock.core.layout.BoxPlan.DEFAULT_HEIGHT_SHARE);
+        return box.rectOn(screenW(), screenH(), width, height);
+    }
+
+    private int screenW() {
+        android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
+        return landscape ? Math.max(metrics.widthPixels, metrics.heightPixels)
+                : Math.min(metrics.widthPixels, metrics.heightPixels);
+    }
+
+    private int screenH() {
+        android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
+        return landscape ? Math.min(metrics.widthPixels, metrics.heightPixels)
+                : Math.max(metrics.widthPixels, metrics.heightPixels);
     }
 
     /**
