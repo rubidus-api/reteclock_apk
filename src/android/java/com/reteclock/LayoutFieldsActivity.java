@@ -583,12 +583,41 @@ public final class LayoutFieldsActivity extends Activity {
         });
     }
 
-    /** Where a box sits on the phone's screen, at the size the editor treats as its own. */
+    /**
+     * Where a box actually ends up on the phone's screen — the engine's answer, not a guess.
+     *
+     * A box may leave its width to the field ("as wide as the widest thing it can ever show"), and
+     * a strip is placed by the edge it takes rather than by its own numbers. Working the rectangle
+     * out here from the box alone would print a number that is not what is drawn, which is worse
+     * than printing nothing. So the plan is asked, exactly as the clock asks it.
+     */
     private float[] rectOf(LayoutBox box) {
+        com.reteclock.core.layout.BoxPlan plan = com.reteclock.core.layout.BoxPlan.of(
+                boxes(), screenW(), screenH(), Settings.options(this), measurer());
+        for (com.reteclock.core.layout.BoxPlan.Placed placed : plan.placed()) {
+            if (placed.field.equals(box.field)) {
+                return placed.rect;
+            }
+        }
+        // Hidden boxes are not placed at all, and still have to show their numbers: they are what
+        // the box will be when it comes back.
         float width = box.widthOn(screenW(), screenW() * 0.4f);
         float height = box.heightOn(screenH(),
                 screenH() * com.reteclock.core.layout.BoxPlan.DEFAULT_HEIGHT_SHARE);
         return box.rectOn(screenW(), screenH(), width, height);
+    }
+
+    /** How glyphs are measured for the plan: this screen draws no clock, so a bare paint will do. */
+    private ClockLayout.Metrics measurer() {
+        final android.graphics.Paint paint =
+                new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        return new ClockLayout.Metrics() {
+            @Override
+            public float width(String role, String text, float textSize) {
+                paint.setTextSize(textSize);
+                return paint.measureText(text);
+            }
+        };
     }
 
     private int screenW() {
@@ -723,7 +752,9 @@ public final class LayoutFieldsActivity extends Activity {
         field.setText(Integer.toString(Math.round(fraction * 100f)));
         field.setInputType(android.text.InputType.TYPE_CLASS_NUMBER
                 | android.text.InputType.TYPE_NUMBER_FLAG_SIGNED);
-        field.setTextColor(TEXT_WHITE);
+        // No colour. An EditText draws itself on the platform's own light box, and this app's white
+        // on that is white on white — the numbers were there all along and could not be read. The
+        // same mistake as the editor's dialog, made twice in two days.
         field.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f);
         field.setPadding(dp(4), dp(4), dp(4), dp(4));
         cell.addView(field);
