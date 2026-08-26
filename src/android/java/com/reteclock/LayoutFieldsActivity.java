@@ -129,14 +129,33 @@ public final class LayoutFieldsActivity extends Activity {
             params.bottomMargin = dp(8);
             card.setLayoutParams(params);
 
-            // The name is the tick: selecting a field for the align buttons and reading its name
-            // are the same act, and two controls a millimetre apart would be two ways to miss.
-            final CheckBox name = new CheckBox(this);
+            // The field's name is a heading, not another checkbox.
+            //
+            // It was one: the tick that selects a field for the align buttons carried its name as a
+            // label. That put three identical checkboxes at the top of every card, so the name read
+            // as a third option rather than as the title of the two below it — and once a card was
+            // scrolled past its first line, the options on screen belonged to nothing at all.
+            // Reported from a real phone, which is where it is obvious.
+            LinearLayout header = new LinearLayout(this);
+            header.setOrientation(LinearLayout.HORIZONTAL);
+            header.setGravity(Gravity.CENTER_VERTICAL);
+
+            TextView name = new TextView(this);
             name.setText(fieldLabel(this, box.field));
-            name.setTextColor(TEXT_WHITE);
-            name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f);
-            name.setChecked(selected.contains(Integer.valueOf(which)));
-            name.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            name.setTextColor(ACCENT);
+            name.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+            name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f);
+            name.setPadding(0, 0, dp(8), dp(4));
+            name.setLayoutParams(new LinearLayout.LayoutParams(0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+            header.addView(name);
+
+            final CheckBox pick = new CheckBox(this);
+            pick.setText(R.string.layout_field_pick);
+            pick.setTextColor(TEXT_DIM);
+            pick.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f);
+            pick.setChecked(selected.contains(Integer.valueOf(which)));
+            pick.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                 @Override
                 public void onCheckedChanged(CompoundButton button, boolean checked) {
                     if (checked) {
@@ -147,11 +166,23 @@ public final class LayoutFieldsActivity extends Activity {
                     refreshAlignBar();
                 }
             });
-            card.addView(name);
+            header.addView(pick);
+            card.addView(header);
+
+            View rule = new View(this);
+            rule.setBackgroundColor(0xFF3A3A3A);
+            rule.setLayoutParams(new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, 1));
+            card.addView(rule);
+
+            LinearLayout switches = new LinearLayout(this);
+            switches.setOrientation(LinearLayout.HORIZONTAL);
 
             final CheckBox shown = new CheckBox(this);
             shown.setText(R.string.layout_field_shown);
             shown.setTextColor(TEXT_WHITE);
+            shown.setLayoutParams(new LinearLayout.LayoutParams(0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
             shown.setChecked(box.shown);
             shown.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                 @Override
@@ -161,11 +192,13 @@ public final class LayoutFieldsActivity extends Activity {
                     write(out);
                 }
             });
-            card.addView(shown);
+            switches.addView(shown);
 
             final CheckBox locked = new CheckBox(this);
             locked.setText(R.string.layout_field_locked);
             locked.setTextColor(TEXT_WHITE);
+            locked.setLayoutParams(new LinearLayout.LayoutParams(0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
             locked.setChecked(box.locked);
             locked.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                 @Override
@@ -175,7 +208,8 @@ public final class LayoutFieldsActivity extends Activity {
                     write(out);
                 }
             });
-            card.addView(locked);
+            switches.addView(locked);
+            card.addView(switches);
 
             TextView remove = new TextView(this);
             remove.setText(R.string.layout_field_remove);

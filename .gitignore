@@ -42,3 +42,6 @@
 scripts/env.local.sh
 *.keystore
 *.idsig
+
+# agy-only customization layer (local; see rootsator RFC-0001)
+/.agents/
