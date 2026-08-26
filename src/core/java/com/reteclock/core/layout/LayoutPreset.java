@@ -5,18 +5,17 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * One saved layout: a name and both orientations (RFC-0005, D2 and D8).
+ * One saved arrangement: a name, the boxes, and which way up it is for (RFC-0005, D8).
  *
- * This is what the user keeps, switches to, copies and sends to somebody else. It travels two ways —
- * through the settings file, and as a file of its own in the Import/Export package — so it is
- * written and read as text, and it repairs what it is given.
+ * A preset used to hold both orientations at once. The owner asked for the two to be listed and
+ * chosen separately — which is how a person thinks about them, since a layout drawn for an upright
+ * phone has nothing to say about a sideways one — so a preset is now one arrangement for one
+ * orientation, and the book keeps two shelves of them.
  *
- * The important repair: an orientation with no boxes means **automatic**, the app's own arrangement,
- * not an empty screen. A preset that draws nothing is the one fault the clock face offers no way
- * back from, and a half-written file must not be able to cause it.
- *
- * A value. Renaming or redrawing answers another preset, which is what lets the editor keep an undo
- * stack and the settings screen show a list that never changes under it.
+ * It travels two ways: through the settings file, and as a file of its own in the Import/Export
+ * package. So it is written and read as text, and it repairs what it is given. A preset with no
+ * boxes is **automatic** — the app's own arrangement — rather than an empty screen, which is the one
+ * fault the clock face offers no way back from.
  */
 public final class LayoutPreset {
 
@@ -25,18 +24,15 @@ public final class LayoutPreset {
 
     /** The user's own words. Never empty. */
     public final String name;
+    /** Whether this arrangement is for the phone lying down. */
+    public final boolean landscape;
 
-    private final List<LayoutBox> portrait;
-    private final List<LayoutBox> landscape;
+    private final List<LayoutBox> boxes;
 
-    private LayoutPreset(String name, List<LayoutBox> portrait, List<LayoutBox> landscape) {
+    private LayoutPreset(String name, boolean landscape, List<LayoutBox> boxes) {
         String trimmed = name == null ? "" : name.trim();
         this.name = trimmed.isEmpty() ? UNNAMED : trimmed;
-        this.portrait = lock(portrait);
-        this.landscape = lock(landscape);
-    }
-
-    private static List<LayoutBox> lock(List<LayoutBox> boxes) {
+        this.landscape = landscape;
         List<LayoutBox> out = new ArrayList<LayoutBox>();
         if (boxes != null) {
             for (LayoutBox box : boxes) {
@@ -45,103 +41,117 @@ public final class LayoutPreset {
                 }
             }
         }
-        return Collections.unmodifiableList(out);
+        this.boxes = Collections.unmodifiableList(out);
     }
 
-    public static LayoutPreset of(String name, List<LayoutBox> portrait,
-            List<LayoutBox> landscape) {
-        return new LayoutPreset(name, portrait, landscape);
+    public static LayoutPreset of(String name, boolean landscape, List<LayoutBox> boxes) {
+        return new LayoutPreset(name, landscape, boxes);
     }
 
-    /** The boxes for the phone standing up. Empty means {@link #automaticPortrait()}. */
-    public List<LayoutBox> portrait() {
-        return portrait;
+    /** The boxes this arrangement draws. Empty means {@link #isAutomatic()}. */
+    public List<LayoutBox> boxes() {
+        return boxes;
     }
 
-    /** And lying down. */
-    public List<LayoutBox> landscape() {
-        return landscape;
-    }
-
-    /** Whether this orientation is left to the app's own arrangement. */
-    public boolean automaticPortrait() {
-        return portrait.isEmpty();
-    }
-
-    public boolean automaticLandscape() {
-        return landscape.isEmpty();
-    }
-
-    /** Whether this preset draws nothing of its own at all, either way up. */
+    /** Whether this preset draws nothing of its own — the app arranges it instead. */
     public boolean isAutomatic() {
-        return automaticPortrait() && automaticLandscape();
+        return boxes.isEmpty();
     }
 
     public LayoutPreset named(String name) {
-        return new LayoutPreset(name, portrait, landscape);
+        return new LayoutPreset(name, landscape, boxes);
     }
 
-    public LayoutPreset withPortrait(List<LayoutBox> boxes) {
-        return new LayoutPreset(name, boxes, landscape);
+    public LayoutPreset with(List<LayoutBox> boxes) {
+        return new LayoutPreset(name, landscape, boxes);
     }
 
-    public LayoutPreset withLandscape(List<LayoutBox> boxes) {
-        return new LayoutPreset(name, portrait, boxes);
+    /** The same arrangement, turned the other way up — what "copy to the other orientation" needs. */
+    public LayoutPreset turned() {
+        return new LayoutPreset(name, !landscape, boxes);
     }
 
     /**
      * The text a settings file or a package holds.
      *
-     * One key per line: the name, then a line per box. The name is escaped, because it is the user's
-     * words and their words may contain a newline or the character a box line is split on — a name
-     * must never be able to add a box.
+     * The name is escaped: it is the user's words, and a name that could hold a newline could add a
+     * box.
      */
     public String text() {
         StringBuilder out = new StringBuilder();
         out.append("name=").append(escape(name)).append('\n');
-        for (LayoutBox box : portrait) {
-            out.append("portrait=").append(box.text()).append('\n');
-        }
-        for (LayoutBox box : landscape) {
-            out.append("landscape=").append(box.text()).append('\n');
+        out.append("way=").append(landscape ? "landscape" : "portrait").append('\n');
+        for (LayoutBox box : boxes) {
+            out.append("box=").append(box.text()).append('\n');
         }
         return out.toString();
     }
 
     /**
-     * A preset read back from {@link #text()}.
+     * A preset read back, or null when the text holds nothing at all.
      *
-     * @return the preset, or null when the text holds nothing at all — which is not a damaged preset
-     *         but no preset
+     * Text written by the first version of this feature held both orientations in one preset, under
+     * `portrait=` and `landscape=` keys. That is read as the orientation this preset is for, so an
+     * old file loses nothing when it is split: see {@link #parseAll}.
      */
     public static LayoutPreset parse(String text) {
+        List<LayoutPreset> all = parseAll(text);
+        return all.isEmpty() ? null : all.get(0);
+    }
+
+    /**
+     * Every preset in this text: one, or two where an old two-orientation preset was found.
+     *
+     * @return empty when the text holds no preset at all
+     */
+    public static List<LayoutPreset> parseAll(String text) {
+        List<LayoutPreset> out = new ArrayList<LayoutPreset>(2);
         if (text == null || text.trim().isEmpty()) {
-            return null;
+            return out;
         }
         String name = null;
-        List<LayoutBox> portrait = new ArrayList<LayoutBox>();
-        List<LayoutBox> landscape = new ArrayList<LayoutBox>();
+        Boolean way = null;
+        List<LayoutBox> boxes = new ArrayList<LayoutBox>();
+        List<LayoutBox> oldPortrait = new ArrayList<LayoutBox>();
+        List<LayoutBox> oldLandscape = new ArrayList<LayoutBox>();
+
         for (String raw : text.split("\n")) {
             String line = raw.trim();
-            if (line.isEmpty()) {
-                continue;
-            }
             int equals = line.indexOf('=');
-            if (equals < 0) {
-                continue;                       // a line that says nothing; the future may add some
+            if (line.isEmpty() || equals < 0) {
+                continue;
             }
             String key = line.substring(0, equals).trim();
             String value = line.substring(equals + 1);
             if ("name".equals(key)) {
                 name = unescape(value);
+            } else if ("way".equals(key)) {
+                way = Boolean.valueOf(value.trim().startsWith("l"));
+            } else if ("box".equals(key)) {
+                add(boxes, value);
             } else if ("portrait".equals(key)) {
-                add(portrait, value);
+                add(oldPortrait, value);
             } else if ("landscape".equals(key)) {
-                add(landscape, value);
+                add(oldLandscape, value);
             }
-            // anything else is a key from a later version, and is skipped rather than refused
+            // anything else belongs to a later version and is skipped rather than refused
         }
-        return new LayoutPreset(name, portrait, landscape);
+
+        if (!oldPortrait.isEmpty() || !oldLandscape.isEmpty()) {
+            // The old shape: one name, two arrangements. Each becomes a preset of its own.
+            if (!oldPortrait.isEmpty()) {
+                out.add(new LayoutPreset(name, false, oldPortrait));
+            }
+            if (!oldLandscape.isEmpty()) {
+                out.add(new LayoutPreset(name, true, oldLandscape));
+            }
+            return out;
+        }
+        if (name == null && boxes.isEmpty() && way == null) {
+            return out;
+        }
+        out.add(new LayoutPreset(name, way != null && way.booleanValue(), boxes));
+        return out;
     }
 
     private static void add(List<LayoutBox> out, String value) {
@@ -151,7 +161,6 @@ public final class LayoutPreset {
         }
     }
 
-    /** A name goes on one line and cannot be allowed to become two, or to look like a box. */
     private static String escape(String value) {
         StringBuilder out = new StringBuilder();
         for (int i = 0; i < value.length(); i++) {
@@ -175,13 +184,7 @@ public final class LayoutPreset {
             char c = value.charAt(i);
             if (c == '\\' && i + 1 < value.length()) {
                 char next = value.charAt(++i);
-                if (next == 'n') {
-                    out.append('\n');
-                } else if (next == 'r') {
-                    out.append('\r');
-                } else {
-                    out.append(next);
-                }
+                out.append(next == 'n' ? '\n' : next == 'r' ? '\r' : next);
             } else {
                 out.append(c);
             }

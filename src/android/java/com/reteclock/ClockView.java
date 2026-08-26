@@ -879,15 +879,11 @@ public class ClockView extends View {
         }
         try {
             com.reteclock.core.layout.LayoutPreset preset =
-                    Settings.layouts(getContext()).chosen();
+                    Settings.layouts(getContext()).chosen(w > h);
             if (preset.isAutomatic()) {
                 return null;
             }
-            java.util.List<com.reteclock.core.layout.LayoutBox> boxes =
-                    w > h ? preset.landscape() : preset.portrait();
-            if (boxes.isEmpty()) {
-                return null;
-            }
+            java.util.List<com.reteclock.core.layout.LayoutBox> boxes = preset.boxes();
             ClockLayout composed = com.reteclock.core.layout.Composed.of(boxes, w, h, options,
                     metrics);
             return composed == null || composed.slots().isEmpty() ? null : composed;

@@ -214,14 +214,24 @@ final class SettingsPackage {
     private static void writeLayouts(ZipOutputStream zip, Context context) throws IOException {
         com.reteclock.core.layout.LayoutBook book = Settings.layouts(context);
         java.util.Set<String> used = new java.util.HashSet<String>();
-        for (int i = 1; i < book.size(); i++) {
-            com.reteclock.core.layout.LayoutPreset preset = book.get(i);
-            String name = com.reteclock.core.layout.LayoutFiles.fileName(preset.name);
+        java.util.List<com.reteclock.core.layout.LayoutPreset> all =
+                new ArrayList<com.reteclock.core.layout.LayoutPreset>();
+        for (boolean way : new boolean[] {false, true}) {
+            for (int i = 1; i < book.size(way); i++) {
+                all.add(book.get(way, i));
+            }
+        }
+        for (int i = 0; i < all.size(); i++) {
+            com.reteclock.core.layout.LayoutPreset preset = all.get(i);
+            // Two shelves may hold a layout of the same name, one each way up, so the file name
+            // says which: "Bedside (sideways).txt" and "Bedside.txt" are two files, not one lost.
+            String label = preset.landscape ? preset.name + " (sideways)" : preset.name;
+            String name = com.reteclock.core.layout.LayoutFiles.fileName(label);
             // Two presets whose names differ only in what a file name may not hold would otherwise
             // become one file, and the second would silently replace the first.
             String unique = name;
             for (int n = 2; used.contains(unique); n++) {
-                unique = com.reteclock.core.layout.LayoutFiles.fileName(preset.name + " " + n);
+                unique = com.reteclock.core.layout.LayoutFiles.fileName(label + " " + n);
             }
             used.add(unique);
             zip.putNextEntry(new ZipEntry(
@@ -342,19 +352,22 @@ final class SettingsPackage {
             // A layout is text and small, and it is read rather than staged: see Preview.layouts.
             String layout = com.reteclock.core.layout.LayoutFiles.entryName(path);
             if (layout != null) {
-                com.reteclock.core.layout.LayoutPreset preset =
-                        com.reteclock.core.layout.LayoutPreset.parse(
+                java.util.List<com.reteclock.core.layout.LayoutPreset> found =
+                        com.reteclock.core.layout.LayoutPreset.parseAll(
                                 new String(readAll(zip, MAX_SETTINGS_BYTES), "UTF-8"));
-                if (preset == null) {
+                if (found.isEmpty()) {
                     refused.add(layout + " — it holds no layout");
                 } else {
-                    // A file whose contents forgot to say what it is called is called after the
-                    // file, which is what somebody who wrote one by hand would expect.
-                    layouts.add(
-                            com.reteclock.core.layout.LayoutPreset.UNNAMED.equals(preset.name)
-                                    ? preset.named(
-                                            com.reteclock.core.layout.LayoutFiles.presetName(layout))
-                                    : preset);
+                    for (int i = 0; i < found.size(); i++) {
+                        com.reteclock.core.layout.LayoutPreset preset = found.get(i);
+                        // A file whose contents forgot to say what it is called is called after the
+                        // file, which is what somebody who wrote one by hand would expect.
+                        layouts.add(
+                                com.reteclock.core.layout.LayoutPreset.UNNAMED.equals(preset.name)
+                                        ? preset.named(com.reteclock.core.layout.LayoutFiles
+                                                .presetName(layout))
+                                        : preset);
+                    }
                 }
                 continue;
             }
@@ -454,8 +467,10 @@ final class SettingsPackage {
                 // choice of which is in force does not, because that is about their clock.
                 com.reteclock.core.layout.LayoutBook theirs =
                         com.reteclock.core.layout.LayoutBook.parse(value);
-                for (int p = 1; p < theirs.size(); p++) {
-                    arriving.add(theirs.get(p));
+                for (boolean way : new boolean[] {false, true}) {
+                    for (int p = 1; p < theirs.size(way); p++) {
+                        arriving.add(theirs.get(way, p));
+                    }
                 }
                 result.settingsApplied++;
                 continue;
@@ -528,8 +543,10 @@ final class SettingsPackage {
         if (!arriving.isEmpty()) {
             com.reteclock.core.layout.LayoutBook book = Settings.layouts(context);
             Set<String> known = new java.util.HashSet<String>();
-            for (int i = 0; i < book.size(); i++) {
-                known.add(book.get(i).text());
+            for (boolean way : new boolean[] {false, true}) {
+                for (int i = 0; i < book.size(way); i++) {
+                    known.add(book.get(way, i).text());
+                }
             }
             for (int i = 0; i < arriving.size(); i++) {
                 String said = arriving.get(i).text();

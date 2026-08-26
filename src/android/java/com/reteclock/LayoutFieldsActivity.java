@@ -9,6 +9,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -98,15 +99,13 @@ public final class LayoutFieldsActivity extends Activity {
     }
 
     private List<LayoutBox> boxes() {
-        LayoutPreset preset = Settings.layouts(this).get(index);
-        return landscape ? preset.landscape() : preset.portrait();
+        return Settings.layouts(this).get(landscape, index).boxes();
     }
 
     private void write(List<LayoutBox> boxes) {
         LayoutBook book = Settings.layouts(this);
-        LayoutPreset preset = book.get(index);
-        Settings.setLayouts(this, book.replace(index,
-                landscape ? preset.withLandscape(boxes) : preset.withPortrait(boxes)));
+        Settings.setLayouts(this, book.replace(landscape, index,
+                book.get(landscape, index).with(boxes)));
     }
 
     private void rebuild() {
@@ -136,19 +135,13 @@ public final class LayoutFieldsActivity extends Activity {
             // as a third option rather than as the title of the two below it — and once a card was
             // scrolled past its first line, the options on screen belonged to nothing at all.
             // Reported from a real phone, which is where it is obvious.
-            LinearLayout header = new LinearLayout(this);
-            header.setOrientation(LinearLayout.HORIZONTAL);
-            header.setGravity(Gravity.CENTER_VERTICAL);
-
             TextView name = new TextView(this);
             name.setText(fieldLabel(this, box.field));
             name.setTextColor(ACCENT);
             name.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
             name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f);
-            name.setPadding(0, 0, dp(8), dp(4));
-            name.setLayoutParams(new LinearLayout.LayoutParams(0,
-                    LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-            header.addView(name);
+            name.setPadding(0, 0, 0, dp(6));
+            card.addView(name);
 
             final CheckBox pick = new CheckBox(this);
             pick.setText(R.string.layout_field_pick);
@@ -166,8 +159,7 @@ public final class LayoutFieldsActivity extends Activity {
                     refreshAlignBar();
                 }
             });
-            header.addView(pick);
-            card.addView(header);
+            card.addView(pick);
 
             View rule = new View(this);
             rule.setBackgroundColor(0xFF3A3A3A);
@@ -210,6 +202,11 @@ public final class LayoutFieldsActivity extends Activity {
             });
             switches.addView(locked);
             card.addView(switches);
+
+            // Place and size, as numbers, here as well as on the canvas: a list is where somebody
+            // who wants a layout exactly right will be, and dragging is not exact.
+            card.addView(subheading(getString(R.string.layout_field_place)));
+            card.addView(numbers(which));
 
             TextView remove = new TextView(this);
             remove.setText(R.string.layout_field_remove);
@@ -616,6 +613,101 @@ public final class LayoutFieldsActivity extends Activity {
         return row;
     }
 
+    /**
+     * Four small boxes — left, top, width, height — in per cent of the screen.
+     *
+     * Per cent because nobody knows their screen in pixels, and because a layout is stored that way:
+     * what is typed here is what is kept. Everything typed goes through the same door a drag goes
+     * through, so a number cannot put a box somewhere a finger could not.
+     */
+    private View numbers(final int which) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        float[] rect = rectOf(boxes().get(which));
+        final EditText left = number(row, R.string.layout_number_left_short, rect[0] / screenW());
+        final EditText top = number(row, R.string.layout_number_top_short, rect[1] / screenH());
+        final EditText width = number(row, R.string.layout_number_width_short, rect[2] / screenW());
+        final EditText height = number(row, R.string.layout_number_height_short,
+                rect[3] / screenH());
+
+        row.addView(button(getString(R.string.layout_number_set), new Runnable() {
+            @Override
+            public void run() {
+                float[] was = rectOf(boxes().get(which));
+                float[] wanted = {
+                    read(left, was[0] / screenW()) * screenW(),
+                    read(top, was[1] / screenH()) * screenH(),
+                    Math.max(dp(8), read(width, was[2] / screenW()) * screenW()),
+                    Math.max(dp(8), read(height, was[3] / screenH()) * screenH()),
+                };
+                float[] safe = com.reteclock.core.layout.Grab.apply(wanted,
+                        com.reteclock.core.layout.Grab.INSIDE, 0f, 0f,
+                        screenW(), screenH(), dp(8));
+                List<LayoutBox> out = new ArrayList<LayoutBox>(boxes());
+                out.set(which, out.get(which).placedAt(safe, screenW(), screenH()));
+                write(out);
+                list.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        rebuild();
+                    }
+                });
+            }
+        }));
+        return row;
+    }
+
+    /** One labelled number box, narrow enough that four and a button share a line. */
+    private EditText number(LinearLayout row, int label, float fraction) {
+        LinearLayout cell = new LinearLayout(this);
+        cell.setOrientation(LinearLayout.VERTICAL);
+        cell.setLayoutParams(new LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+        TextView caption = new TextView(this);
+        caption.setText(label);
+        caption.setTextColor(TEXT_DIM);
+        caption.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f);
+        cell.addView(caption);
+
+        EditText field = new EditText(this);
+        field.setText(Integer.toString(Math.round(fraction * 100f)));
+        field.setInputType(android.text.InputType.TYPE_CLASS_NUMBER
+                | android.text.InputType.TYPE_NUMBER_FLAG_SIGNED);
+        field.setTextColor(TEXT_WHITE);
+        field.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f);
+        field.setPadding(dp(4), dp(4), dp(4), dp(4));
+        cell.addView(field);
+        row.addView(cell);
+        return field;
+    }
+
+    private float read(EditText field, float fallback) {
+        try {
+            return Integer.parseInt(field.getText().toString().trim()) / 100f;
+        } catch (NumberFormatException notANumber) {
+            return fallback;
+        }
+    }
+
+    /** A small pressable label. */
+    private View button(String label, final Runnable onPress) {
+        TextView view = new TextView(this);
+        view.setText(label);
+        view.setTextColor(ACCENT);
+        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f);
+        view.setGravity(Gravity.CENTER);
+        view.setPadding(dp(8), dp(14), dp(8), dp(8));
+        view.setClickable(true);
+        view.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onPress.run();
+            }
+        });
+        return view;
+    }
+
     /** Whether this field is one of the two that take a whole edge (D9). */
     private static boolean isStrip(String field) {
         return com.reteclock.core.layout.BoxPlan.FIELD_TIMER.equals(field)
@@ -690,7 +782,15 @@ public final class LayoutFieldsActivity extends Activity {
     }
 
     /** What a field is called on screen. Shared with the editor, so both say the same words. */
+    static String fieldLabel(View view, String field) {
+        return fieldLabel(view.getContext(), field);
+    }
+
     static String fieldLabel(Activity activity, String field) {
+        return fieldLabel((android.content.Context) activity, field);
+    }
+
+    static String fieldLabel(android.content.Context activity, String field) {
         if (field == null) {
             return "";
         }

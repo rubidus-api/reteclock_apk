@@ -298,13 +298,12 @@ public class ClockActivity extends Activity {
             return fallback;
         }
         try {
-            com.reteclock.core.layout.LayoutPreset preset = Settings.layouts(this).chosen();
+            com.reteclock.core.layout.LayoutPreset preset =
+                    Settings.layouts(this).chosen(landscape);
             if (preset.isAutomatic()) {
                 return fallback;
             }
-            java.util.List<com.reteclock.core.layout.LayoutBox> boxes =
-                    landscape ? preset.landscape() : preset.portrait();
-            for (com.reteclock.core.layout.LayoutBox box : boxes) {
+            for (com.reteclock.core.layout.LayoutBox box : preset.boxes()) {
                 if (box.isStrip() && com.reteclock.core.layout.BoxPlan.FIELD_TIMER
                         .equals(box.field)) {
                     return box.edge;

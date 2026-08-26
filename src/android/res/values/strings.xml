@@ -88,6 +88,12 @@
     <string name="settings_ratio_tall">Portrait — the time’s share of the height: %1$d%%</string>
     <string name="settings_ratio_note">Everything sizes itself to fill its share, until it would not fit.</string>
     <string name="layout_title">Layout</string>
+    <string name="layout_starter_clock">The clock</string>
+    <string name="layout_starter_calendar">The clock with a month</string>
+    <string name="layout_upright_list">Upright</string>
+    <string name="layout_sideways_list">Sideways</string>
+    <string name="layout_copy_other_way">Copy to the other way up</string>
+    <string name="layout_in_use">In use</string>
     <string name="layout_edit">Edit</string>
     <string name="layout_edit_portrait">%1$s — upright</string>
     <string name="layout_edit_landscape">%1$s — sideways</string>
@@ -120,6 +126,12 @@
     <string name="layout_field_remove">Take off the layout</string>
     <string name="layout_field_remove_ask">Take %1$s off this layout? You can put it back from the list above.</string>
     <string name="layout_field_pick">Tick to line up</string>
+    <string name="layout_field_place">Place and size, in per cent of the screen</string>
+    <string name="layout_number_left_short">Left</string>
+    <string name="layout_number_top_short">Top</string>
+    <string name="layout_number_width_short">Width</string>
+    <string name="layout_number_height_short">Height</string>
+    <string name="layout_number_set">Set</string>
     <string name="layout_field_shown">Shown</string>
     <string name="layout_field_locked">Locked</string>
     <string name="layout_field_edge">Which edge it takes</string>

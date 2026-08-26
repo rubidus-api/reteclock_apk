@@ -82,131 +82,130 @@ public final class LayoutSettingsActivity extends Activity {
         setContentView(scroll);
     }
 
-    // ---- which layout --------------------------------------------------------------------
+    // ---- which layout ----------------------------------------------------------------------
 
     /**
-     * One row per layout, Automatic first.
+     * Two lists, one for each way up, each entry with a picture of what it draws.
      *
-     * Rebuilt whole rather than patched, because every operation on the book can move every row:
-     * removing one renumbers the rest, and a rename can change where a clash number lands.
+     * The owner asked for the split, and it is how a person thinks about layouts: one drawn for an
+     * upright phone says nothing about a sideways one. The pictures are there because a name does
+     * not describe an arrangement — "Bedside" and "Bedside 2" are the same word twice.
      */
     private void rebuildPresets() {
         presetList.removeAllViews();
         final LayoutBook book = Settings.layouts(this);
-        for (int i = 0; i < book.size(); i++) {
+        addShelf(false, book);
+        addShelf(true, book);
+    }
+
+    private void addShelf(final boolean landscape, final LayoutBook book) {
+        presetList.addView(subheading(getString(landscape
+                ? R.string.layout_sideways_list : R.string.layout_upright_list)));
+
+        for (int i = 0; i < book.size(landscape); i++) {
             final int index = i;
-            LinearLayout row = new LinearLayout(this);
-            row.setOrientation(LinearLayout.HORIZONTAL);
-            row.setGravity(Gravity.CENTER_VERTICAL);
+            final LayoutPreset preset = book.get(landscape, i);
+            final boolean automatic = i == 0;
+
+            LinearLayout entry = new LinearLayout(this);
+            entry.setOrientation(LinearLayout.VERTICAL);
             GradientDrawable face = new GradientDrawable();
             face.setColor(ROW);
             face.setCornerRadius(dp(6));
-            row.setBackgroundDrawable(face);
+            entry.setBackgroundDrawable(face);
+            entry.setPadding(dp(8), dp(6), dp(8), dp(8));
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-            params.bottomMargin = dp(4);
-            row.setLayoutParams(params);
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            params.bottomMargin = dp(6);
+            entry.setLayoutParams(params);
 
+            // The name has the line to itself. Sharing it with four buttons broke "Automatic" across
+            // two lines on a 320-wide screen, which is the width this app is built for.
             RadioButton chosen = new RadioButton(this);
-            chosen.setText(book.get(i).name);
+            chosen.setText(preset.name);
             chosen.setTextColor(TEXT_WHITE);
-            chosen.setChecked(i == book.chosenIndex());
-            chosen.setPadding(dp(8), dp(10), dp(8), dp(10));
+            chosen.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f);
+            chosen.setChecked(i == book.chosenIndex(landscape));
             chosen.setLayoutParams(new LinearLayout.LayoutParams(
-                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT));
             chosen.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    Settings.setLayouts(LayoutSettingsActivity.this, book.choose(index));
+                    Settings.setLayouts(LayoutSettingsActivity.this,
+                            book.choose(landscape, index));
                     refresh();
                 }
             });
-            row.addView(chosen);
+            entry.addView(chosen);
 
-            // Automatic is the way back when a drawn layout goes wrong, so it keeps its buttons'
-            // room but not their use: a row whose controls come and go is a row that jumps about.
-            row.addView(button(getString(R.string.layout_copy), index >= 0,
+            LinearLayout top = new LinearLayout(this);
+            top.setOrientation(LinearLayout.HORIZONTAL);
+
+            // Automatic is the way back when a drawn layout goes wrong, so it cannot be edited,
+            // renamed, copied or deleted. Its buttons keep their room and lose their use, because a
+            // row whose controls come and go is a row that jumps about under the finger.
+            top.addView(button(getString(R.string.layout_edit), !automatic, new Runnable() {
+                @Override
+                public void run() {
+                    android.content.Intent intent = new android.content.Intent(
+                            LayoutSettingsActivity.this, LayoutEditorActivity.class);
+                    intent.putExtra(LayoutEditorActivity.EXTRA_INDEX, index);
+                    intent.putExtra(LayoutEditorActivity.EXTRA_LANDSCAPE, landscape);
+                    startActivity(intent);
+                }
+            }));
+            top.addView(button(getString(R.string.layout_copy), !automatic, new Runnable() {
+                @Override
+                public void run() {
+                    Settings.setLayouts(LayoutSettingsActivity.this,
+                            book.duplicate(landscape, index));
+                    refresh();
+                }
+            }));
+            top.addView(button(getString(R.string.layout_delete), !automatic, new Runnable() {
+                @Override
+                public void run() {
+                    confirmDelete(book, landscape, index);
+                }
+            }));
+            entry.addView(top);
+
+            LinearLayout more = new LinearLayout(this);
+            more.setOrientation(LinearLayout.HORIZONTAL);
+            more.addView(button(getString(R.string.layout_rename), !automatic, new Runnable() {
+                @Override
+                public void run() {
+                    askName(book, landscape, index);
+                }
+            }));
+            more.addView(button(getString(R.string.layout_copy_other_way), !automatic,
                     new Runnable() {
                         @Override
                         public void run() {
                             Settings.setLayouts(LayoutSettingsActivity.this,
-                                    index == 0 ? startFromAutomatic(book) : book.duplicate(index));
+                                    book.copyToOtherWay(landscape, index));
                             refresh();
                         }
                     }));
-            // Editing is the point of a drawn layout, so it comes before the housekeeping.
-            row.addView(button(getString(R.string.layout_edit), index > 0,
-                    new Runnable() {
-                        @Override
-                        public void run() {
-                            askWhichWayUp(index);
-                        }
-                    }));
-            row.addView(button(getString(R.string.layout_rename), index > 0,
-                    new Runnable() {
-                        @Override
-                        public void run() {
-                            askName(book, index);
-                        }
-                    }));
-            row.addView(button(getString(R.string.layout_delete), index > 0,
-                    new Runnable() {
-                        @Override
-                        public void run() {
-                            confirmDelete(book, index);
-                        }
-                    }));
-            presetList.addView(row);
+            entry.addView(more);
+
+            LayoutPreview preview = new LayoutPreview(this, landscape,
+                    preset.boxes(), Settings.options(this));
+            LinearLayout.LayoutParams shot = new LinearLayout.LayoutParams(
+                    landscape ? dp(230) : dp(96), LinearLayout.LayoutParams.WRAP_CONTENT);
+            shot.topMargin = dp(6);
+            preview.setLayoutParams(shot);
+            entry.addView(preview);
+
+            presetList.addView(entry);
         }
     }
 
-    /**
-     * A new layout begun from the automatic one.
-     *
-     * Copying Automatic cannot mean copying its emptiness — that would add a second entry that draws
-     * exactly what the first one draws. It means taking the arrangement the app would draw *now*, on
-     * this phone, as the starting point: which is what somebody pressing "copy" next to Automatic
-     * means by it.
-     */
-    private LayoutBook startFromAutomatic(LayoutBook book) {
-        ClockOptions options = Settings.options(this);
-        android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
-        int shorter = Math.min(metrics.widthPixels, metrics.heightPixels);
-        int longer = Math.max(metrics.widthPixels, metrics.heightPixels);
-        return book.add(LayoutPreset.of(getString(R.string.layout_new_name),
-                com.reteclock.core.layout.Builtin.of(shorter, longer, options),
-                com.reteclock.core.layout.Builtin.of(longer, shorter, options)));
-    }
-
-    /**
-     * Which way up to edit.
-     *
-     * A layout holds both (D2) and they are drawn separately, so the question has to be asked
-     * before the canvas opens rather than after — a canvas that guessed would be a canvas that
-     * silently edited the wrong one.
-     */
-    private void askWhichWayUp(final int index) {
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.layout_which_way)
-                .setItems(new CharSequence[] {
-                    getString(R.string.layout_upright), getString(R.string.layout_sideways)},
-                    new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            android.content.Intent intent = new android.content.Intent(
-                                    LayoutSettingsActivity.this, LayoutEditorActivity.class);
-                            intent.putExtra(LayoutEditorActivity.EXTRA_INDEX, index);
-                            intent.putExtra(LayoutEditorActivity.EXTRA_LANDSCAPE, which == 1);
-                            startActivity(intent);
-                        }
-                    })
-                .show();
-    }
-
-    private void askName(final LayoutBook book, final int index) {
+    private void askName(final LayoutBook book, final boolean landscape, final int index) {
         final EditText field = new EditText(this);
-        field.setText(book.get(index).name);
-        field.setTextColor(TEXT_WHITE);
+        field.setText(book.get(landscape, index).name);
         new AlertDialog.Builder(this)
                 .setTitle(R.string.layout_rename)
                 .setView(field)
@@ -214,7 +213,7 @@ public final class LayoutSettingsActivity extends Activity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         Settings.setLayouts(LayoutSettingsActivity.this,
-                                book.rename(index, field.getText().toString()));
+                                book.rename(landscape, index, field.getText().toString()));
                         refresh();
                     }
                 })
@@ -223,13 +222,14 @@ public final class LayoutSettingsActivity extends Activity {
     }
 
     /** Deleting a drawn layout throws away work, so it is asked about rather than done. */
-    private void confirmDelete(final LayoutBook book, final int index) {
+    private void confirmDelete(final LayoutBook book, final boolean landscape, final int index) {
         new AlertDialog.Builder(this)
-                .setMessage(getString(R.string.layout_delete_ask, book.get(index).name))
+                .setMessage(getString(R.string.layout_delete_ask, book.get(landscape, index).name))
                 .setPositiveButton(R.string.layout_delete, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        Settings.setLayouts(LayoutSettingsActivity.this, book.remove(index));
+                        Settings.setLayouts(LayoutSettingsActivity.this,
+                                book.remove(landscape, index));
                         refresh();
                     }
                 })
@@ -252,7 +252,7 @@ public final class LayoutSettingsActivity extends Activity {
     private void rebuildAutomatic() {
         automaticCard.removeAllViews();
         LayoutBook book = Settings.layouts(this);
-        if (!book.chosen().isAutomatic()) {
+        if (!book.chosen(false).isAutomatic() && !book.chosen(true).isAutomatic()) {
             automaticCard.addView(subheading(getString(R.string.layout_drawn)));
             automaticCard.addView(note(getString(R.string.layout_drawn_note)));
             return;

@@ -1221,10 +1221,53 @@ public final class Settings {
      * the third month of the Gregorian one, and somebody who renames both should not have the two
      * fight over one slot.
      */
-    /** The layouts the user has drawn, with Automatic always first (RFC-0005). */
+    /**
+     * The layouts the user has, with Automatic always first on each shelf (RFC-0005).
+     *
+     * A phone that has never been here gets the starters: the arrangements the app itself draws,
+     * with and without the month grid, one of each for both ways up. They are ordinary presets from
+     * the moment they arrive — movable, renamable, deletable — which is what makes them a starting
+     * point rather than a fifth kind of Automatic.
+     */
     public static com.reteclock.core.layout.LayoutBook layouts(Context context) {
-        return com.reteclock.core.layout.LayoutBook.parse(
-                prefs(context).getString(KEY_LAYOUTS, null));
+        String stored = prefs(context).getString(KEY_LAYOUTS, null);
+        if (stored != null) {
+            return com.reteclock.core.layout.LayoutBook.parse(stored);
+        }
+        com.reteclock.core.layout.LayoutBook seeded = starters(context);
+        setLayouts(context, seeded);
+        return seeded;
+    }
+
+    /** The arrangements this app has always drawn, as presets to start from. */
+    private static com.reteclock.core.layout.LayoutBook starters(Context context) {
+        com.reteclock.core.layout.LayoutBook book =
+                com.reteclock.core.layout.LayoutBook.empty();
+        android.util.DisplayMetrics metrics = context.getResources().getDisplayMetrics();
+        int shorter = Math.min(metrics.widthPixels, metrics.heightPixels);
+        int longer = Math.max(metrics.widthPixels, metrics.heightPixels);
+        ClockOptions plain = options(context).withCalendar(false).withTimeOnly(false);
+        ClockOptions withGrid = plain.withCalendar(true);
+
+        for (int i = 0; i < 2; i++) {
+            boolean landscape = i == 1;
+            int w = landscape ? longer : shorter;
+            int h = landscape ? shorter : longer;
+            book = add(book, context.getString(R.string.layout_starter_clock), landscape,
+                    com.reteclock.core.layout.Builtin.of(w, h, plain));
+            book = add(book, context.getString(R.string.layout_starter_calendar), landscape,
+                    com.reteclock.core.layout.Builtin.of(w, h, withGrid));
+        }
+        return book;
+    }
+
+    private static com.reteclock.core.layout.LayoutBook add(
+            com.reteclock.core.layout.LayoutBook book, String name, boolean landscape,
+            java.util.List<com.reteclock.core.layout.LayoutBox> boxes) {
+        if (boxes == null || boxes.isEmpty()) {
+            return book;
+        }
+        return book.add(com.reteclock.core.layout.LayoutPreset.of(name, landscape, boxes));
     }
 
     public static void setLayouts(Context context,

@@ -67,8 +67,8 @@ public final class LayoutEditorActivity extends Activity {
         index = getIntent() == null ? 1 : getIntent().getIntExtra(EXTRA_INDEX, 1);
         landscape = getIntent() != null && getIntent().getBooleanExtra(EXTRA_LANDSCAPE, false);
 
-        LayoutPreset preset = Settings.layouts(this).get(index);
-        List<LayoutBox> drawn = landscape ? preset.landscape() : preset.portrait();
+        LayoutPreset preset = Settings.layouts(this).get(landscape, index);
+        List<LayoutBox> drawn = preset.boxes();
         if (drawn.isEmpty()) {
             // Nothing drawn for this way up yet: start from what the app would draw, which is what
             // "edit this layout" means when the layout has not been touched.
@@ -156,8 +156,8 @@ public final class LayoutEditorActivity extends Activity {
     protected void onResume() {
         super.onResume();
         // The fields screen may have hidden a box or changed its alignment while we were away.
-        LayoutPreset preset = Settings.layouts(this).get(index);
-        List<LayoutBox> drawn = landscape ? preset.landscape() : preset.portrait();
+        LayoutPreset preset = Settings.layouts(this).get(landscape, index);
+        List<LayoutBox> drawn = preset.boxes();
         if (!drawn.isEmpty()) {
             boxes = new ArrayList<LayoutBox>(drawn);
             canvas.invalidate();
@@ -174,9 +174,8 @@ public final class LayoutEditorActivity extends Activity {
      */
     private void save() {
         LayoutBook book = Settings.layouts(this);
-        LayoutPreset preset = book.get(index);
-        Settings.setLayouts(this, book.replace(index,
-                landscape ? preset.withLandscape(boxes) : preset.withPortrait(boxes)));
+        Settings.setLayouts(this, book.replace(landscape, index,
+                book.get(landscape, index).with(boxes)));
     }
 
     /** What the engine thinks of the arrangement, in the user's words, while they are still here. */
