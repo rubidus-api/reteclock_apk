@@ -52,6 +52,15 @@ public final class LayoutFieldsActivity extends Activity {
     private boolean landscape;
     private LinearLayout list;
     /**
+     * The page, kept so a rebuild can put the scroll back where it was.
+     *
+     * Every change here rebuilds the list — it is the only way to be sure the screen says what is
+     * stored — and a rebuild that jumps to the top loses the reader's place. Pressing *Centre* on
+     * the fourth field and being thrown to the first is the sort of thing that makes a screen feel
+     * unreliable even when it is doing exactly what it was told.
+     */
+    private ScrollView page;
+    /**
      * Which fields the align buttons act on.
      *
      * Kept for as long as the screen is open and no longer: a selection is a sentence being spoken,
@@ -66,7 +75,16 @@ public final class LayoutFieldsActivity extends Activity {
         index = getIntent() == null ? 1 : getIntent().getIntExtra(EXTRA_INDEX, 1);
         landscape = getIntent() != null && getIntent().getBooleanExtra(EXTRA_LANDSCAPE, false);
 
+        // A list is not a form: the first number box on it must not summon the keyboard and hide
+        // half the screen on the way in. The window opens with the keyboard down, and the page
+        // itself takes the focus so nothing else claims it.
+        getWindow().setSoftInputMode(
+                android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+
         ScrollView scroll = new ScrollView(this);
+        page = scroll;
+        scroll.setFocusable(true);
+        scroll.setFocusableInTouchMode(true);
         scroll.setBackgroundColor(BACKDROP);
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -96,6 +114,7 @@ public final class LayoutFieldsActivity extends Activity {
 
         rebuild();
         setContentView(scroll);
+        scroll.requestFocus();
     }
 
     private List<LayoutBox> boxes() {
@@ -108,6 +127,28 @@ public final class LayoutFieldsActivity extends Activity {
                 book.get(landscape, index).with(boxes)));
     }
 
+    /** Rebuilds the list, and puts the scroll back where the reader had it. */
+    private void rebuildKeepingPlace() {
+        final int wasAt = page == null ? 0 : page.getScrollY();
+        rebuild();
+        if (page != null) {
+            page.requestFocus();
+            page.post(new Runnable() {
+                @Override
+                public void run() {
+                    page.scrollTo(0, wasAt);
+                }
+            });
+        }
+    }
+
+    /**
+     * One card per field: its name, then the ticks, then the numbers, then where its writing sits.
+     *
+     * Dense on purpose — a layout has a dozen fields and a phone screen holds six lines — but the
+     * order never changes and neither does the height of a card, so the list does not shuffle under
+     * the finger as things are switched.
+     */
     private void rebuild() {
         list.removeAllViews();
         final List<LayoutBox> current = new ArrayList<LayoutBox>(boxes());
@@ -121,98 +162,33 @@ public final class LayoutFieldsActivity extends Activity {
             face.setColor(CARD);
             face.setCornerRadius(dp(8));
             card.setBackgroundDrawable(face);
-            card.setPadding(dp(12), dp(10), dp(12), dp(10));
+            card.setPadding(dp(10), dp(8), dp(10), dp(8));
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT);
-            params.bottomMargin = dp(8);
+            params.bottomMargin = dp(6);
             card.setLayoutParams(params);
 
-            // The field's name is a heading, not another checkbox.
-            //
-            // It was one: the tick that selects a field for the align buttons carried its name as a
-            // label. That put three identical checkboxes at the top of every card, so the name read
-            // as a third option rather than as the title of the two below it — and once a card was
-            // scrolled past its first line, the options on screen belonged to nothing at all.
-            // Reported from a real phone, which is where it is obvious.
+            // The name, and the one destructive thing, at opposite ends of the same line: a title
+            // has a line to itself but does not need the whole of it.
+            LinearLayout header = new LinearLayout(this);
+            header.setOrientation(LinearLayout.HORIZONTAL);
+            header.setGravity(Gravity.CENTER_VERTICAL);
+
             TextView name = new TextView(this);
             name.setText(fieldLabel(this, box.field));
             name.setTextColor(ACCENT);
             name.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-            name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f);
-            name.setPadding(0, 0, 0, dp(6));
-            card.addView(name);
-
-            final CheckBox pick = new CheckBox(this);
-            pick.setText(R.string.layout_field_pick);
-            pick.setTextColor(TEXT_DIM);
-            pick.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f);
-            pick.setChecked(selected.contains(Integer.valueOf(which)));
-            pick.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-                @Override
-                public void onCheckedChanged(CompoundButton button, boolean checked) {
-                    if (checked) {
-                        selected.add(Integer.valueOf(which));
-                    } else {
-                        selected.remove(Integer.valueOf(which));
-                    }
-                    refreshAlignBar();
-                }
-            });
-            card.addView(pick);
-
-            View rule = new View(this);
-            rule.setBackgroundColor(0xFF3A3A3A);
-            rule.setLayoutParams(new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT, 1));
-            card.addView(rule);
-
-            LinearLayout switches = new LinearLayout(this);
-            switches.setOrientation(LinearLayout.HORIZONTAL);
-
-            final CheckBox shown = new CheckBox(this);
-            shown.setText(R.string.layout_field_shown);
-            shown.setTextColor(TEXT_WHITE);
-            shown.setLayoutParams(new LinearLayout.LayoutParams(0,
+            name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f);
+            name.setLayoutParams(new LinearLayout.LayoutParams(0,
                     LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-            shown.setChecked(box.shown);
-            shown.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-                @Override
-                public void onCheckedChanged(CompoundButton button, boolean checked) {
-                    List<LayoutBox> out = new ArrayList<LayoutBox>(boxes());
-                    out.set(which, out.get(which).shown(checked));
-                    write(out);
-                }
-            });
-            switches.addView(shown);
-
-            final CheckBox locked = new CheckBox(this);
-            locked.setText(R.string.layout_field_locked);
-            locked.setTextColor(TEXT_WHITE);
-            locked.setLayoutParams(new LinearLayout.LayoutParams(0,
-                    LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-            locked.setChecked(box.locked);
-            locked.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-                @Override
-                public void onCheckedChanged(CompoundButton button, boolean checked) {
-                    List<LayoutBox> out = new ArrayList<LayoutBox>(boxes());
-                    out.set(which, out.get(which).locked(checked));
-                    write(out);
-                }
-            });
-            switches.addView(locked);
-            card.addView(switches);
-
-            // Place and size, as numbers, here as well as on the canvas: a list is where somebody
-            // who wants a layout exactly right will be, and dragging is not exact.
-            card.addView(subheading(getString(R.string.layout_field_place)));
-            card.addView(numbers(which));
+            header.addView(name);
 
             TextView remove = new TextView(this);
             remove.setText(R.string.layout_field_remove);
             remove.setTextColor(0xFFE57373);
-            remove.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f);
-            remove.setPadding(0, dp(6), 0, dp(6));
+            remove.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f);
+            remove.setPadding(dp(10), dp(6), dp(2), dp(6));
             remove.setClickable(true);
             remove.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -220,25 +196,98 @@ public final class LayoutFieldsActivity extends Activity {
                     remove(which);
                 }
             });
-            card.addView(remove);
+            header.addView(remove);
+            card.addView(header);
 
-            // The timer and the saying are strips, and a strip's question is which edge, not where
-            // its writing sits: alignment inside a band that is the width of the screen says
-            // nothing. So each gets the question that means something for it.
+            View rule = new View(this);
+            rule.setBackgroundColor(0xFF3A3A3A);
+            LinearLayout.LayoutParams ruleParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, 1);
+            ruleParams.bottomMargin = dp(4);
+            rule.setLayoutParams(ruleParams);
+            card.addView(rule);
+
+            // The three ticks on one line: chosen for the align buttons, drawn at all, and pinned.
+            LinearLayout ticks = new LinearLayout(this);
+            ticks.setOrientation(LinearLayout.HORIZONTAL);
+            ticks.addView(tick(R.string.layout_field_pick,
+                    selected.contains(Integer.valueOf(which)),
+                    new Switch() {
+                        @Override
+                        public void set(boolean on) {
+                            if (on) {
+                                selected.add(Integer.valueOf(which));
+                            } else {
+                                selected.remove(Integer.valueOf(which));
+                            }
+                            refreshAlignBar();
+                        }
+                    }));
+            ticks.addView(tick(R.string.layout_field_shown, box.shown, new Switch() {
+                @Override
+                public void set(boolean on) {
+                    List<LayoutBox> out = new ArrayList<LayoutBox>(boxes());
+                    out.set(which, out.get(which).shown(on));
+                    write(out);
+                }
+            }));
+            ticks.addView(tick(R.string.layout_field_locked, box.locked, new Switch() {
+                @Override
+                public void set(boolean on) {
+                    List<LayoutBox> out = new ArrayList<LayoutBox>(boxes());
+                    out.set(which, out.get(which).locked(on));
+                    write(out);
+                }
+            }));
+            card.addView(ticks);
+
             if (isStrip(box.field)) {
+                // A strip's question is which edge, not where its writing sits: alignment inside a
+                // band the width of the screen says nothing, and its place is the edge itself.
                 card.addView(subheading(getString(R.string.layout_field_edge)));
                 card.addView(edgeRow(which));
                 list.addView(card);
                 continue;
             }
 
-            card.addView(subheading(getString(R.string.layout_field_align_h)));
-            card.addView(alignRow(which, true));
-            card.addView(subheading(getString(R.string.layout_field_align_v)));
-            card.addView(alignRow(which, false));
-
+            card.addView(numbers(which));
+            card.addView(alignRows(which));
             list.addView(card);
         }
+    }
+
+    /** What a tick does when it is pressed. */
+    private interface Switch {
+        void set(boolean on);
+    }
+
+    /** One checkbox of the three on a card's second line. */
+    private View tick(int label, boolean on, final Switch what) {
+        CheckBox box = new CheckBox(this);
+        box.setText(label);
+        box.setTextColor(TEXT_WHITE);
+        box.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f);
+        box.setPadding(dp(2), dp(2), 0, dp(2));
+        box.setChecked(on);
+        box.setLayoutParams(new LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        box.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                what.set(checked);
+            }
+        });
+        return box;
+    }
+
+    /** Where the writing sits inside the box: across on one line, down on the next. */
+    private View alignRows(int which) {
+        LinearLayout block = new LinearLayout(this);
+        block.setOrientation(LinearLayout.VERTICAL);
+        block.addView(subheading(getString(R.string.layout_field_align_h)));
+        block.addView(alignRow(which, true));
+        block.addView(alignRow(which, false));
+        return block;
     }
 
     // ---- putting a field back ---------------------------------------------------------------
@@ -529,7 +578,7 @@ public final class LayoutFieldsActivity extends Activity {
         list.post(new Runnable() {
             @Override
             public void run() {
-                rebuild();
+                rebuildKeepingPlace();
             }
         });
     }
@@ -649,7 +698,7 @@ public final class LayoutFieldsActivity extends Activity {
                 list.post(new Runnable() {
                     @Override
                     public void run() {
-                        rebuild();
+                        rebuildKeepingPlace();
                     }
                 });
             }
