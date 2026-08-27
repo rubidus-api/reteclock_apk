@@ -749,9 +749,10 @@ public final class LayoutFieldsActivity extends Activity {
         cell.addView(caption);
 
         EditText field = new EditText(this);
-        field.setText(Integer.toString(Math.round(fraction * 100f)));
+        field.setText(LayoutBox.spell(fraction));
         field.setInputType(android.text.InputType.TYPE_CLASS_NUMBER
-                | android.text.InputType.TYPE_NUMBER_FLAG_SIGNED);
+                | android.text.InputType.TYPE_NUMBER_FLAG_SIGNED
+                | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
         // No colour. An EditText draws itself on the platform's own light box, and this app's white
         // on that is white on white — the numbers were there all along and could not be read. The
         // same mistake as the editor's dialog, made twice in two days.
@@ -763,11 +764,7 @@ public final class LayoutFieldsActivity extends Activity {
     }
 
     private float read(EditText field, float fallback) {
-        try {
-            return Integer.parseInt(field.getText().toString().trim()) / 100f;
-        } catch (NumberFormatException notANumber) {
-            return fallback;
-        }
+        return LayoutBox.readPerCent(field.getText().toString(), fallback);
     }
 
     /** A small pressable label. */

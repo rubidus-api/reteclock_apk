@@ -436,9 +436,10 @@ public final class LayoutEditorActivity extends Activity {
         form.addView(caption);
 
         EditText field = new EditText(this);
-        field.setText(Integer.toString(Math.round(fraction * 100f)));
+        field.setText(LayoutBox.spell(fraction));
         field.setInputType(android.text.InputType.TYPE_CLASS_NUMBER
-                | android.text.InputType.TYPE_NUMBER_FLAG_SIGNED);
+                | android.text.InputType.TYPE_NUMBER_FLAG_SIGNED
+                | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
         // No colour is set on purpose. A dialog is the platform's window, not this app's dark one,
         // and its edit boxes are light: the app's white would be white on white — which is exactly
         // what the first emulator pass showed, four fields that looked empty and were not.
@@ -448,11 +449,7 @@ public final class LayoutEditorActivity extends Activity {
 
     /** Per cent, because a phone is not a drawing board and nobody knows their screen in pixels. */
     private float read(EditText field, float fallback) {
-        try {
-            return Integer.parseInt(field.getText().toString().trim()) / 100f;
-        } catch (NumberFormatException notANumber) {
-            return fallback;
-        }
+        return LayoutBox.readPerCent(field.getText().toString(), fallback);
     }
 
     // ---- the furniture -------------------------------------------------------------------

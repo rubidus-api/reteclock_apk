@@ -23,6 +23,17 @@ public final class LayoutBox {
     /** A width or a height of this much means "as large as the field wants to be". */
     public static final float NATURAL = -1f;
 
+    /**
+     * How finely a place or a size is kept: a thousandth of the screen, which is a tenth of a per
+     * cent.
+     *
+     * Finer than a hair on a phone — a thousandth of 1280 pixels is one pixel — so nothing anybody
+     * can see is lost by rounding to it, and it is what lets the settings file hold whole numbers.
+     * A float wrote `0.072000004` there: the arithmetic was right and the tail was noise, and noise
+     * in a file somebody may read or edit is a question they should not have to ask.
+     */
+    public static final int STEPS = 1000;
+
     /** Which field this box draws: one of the roles in {@code ClockLayout}. */
     public final String field;
     /** Which of the nine points of the screen the box is measured from. */
@@ -60,10 +71,10 @@ public final class LayoutBox {
         this.field = field;
         this.anchor = anchor < 0 || anchor >= Anchor.COUNT ? Anchor.MIDDLE_CENTRE : anchor;
         this.align = align < 0 || align >= Anchor.COUNT ? Anchor.MIDDLE_CENTRE : align;
-        this.x = clampOffset(x);
-        this.y = clampOffset(y);
-        this.width = clampSize(width);
-        this.height = clampSize(height);
+        this.x = round(clampOffset(x));
+        this.y = round(clampOffset(y));
+        this.width = roundSize(clampSize(width));
+        this.height = roundSize(clampSize(height));
         this.locked = locked;
         this.shown = shown;
     }
@@ -153,15 +164,69 @@ public final class LayoutBox {
         return naturalHeight() ? natural : height * screenH;
     }
 
-    /** The line the settings file holds: field, anchor, x, y, w, h, align, locked, shown. */
+    /**
+     * The line the settings file holds: field, anchor, x, y, w, h, align, locked, shown, edge.
+     *
+     * The four measurements are whole thousandths of the screen — `72` is 7.2% — so the file has no
+     * floats in it and says exactly what it means.
+     */
     public String text() {
         StringBuilder out = new StringBuilder();
         out.append(field).append('|').append(anchor).append('|')
-                .append(x).append('|').append(y).append('|')
-                .append(width).append('|').append(height).append('|')
+                .append(steps(x)).append('|').append(steps(y)).append('|')
+                .append(naturalWidth() ? -1 : steps(width)).append('|')
+                .append(naturalHeight() ? -1 : steps(height)).append('|')
                 .append(align).append('|').append(locked ? 1 : 0).append('|')
                 .append(shown ? 1 : 0).append('|').append(edge);
         return out.toString();
+    }
+
+    /**
+     * A fraction of the screen written the way a person reads it: `0.072` becomes `7.2`.
+     *
+     * Spelt out by hand rather than with a formatter, because a formatter follows the phone's
+     * language and would write `7,2` on a German one — which is right to read and wrong to type
+     * back into a box that expects a point.
+     */
+    public static String spell(float fraction) {
+        int tenths = Math.round(fraction * STEPS);
+        String sign = tenths < 0 ? "-" : "";
+        int size = Math.abs(tenths);
+        return sign + (size / 10) + "." + (size % 10);
+    }
+
+    /**
+     * A per cent as somebody typed it, back to a fraction of the screen.
+     *
+     * A comma is taken for a point: on a phone set to a language that writes `7,2` that is the key
+     * the keyboard offers, and refusing it would leave the box unable to accept its own numbers.
+     */
+    public static float readPerCent(String typed, float fallback) {
+        if (typed == null) {
+            return fallback;
+        }
+        String value = typed.trim().replace(',', '.').replace("%", "");
+        if (value.isEmpty()) {
+            return fallback;
+        }
+        try {
+            return Math.round(Float.parseFloat(value) * 10f) / (float) STEPS;
+        } catch (NumberFormatException notANumber) {
+            return fallback;
+        }
+    }
+
+    /** A fraction of the screen as the whole number of thousandths the file holds. */
+    private static int steps(float fraction) {
+        return Math.round(fraction * STEPS);
+    }
+
+    private static float round(float fraction) {
+        return Math.round(fraction * STEPS) / (float) STEPS;
+    }
+
+    private static float roundSize(float size) {
+        return size == NATURAL ? NATURAL : round(size);
     }
 
     /**
@@ -180,10 +245,10 @@ public final class LayoutBox {
         }
         return new LayoutBox(field,
                 intAt(parts, 1, Anchor.MIDDLE_CENTRE),
-                floatAt(parts, 2, 0f),
-                floatAt(parts, 3, 0f),
-                floatAt(parts, 4, NATURAL),
-                floatAt(parts, 5, NATURAL),
+                measureAt(parts, 2, 0f),
+                measureAt(parts, 3, 0f),
+                measureAt(parts, 4, NATURAL),
+                measureAt(parts, 5, NATURAL),
                 intAt(parts, 6, Anchor.MIDDLE_CENTRE),
                 intAt(parts, 7, 0) != 0,
                 intAt(parts, 8, 1) != 0,
@@ -196,6 +261,29 @@ public final class LayoutBox {
         }
         try {
             return Integer.parseInt(parts[index].trim());
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+
+    /**
+     * One measurement, in either of the two spellings this file has used.
+     *
+     * A number with a point in it is a fraction, which is how the first version wrote them; a whole
+     * number is thousandths of the screen, which is how they are written now. Nothing anybody drew
+     * under the old spelling is lost, and the two cannot be confused: `0.072` and `72` are the same
+     * place said twice.
+     */
+    private static float measureAt(String[] parts, int index, float fallback) {
+        if (index >= parts.length) {
+            return fallback;
+        }
+        String value = parts[index].trim();
+        if (value.indexOf('.') >= 0 || value.indexOf('e') >= 0 || value.indexOf('E') >= 0) {
+            return floatAt(parts, index, fallback);
+        }
+        try {
+            return Integer.parseInt(value) / (float) STEPS;
         } catch (NumberFormatException e) {
             return fallback;
         }
