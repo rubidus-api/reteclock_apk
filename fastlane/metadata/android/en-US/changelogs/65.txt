@@ -1,0 +1,19 @@
+Added: a layout you can draw yourself. Main menu → Layout. Keep Automatic — the
+app's own arrangement, whose settings have moved there — or draw your own: boxes
+you drag, resize and type numbers into, kept as named presets, one for each way
+up, and carried in Import / Export. A run that stops answering starts arranged
+by the app, so a layout can never leave the clock unusable.
+
+Added: the timer can keep a log of what it did. One row per run — when it began,
+which timer, how many intervals it got through, how long it ran without the
+pauses — as a CSV a spreadsheet can open. It is off unless you turn it on, it
+never leaves the phone unless you export it, and it has a size limit you set:
+when it grows past the first number the oldest of it goes until it is under the
+second. While it is on, the timer strip shows a capital L beside the play
+button; pressing that opens Timer settings, where it is turned off.
+
+Added: you can see a picture as a background before choosing it. Every picture
+in the list shows how it will look with the phone upright and turned, and the
+fit chooser redraws them all the moment you pick a different fit — so trying all
+six is six taps rather than six trips out to the clock and back. Tap a preview
+to see it larger.
