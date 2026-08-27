@@ -98,6 +98,9 @@ public final class SettingsIni {
         {"timer_chosen", "i", "timer"},
         {"timer_alert", "i", "timer"},
         {"timer_hidden", "b", "timer"},
+        {"timer_log", "b", "timer"},
+        {"timer_log_ceiling_mb", "i", "timer"},
+        {"timer_log_floor_mb", "i", "timer"},
 
         {"calendar_on", "b", "timedate"},
         {"calendar_week_monday", "b", "timedate"},

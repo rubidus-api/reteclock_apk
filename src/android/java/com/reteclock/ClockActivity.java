@@ -218,7 +218,10 @@ public class ClockActivity extends Activity {
             // A timer started before the screen was left, or turned, carries on from where it is.
             timer.adopt(com.reteclock.core.TimerMemory.restore(chosen,
                     Settings.runPreset(this), Settings.runOrigin(this),
-                    Settings.runPausedAt(this), android.os.SystemClock.elapsedRealtime()));
+                    Settings.runPausedAt(this), android.os.SystemClock.elapsedRealtime()),
+                    Settings.runStarted(this));
+            // The L on the strip, and the bar one control shorter to make room for it.
+            timer.setLogKept(Settings.timerLogKept(this));
 
             // Hiding empties the strip; it does not take it away. The clock keeps the shape and
             // the size it had, so nothing on it moves or reflows, and the hourglass stays on the
@@ -315,7 +318,7 @@ public class ClockActivity extends Activity {
 
     private final TimerView.Listener timerListener = new TimerView.Listener() {
         @Override
-        public void remember(com.reteclock.core.TimerRun run) {
+        public void remember(com.reteclock.core.TimerRun run, long startEpochMs) {
             if (run == null) {
                 Settings.forgetRun(ClockActivity.this);
             } else {
@@ -324,8 +327,19 @@ public class ClockActivity extends Activity {
                                 ? null : timer.preset()),
                         com.reteclock.core.TimerMemory.originOf(run,
                                 android.os.SystemClock.elapsedRealtime()),
-                        com.reteclock.core.TimerMemory.pausedAtOf(run));
+                        com.reteclock.core.TimerMemory.pausedAtOf(run), startEpochMs);
             }
+        }
+
+        @Override
+        public void runEnded(com.reteclock.core.TimerRun run, long startEpochMs, long elapsedMs) {
+            logRun(ClockActivity.this, run, startEpochMs, elapsedMs);
+        }
+
+        @Override
+        public void openTimerSettings() {
+            Intent intent = new Intent(ClockActivity.this, TimerSettingsActivity.class);
+            startActivity(intent);
         }
 
         @Override
@@ -365,6 +379,26 @@ public class ClockActivity extends Activity {
             showPresetList();
         }
     };
+
+    /**
+     * Writes a run that has ended into the log, if a log is being kept and this ending is new.
+     *
+     * Shared by the clock and the screensaver because the rule is the same in both: a finished run
+     * stays on the strip, and every view built afterwards notices it has finished, so the ending is
+     * named — the preset, and when it began — and an ending already named is not written again.
+     */
+    static void logRun(android.content.Context context, com.reteclock.core.TimerRun run,
+            long startEpochMs, long elapsedMs) {
+        if (run == null || !Settings.timerLogKept(context)) {
+            return;
+        }
+        String stamp = startEpochMs + "|" + com.reteclock.core.TimerMemory.identityOf(run.preset());
+        if (Settings.runAlreadyLogged(context, stamp)) {
+            return;
+        }
+        Settings.markRunLogged(context, stamp);
+        TimerLog.write(context, run.preset(), startEpochMs, elapsedMs);
+    }
 
     /** Three quick blinks of the whole screen: an interval has ended. */
     private void flashScreen(final int times) {

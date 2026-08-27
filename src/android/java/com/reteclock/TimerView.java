@@ -65,13 +65,37 @@ public class TimerView extends View {
     private float readoutMiddle;
     /** When the cues were last collected, so the next window starts where that one ended. */
     private long lastCueMs = Long.MIN_VALUE / 2L;
+    /** When the run began by the wall clock — the moment the log writes down. */
+    private long startEpochMs;
+    /** Whether the log is being kept, which is whether the strip carries an L. */
+    private boolean logKept;
 
     private Listener listener;
 
     /** What the strip needs the world to do for it. */
     interface Listener {
-        /** Write the run down, or forget it, so another screen can pick it up where it stands. */
-        void remember(TimerRun run);
+        /**
+         * Write the run down, or forget it, so another screen can pick it up where it stands.
+         *
+         * The second number is when it began by the wall clock, which the run itself cannot say:
+         * its own times are counted from the phone booting, and its origin moves forward every time
+         * somebody pauses. The log needs the moment a person would recognise.
+         */
+        void remember(TimerRun run, long startEpochMs);
+
+        /**
+         * A run has ended — stopped by hand or run out — and this is what it came to.
+         *
+         * Whether that is written down is the screen's business, not the strip's: the strip does
+         * not know whether a log is being kept, and one run can end twice in the strip's eyes when
+         * the screen is turned and a finished run is taken up by a fresh view.
+         *
+         * @param elapsedMs how long it ran, with time paused already taken out
+         */
+        void runEnded(TimerRun run, long startEpochMs, long elapsedMs);
+
+        /** The L was pressed: open the screen where the log is turned off. */
+        void openTimerSettings();
 
         /** Play this pattern, however the settings say it should be heard. */
         void cue(Tones.Note[] pattern);
@@ -166,6 +190,11 @@ public class TimerView extends View {
         if (control == TimerBar.CONTROL_PAUSE) {
             return isRunning();
         }
+        if (control == TimerBar.CONTROL_LOG) {
+            // Always live while it is there at all: it is not one of the timer's controls, it is
+            // the way to the screen that turns the log off.
+            return true;
+        }
         if (control == TimerBar.CONTROL_STOP) {
             // Something to stop: a run that is going, or one paused part-way. A finished run has
             // stopped itself.
@@ -183,6 +212,9 @@ public class TimerView extends View {
         // clock already running is no use to somebody timing something they do with their hands.
         // Those three seconds are counted out loud — see TimerCues.LEAD_IN_SECONDS.
         run = TimerRun.start(preset, now + TimerCues.LEAD_IN_MS);
+        // The moment the count begins, not the moment the button was pressed: those three seconds
+        // are the lead-in, and the run's own origin is on the far side of them.
+        startEpochMs = System.currentTimeMillis() + TimerCues.LEAD_IN_MS;
         // A window that opens a moment before the count, so its first beep is caught.
         lastCueMs = now - 1L;
         remember();
@@ -194,8 +226,9 @@ public class TimerView extends View {
      *
      * The cue window opens at now, so whatever sounded while nobody was looking is not replayed.
      */
-    void adopt(TimerRun existing) {
+    void adopt(TimerRun existing, long startedEpochMs) {
         run = existing;
+        startEpochMs = startedEpochMs;
         lastCueMs = SystemClock.elapsedRealtime();
         if (run != null && !run.isPaused() && !run.finishedAt(lastCueMs)) {
             begin();
@@ -206,8 +239,50 @@ public class TimerView extends View {
 
     private void remember() {
         if (listener != null) {
-            listener.remember(run);
+            listener.remember(run, startEpochMs);
         }
+    }
+
+    /**
+     * Whether the strip carries the log's L, and so how much of it is bar.
+     *
+     * Set before the strip is measured; changing it afterwards measures it again, because the
+     * bar's length depends on it.
+     */
+    void setLogKept(boolean kept) {
+        if (logKept == kept) {
+            return;
+        }
+        logKept = kept;
+        if (getWidth() > 0 && getHeight() > 0) {
+            bar = TimerBar.of(getWidth(), getHeight(), horizontal, logKept);
+            settleReadouts();
+        }
+        invalidate();
+    }
+
+    /**
+     * Tells the screen a run has ended.
+     *
+     * Saying it once is the whole of the difficulty. A run ends when it is stopped and when it runs
+     * out, and a finished run is still there to be taken up by the next view the screen builds — so
+     * the strip says what happened every time it notices, and the screen decides whether it has
+     * heard about this one before.
+     */
+    private void ended() {
+        if (run == null || listener == null) {
+            return;
+        }
+        long now = SystemClock.elapsedRealtime();
+        long elapsed = run.rawElapsedAt(now);
+        if (!run.preset().loops) {
+            elapsed = Math.min(elapsed, run.totalMs());
+        }
+        if (elapsed < 1000L) {
+            // Stopped during the count-in, or as good as: nothing happened worth writing down.
+            return;
+        }
+        listener.runEnded(run, startEpochMs, elapsed);
     }
 
     void pause() {
@@ -231,6 +306,7 @@ public class TimerView extends View {
     }
 
     void stop() {
+        ended();
         run = null;
         remember();
         running = false;
@@ -280,6 +356,7 @@ public class TimerView extends View {
             if (run.finishedAt(now)) {
                 // The last cue has sounded; the bar holds full until somebody stops it.
                 running = false;
+                ended();
                 return;
             }
             handler.postDelayed(this, pacer.delayMs());
@@ -338,7 +415,7 @@ public class TimerView extends View {
     protected void onSizeChanged(int w, int h, int oldW, int oldH) {
         super.onSizeChanged(w, h, oldW, oldH);
         horizontal = w >= h;
-        bar = TimerBar.of(w, h, horizontal);
+        bar = TimerBar.of(w, h, horizontal, logKept);
         settleReadouts();
     }
 
@@ -624,6 +701,12 @@ public class TimerView extends View {
                 canvas.drawRect(cx - r * 0.75f, cy - r * 0.75f, cx + r * 0.75f, cy + r * 0.75f,
                         paint);
                 break;
+            case TimerBar.CONTROL_LOG:
+                // A capital L, drawn rather than written: the strip has no font of its own, and a
+                // letter made of two rectangles is the same letter at any size on any phone.
+                canvas.drawRect(cx - r * 0.45f, cy - r, cx - r * 0.1f, cy + r, paint);
+                canvas.drawRect(cx - r * 0.45f, cy + r * 0.65f, cx + r * 0.6f, cy + r, paint);
+                break;
             default:
                 // An hourglass: two triangles meeting at their points, with a lid and a foot.
                 paint.setStyle(Paint.Style.FILL);
@@ -682,6 +765,11 @@ public class TimerView extends View {
             case TimerBar.CONTROL_HOURGLASS:
                 if (listener != null) {
                     listener.choosePreset();
+                }
+                break;
+            case TimerBar.CONTROL_LOG:
+                if (listener != null) {
+                    listener.openTimerSettings();
                 }
                 break;
             default:
