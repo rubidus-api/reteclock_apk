@@ -184,6 +184,22 @@ public final class LayoutFieldsActivity extends Activity {
                     LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
             header.addView(name);
 
+            // Up and down: the list is the order the boxes lie in, so this is what puts one in
+            // front of another. Arrows rather than a drag, because a drag inside a scrolling list
+            // is a fight between two gestures — and that fight is what crashed in issue #43.
+            header.addView(arrow("▲", which > 0, new Runnable() {
+                @Override
+                public void run() {
+                    move(which, -1);
+                }
+            }));
+            header.addView(arrow("▼", which < boxes().size() - 1, new Runnable() {
+                @Override
+                public void run() {
+                    move(which, +1);
+                }
+            }));
+
             TextView remove = new TextView(this);
             remove.setText(R.string.layout_field_remove);
             remove.setTextColor(0xFFE57373);
@@ -317,7 +333,7 @@ public final class LayoutFieldsActivity extends Activity {
 
     private View addBar() {
         LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setOrientation(LinearLayout.VERTICAL);
         row.setPadding(0, 0, 0, dp(8));
         TextView add = new TextView(this);
         add.setText(R.string.layout_field_add);
@@ -340,6 +356,7 @@ public final class LayoutFieldsActivity extends Activity {
             }
         });
         row.addView(add);
+        row.addView(subheading(getString(R.string.layout_field_stack)));
         return row;
     }
 
@@ -398,6 +415,53 @@ public final class LayoutFieldsActivity extends Activity {
     }
 
     /** Taking a field off this layout. The box goes; the field itself is always addable again. */
+    /**
+     * Moves one box up or down the list, which is what puts it in front of or behind another.
+     *
+     * The list is the stacking order: the first is on top, the last is underneath everything.
+     * Nothing else decides what covers what, so this arithmetic is the whole of the feature — see
+     * {@link com.reteclock.core.layout.Composed}, which paints them in the opposite order for
+     * exactly that reason.
+     */
+    private void move(int which, int by) {
+        List<LayoutBox> out = new ArrayList<LayoutBox>(boxes());
+        int to = which + by;
+        if (which < 0 || which >= out.size() || to < 0 || to >= out.size()) {
+            return;
+        }
+        out.add(to, out.remove(which));
+        // The ticks travel with the boxes they tick; without this a move would silently retick
+        // whichever neighbour arrived at the ticked position.
+        java.util.Set<Integer> moved = new java.util.HashSet<Integer>();
+        for (Integer at : selected) {
+            int index = at.intValue();
+            moved.add(Integer.valueOf(index == which ? to : index == to ? which : index));
+        }
+        selected.clear();
+        selected.addAll(moved);
+        write(out);
+        rebuildKeepingPlace();
+    }
+
+    /** A small arrow, dimmed when there is nowhere for it to go. */
+    private TextView arrow(String glyph, final boolean live, final Runnable onPress) {
+        TextView view = new TextView(this);
+        view.setText(glyph);
+        view.setTextColor(live ? ACCENT : 0xFF4A4A4A);
+        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f);
+        view.setPadding(dp(8), dp(6), dp(8), dp(6));
+        if (live) {
+            view.setClickable(true);
+            view.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    onPress.run();
+                }
+            });
+        }
+        return view;
+    }
+
     private void remove(final int which) {
         final LayoutBox box = boxes().get(which);
         new android.app.AlertDialog.Builder(this)

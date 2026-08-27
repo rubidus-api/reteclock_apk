@@ -50,6 +50,8 @@ public final class Settings {
     public static final String KEY_TIMER_ALERT = "timer_alert";
     public static final String KEY_STAY_UNLOCKED = "stay_unlocked";
     public static final String KEY_TIMER_HIDDEN = "timer_hidden";
+    /** Whether the layout editor shows the background behind the boxes. See RFC-0008. */
+    public static final String KEY_EDITOR_BACKGROUND = "editor_background";
     /** Whether runs are written down — off unless somebody turns it on. See RFC-0006. */
     public static final String KEY_TIMER_LOG = "timer_log";
     /** When the remembered run began, by the wall clock, and which ending is already written. */
@@ -656,6 +658,30 @@ public final class Settings {
      * personal information, and personal information is not something an app starts keeping because
      * a version arrived that could.
      */
+    /**
+     * Whether the layout editor draws the background behind the boxes.
+     *
+     * On by default: arranging a clock against a black rectangle when it will be seen against a
+     * photograph is arranging it blind, which is what issue #47 said. Off is for when the picture
+     * is busy enough that the outlines are hard to follow.
+     */
+    public static boolean editorBackground(Context context) {
+        return prefs(context).getBoolean(KEY_EDITOR_BACKGROUND, true);
+    }
+
+    public static void setEditorBackground(Context context, boolean shown) {
+        prefs(context).edit().putBoolean(KEY_EDITOR_BACKGROUND, shown).commit();
+    }
+
+    /** The one picture that stands for the background where only one can be shown. */
+    public static String firstBackgroundName(Context context) {
+        java.util.List<String> ordered = new java.util.ArrayList<String>();
+        for (com.reteclock.core.FontLibrary.Entry entry : orderedImages(context)) {
+            ordered.add(entry.name);
+        }
+        return com.reteclock.core.ImageRoles.firstBackground(roles(context), ordered);
+    }
+
     public static boolean timerLogKept(Context context) {
         return prefs(context).getBoolean(KEY_TIMER_LOG, false);
     }

@@ -48,6 +48,14 @@ public final class LayoutEditorActivity extends Activity {
     public static final String EXTRA_LANDSCAPE = "com.reteclock.LAYOUT_LANDSCAPE";
 
     private static final int BACKDROP = 0xFF101010;
+    /**
+     * The veil drawn over the background picture in the canvas.
+     *
+     * A third of black. The boxes are hairline outlines with small labels on them, and a
+     * photograph is under no obligation to be dark enough to read white against — so the picture
+     * gives up a little brightness and the editor stays usable. It is a preview, not the clock.
+     */
+    private static final int BACKDROP_VEIL = 0x55000000;
     private static final int TEXT_WHITE = 0xFFF2F2F2;
     private static final int TEXT_DIM = 0xFF9A9A9A;
     private static final int ACCENT = 0xFF4DB6AC;
@@ -59,6 +67,15 @@ public final class LayoutEditorActivity extends Activity {
     private int selected = -1;
 
     private Canvas2D canvas;
+    /**
+     * The background as a small copy of itself, or null when there is none to show.
+     *
+     * A thumbnail rather than the picture: the canvas is a few hundred pixels across, the editor is
+     * not the clock, and a preview does not have to be exact to be worth having (issue #47). It is
+     * fetched once when the screen opens — a picture that changes while somebody is dragging boxes
+     * is not a thing that happens.
+     */
+    private android.graphics.Bitmap backdropPicture;
     private TextView complaint;
 
     @Override
@@ -91,6 +108,10 @@ public final class LayoutEditorActivity extends Activity {
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f);
         root.addView(title);
 
+        if (Settings.editorBackground(this)) {
+            backdropPicture = Thumbnails.of(this, Settings.firstBackgroundName(this));
+        }
+
         canvas = new Canvas2D(this);
         LinearLayout.LayoutParams canvasParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f);
@@ -98,6 +119,26 @@ public final class LayoutEditorActivity extends Activity {
         canvasParams.bottomMargin = dp(8);
         canvas.setLayoutParams(canvasParams);
         root.addView(canvas);
+
+        final android.widget.CheckBox showBackdrop = new android.widget.CheckBox(this);
+        showBackdrop.setText(R.string.layout_edit_backdrop);
+        showBackdrop.setTextColor(TEXT_DIM);
+        showBackdrop.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f);
+        showBackdrop.setChecked(Settings.editorBackground(this));
+        showBackdrop.setOnCheckedChangeListener(
+                new android.widget.CompoundButton.OnCheckedChangeListener() {
+                    @Override
+                    public void onCheckedChanged(android.widget.CompoundButton button,
+                            boolean checked) {
+                        Settings.setEditorBackground(LayoutEditorActivity.this, checked);
+                        backdropPicture = checked
+                                ? Thumbnails.of(LayoutEditorActivity.this,
+                                        Settings.firstBackgroundName(LayoutEditorActivity.this))
+                                : null;
+                        canvas.invalidate();
+                    }
+                });
+        root.addView(showBackdrop);
 
         complaint = new TextView(this);
         complaint.setTextColor(TEXT_DIM);
@@ -218,6 +259,8 @@ public final class LayoutEditorActivity extends Activity {
     private final class Canvas2D extends View {
 
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final android.graphics.Rect source = new android.graphics.Rect();
+        private final android.graphics.RectF target = new android.graphics.RectF();
         private float scale = 1f;
         private float offsetX;
         private float offsetY;
@@ -244,10 +287,12 @@ public final class LayoutEditorActivity extends Activity {
             offsetX = (w - screenW() * scale) / 2f;
             offsetY = (h - screenH() * scale) / 2f;
 
+            float screenRight = offsetX + screenW() * scale;
+            float screenBottom = offsetY + screenH() * scale;
             paint.setStyle(Paint.Style.FILL);
             paint.setColor(0xFF000000);
-            c.drawRect(offsetX, offsetY, offsetX + screenW() * scale,
-                    offsetY + screenH() * scale, paint);
+            c.drawRect(offsetX, offsetY, screenRight, screenBottom, paint);
+            drawBackdrop(c, screenRight, screenBottom);
 
             for (int i = 0; i < boxes.size(); i++) {
                 LayoutBox box = boxes.get(i);
@@ -278,6 +323,43 @@ public final class LayoutEditorActivity extends Activity {
                             paint);
                 }
             }
+        }
+
+        /**
+         * The background picture inside the screen rectangle, placed as the clock would place it.
+         *
+         * Through {@link com.reteclock.core.ImageFit}, the same arithmetic the clock draws with, so
+         * what is cropped here is what will be cropped there. Then a veil over it: the boxes are
+         * thin outlines with small labels, and a photograph is not obliged to be dark enough for
+         * them to be read against. Losing a little of the picture's brightness is the cost of the
+         * editor still being an editor.
+         */
+        private void drawBackdrop(Canvas c, float right, float bottom) {
+            if (backdropPicture == null || backdropPicture.isRecycled()) {
+                return;
+            }
+            float w = right - offsetX;
+            float h = bottom - offsetY;
+            com.reteclock.core.ImageFit.Placement placement = com.reteclock.core.ImageFit.of(
+                    Math.round(w), Math.round(h),
+                    backdropPicture.getWidth(), backdropPicture.getHeight(),
+                    Settings.backgroundFit(LayoutEditorActivity.this));
+            if (placement == null) {
+                return;
+            }
+            int saved = c.save();
+            c.clipRect(offsetX, offsetY, right, bottom);
+            source.set(0, 0, backdropPicture.getWidth(), backdropPicture.getHeight());
+            target.set(0f, 0f,
+                    backdropPicture.getWidth() * placement.scaleX,
+                    backdropPicture.getHeight() * placement.scaleY);
+            target.offset(offsetX + placement.dx, offsetY + placement.dy);
+            paint.setFilterBitmap(true);
+            c.drawBitmap(backdropPicture, source, target, paint);
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(BACKDROP_VEIL);
+            c.drawRect(offsetX, offsetY, right, bottom, paint);
+            c.restoreToCount(saved);
         }
 
         @Override

@@ -1543,16 +1543,7 @@ public class SettingsActivity extends Activity {
     }
 
     private String firstBackgroundName() {
-        ImageRoles.Lists roles = Settings.roles(this);
-        List<FontLibrary.Entry> entries = Settings.orderedImages(this);
-        for (FontLibrary.Entry entry : entries) {
-            if (ImageRoles.roleOf(roles, entry.name) == ImageRoles.BACKGROUND) {
-                return entry.name;
-            }
-        }
-        // Nothing has the role yet — which is exactly when somebody is deciding what to give it.
-        // The first picture in the list stands in, so the fit can be judged before the choice.
-        return entries.isEmpty() ? "" : entries.get(0).name;
+        return Settings.firstBackgroundName(this);
     }
 
     /** One picture, larger, on both screens, with the fit it will actually be given. */

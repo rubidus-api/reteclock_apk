@@ -97,6 +97,7 @@
     <string name="layout_edit">Edit</string>
     <string name="layout_edit_portrait">%1$s — upright</string>
     <string name="layout_edit_landscape">%1$s — sideways</string>
+    <string name="layout_edit_backdrop">Show the background</string>
     <string name="layout_edit_fields">Fields</string>
     <string name="layout_edit_undo">Undo</string>
     <string name="layout_edit_save">Done</string>
@@ -121,6 +122,7 @@
     <string name="layout_same_size">Same size</string>
     <string name="layout_fields_title">Fields</string>
     <string name="layout_fields_note">Fonts and decorations are not here: they are on the Fonts page and apply wherever a field is drawn, in every layout. A hidden box keeps its place for when it comes back.</string>
+    <string name="layout_field_stack">The order here is the order they lie in: the top of the list is in front, the bottom is underneath. Use ▲ and ▼ when two fields overlap.</string>
     <string name="layout_field_add">Put a field on this layout…</string>
     <string name="layout_field_all_there">Every field is already on this layout.</string>
     <string name="layout_field_remove">Remove</string>
