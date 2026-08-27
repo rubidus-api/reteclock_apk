@@ -1,0 +1,9 @@
+Added: the layout editor shows your background. The boxes are arranged over the
+picture the clock will actually draw, at the fit it will use, so what is cropped
+in the editor is what will be cropped on the clock. It is dimmed a little so the
+thin outlines stay readable, and a tick under the canvas turns it off when a busy
+picture gets in the way.
+
+Added: the Fields list is the order the boxes lie in. Each field now has arrows to
+move it up and down: the top of the list is in front, the bottom is underneath. If
+two boxes overlap, this is what decides which one covers the other.
