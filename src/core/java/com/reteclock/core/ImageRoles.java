@@ -63,6 +63,30 @@ public final class ImageRoles {
         return NONE;
     }
 
+    /**
+     * The picture standing for "the background" when only one can be shown.
+     *
+     * A show can hold many, and the clock walks them; a preview or an editor's canvas has room for
+     * one. The first background in the pool's own order is that one — it is the next to be shown,
+     * and so the one somebody arranging a screen is most likely to have in mind.
+     *
+     * When nothing has the role, the first picture of all stands in: whoever is looking is deciding
+     * what to give the role to, and a preview of nothing helps with nothing. Empty when the pool is.
+     *
+     * @param ordered the pool's names in the order the user sorted them
+     */
+    public static String firstBackground(Lists lists, List<String> ordered) {
+        if (ordered == null || ordered.isEmpty()) {
+            return "";
+        }
+        for (int i = 0; i < ordered.size(); i++) {
+            if (roleOf(lists, ordered.get(i)) == BACKGROUND) {
+                return ordered.get(i);
+            }
+        }
+        return ordered.get(0);
+    }
+
     /** These lists with a renamed image keeping its role and its place. */
     public static Lists renamed(Lists lists, String oldName, String newName) {
         return new Lists(replaced(lists.background, oldName, newName),

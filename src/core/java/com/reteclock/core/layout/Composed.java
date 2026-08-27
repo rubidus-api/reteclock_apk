@@ -25,6 +25,10 @@ public final class Composed {
     /**
      * The layout these boxes come to on a screen of this size, or null when there are no boxes.
      *
+     * The order of the boxes is the order they lie in: the first covers the second, and the last is
+     * underneath everything. That is the order the fields list shows and moves them in, so what is
+     * at the top of that list is what is in front on the screen.
+     *
      * @param metrics how the caller measures glyphs — the view's own paint, as everywhere else
      */
     public static ClockLayout of(List<LayoutBox> boxes, int screenW, int screenH,
@@ -63,6 +67,14 @@ public final class Composed {
             separators.add(partSeparators);
             rects.add(placed.rect);
         }
+
+        // The list's order is the order they lie in, first on top — so the last one drawn has to be
+        // the first one listed. The renderer paints slots in the order it is given them and nothing
+        // else decides what covers what, so reversing here is the whole of the feature.
+        java.util.Collections.reverse(roles);
+        java.util.Collections.reverse(fields);
+        java.util.Collections.reverse(separators);
+        java.util.Collections.reverse(rects);
 
         return ClockLayout.composed(wide, options,
                 roles.toArray(new String[roles.size()]),
