@@ -1085,6 +1085,9 @@ public class SettingsActivity extends Activity {
      */
     private void rebuildImageSection() {
         imageSection.removeAllViews();
+        // The old previews go with the views they were in; holding them would be holding bitmaps
+        // for rows nobody can see.
+        livePreviews.clear();
         // Whatever just changed — an import, a deletion, a rename — the baked files follow it.
         prepareImages();
 
@@ -1164,6 +1167,10 @@ public class SettingsActivity extends Activity {
                         public void onNothingSelected(AdapterView<?> parent) {
                         }
                     }));
+            final ImagePreviewView fitPreview = new ImagePreviewView(this, dp(64));
+            fitPreview.show(Thumbnails.of(this, firstBackgroundName()),
+                    Settings.backgroundFit(this));
+            livePreviews.add(fitPreview);
             imageSection.addView(spinner(FIT_LABELS,
                     fitIndex(Settings.backgroundFit(this)),
                     new AdapterView.OnItemSelectedListener() {
@@ -1171,12 +1178,19 @@ public class SettingsActivity extends Activity {
                         public void onItemSelected(AdapterView<?> parent, View view, int position,
                                 long id) {
                             Settings.setBackgroundFit(SettingsActivity.this, FIT_MODES[position]);
+                            // The previews answer the spinner rather than waiting for the clock:
+                            // which fit is wanted is a question about a particular picture, and
+                            // trying six of them by leaving the settings screen six times is how
+                            // the question came to be asked in the first place (issue #48).
+                            repreviewAll(FIT_MODES[position]);
                         }
 
                         @Override
                         public void onNothingSelected(AdapterView<?> parent) {
                         }
                     }));
+            imageSection.addView(fitPreview);
+            imageSection.addView(footer(getString(R.string.settings_fit_preview_note)));
 
             CheckBox fade = new CheckBox(this);
             fade.setText(R.string.settings_background_fade);
@@ -1311,6 +1325,7 @@ public class SettingsActivity extends Activity {
         List<String> arrangement = Settings.backgroundCustomOrder(this);
         for (String name : new ArrayList<String>(selectedImages)) {
             store.delete(name);
+            Thumbnails.forget(this, name);
             lists = ImageRoles.removed(lists, name);
             arrangement.remove(name);
         }
@@ -1382,6 +1397,24 @@ public class SettingsActivity extends Activity {
             }
         });
         row.addView(column);
+
+        // What it will look like as a background, upright and turned. Small here, and larger when
+        // it is pressed: the row is for recognising a picture, the dialog for judging one.
+        ImagePreviewView preview = new ImagePreviewView(this, dp(30));
+        // A width of its own rather than whatever the name leaves over: the pair is nearly two and
+        // a half times as wide as it is tall, and a preview squeezed narrower than that is a
+        // preview of nothing.
+        preview.setLayoutParams(new LinearLayout.LayoutParams(dp(76), dp(32)));
+        preview.show(Thumbnails.of(this, entry.name), Settings.backgroundFit(this));
+        livePreviews.add(preview);
+        preview.setClickable(true);
+        preview.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showPreview(entry.name);
+            }
+        });
+        row.addView(preview);
 
         row.addView(iconButton("▲", position > 0, moveListener(position, -1)));
         row.addView(iconButton("▼", position < count - 1, moveListener(position, +1)));
@@ -1487,6 +1520,9 @@ public class SettingsActivity extends Activity {
             return;
         }
         if (!stored.equals(name)) {
+            // The thumbnail is named after the picture, so a rename leaves one nobody will ask for
+            // again. It is only a cache, but a cache that never empties is a leak with a nice name.
+            Thumbnails.forget(this, name);
             Settings.saveRoles(this, ImageRoles.renamed(Settings.roles(this), name, stored));
             List<String> arrangement = Settings.backgroundCustomOrder(this);
             int at = arrangement.indexOf(name);
@@ -1499,6 +1535,54 @@ public class SettingsActivity extends Activity {
             }
         }
         rebuildImageSection();
+    }
+
+    /**
+     * Which picture the fit preview shows: the first that serves as a background.
+     *
+     * The fit is one setting for all of them, so any of them would do to show what it does; the
+     * first is the one whose turn is next, and so the one somebody is most likely to be looking at.
+     */
+    /**
+     * The previews now on screen, so a change of fit reaches all of them at once.
+     *
+     * Rebuilding the whole section would do it too, but the fit is chosen from a spinner inside
+     * that section, and a spinner that rebuilds its own parent while answering a selection is a
+     * spinner that answers again. Holding the views is the quieter of the two.
+     */
+    private final List<ImagePreviewView> livePreviews = new ArrayList<ImagePreviewView>();
+
+    /** Shows every preview at this fit: the rows, and the large one under the spinner. */
+    private void repreviewAll(int fitMode) {
+        for (int i = 0; i < livePreviews.size(); i++) {
+            ImagePreviewView view = livePreviews.get(i);
+            view.show(view.picture(), fitMode);
+        }
+    }
+
+    private String firstBackgroundName() {
+        ImageRoles.Lists roles = Settings.roles(this);
+        List<FontLibrary.Entry> entries = Settings.orderedImages(this);
+        for (FontLibrary.Entry entry : entries) {
+            if (ImageRoles.roleOf(roles, entry.name) == ImageRoles.BACKGROUND) {
+                return entry.name;
+            }
+        }
+        // Nothing has the role yet — which is exactly when somebody is deciding what to give it.
+        // The first picture in the list stands in, so the fit can be judged before the choice.
+        return entries.isEmpty() ? "" : entries.get(0).name;
+    }
+
+    /** One picture, larger, on both screens, with the fit it will actually be given. */
+    private void showPreview(String imageName) {
+        ImagePreviewView preview = new ImagePreviewView(this, dp(140));
+        preview.show(Thumbnails.of(this, imageName), Settings.backgroundFit(this));
+        preview.setPadding(dp(12), dp(12), dp(12), dp(12));
+        new AlertDialog.Builder(this)
+                .setTitle(imageName)
+                .setView(preview)
+                .setPositiveButton(android.R.string.ok, null)
+                .show();
     }
 
     /** The names in the order the screen and the shows all use right now. */
