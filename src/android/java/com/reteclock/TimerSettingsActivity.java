@@ -12,6 +12,7 @@ import android.text.InputType;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
+import android.content.Intent;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
@@ -24,6 +25,7 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.reteclock.core.TimerLogSpace;
 import com.reteclock.core.ColorText;
 import com.reteclock.core.TimeInput;
 import com.reteclock.core.TimerInterval;
@@ -60,6 +62,11 @@ public class TimerSettingsActivity extends Activity {
         0xFF66BB6A, 0xFF4DB6AC, 0xFF4DD0E1, 0xFF64B5F6, 0xFF7986CB,
         0xFF9575CD, 0xFFF06292, 0xFF8D6E63, 0xFFE0E0E0, 0xFF616161,
     };
+
+    /** Where the export's "where shall I put it" comes back to. */
+    private static final int REQUEST_SAVE_LOG = 7301;
+    /** The line saying how much of the phone the log is using. */
+    private TextView logKeptLine;
 
     /** The preset whose intervals are open, or -1 when the list is closed. */
     private int openPreset = -1;
@@ -164,6 +171,9 @@ public class TimerSettingsActivity extends Activity {
                 }));
         sets.addView(footer(getString(R.string.timer_preset_note)));
         root.addView(sets);
+
+        // ---- The log ----
+        root.addView(logCard());
 
         rebuildPresets();
 
@@ -799,6 +809,222 @@ public class TimerSettingsActivity extends Activity {
         heading.setPadding(0, 0, 0, dp(6));
         outer.addView(heading);
         return outer;
+    }
+
+    /**
+     * Keeping a log: whether, how much of the phone it may have, and the two ways out of it.
+     *
+     * The whole of it is on this one screen because that is where the L on the timer strip leads:
+     * noticing that runs are being written down and turning it off are one gesture apart.
+     */
+    private LinearLayout logCard() {
+        LinearLayout card = card(getString(R.string.timer_card_log));
+
+        final CheckBox keep = new CheckBox(this);
+        keep.setText(R.string.timer_log_keep);
+        keep.setTextColor(TEXT_WHITE);
+        keep.setChecked(Settings.timerLogKept(this));
+        keep.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                Settings.setTimerLogKept(TimerSettingsActivity.this, checked);
+            }
+        });
+        card.addView(keep);
+        card.addView(footer(getString(R.string.timer_log_note)));
+        card.addView(footer(getString(R.string.timer_log_privacy)));
+
+        // The two numbers on one line, because neither means anything without the other.
+        card.addView(subheading(getString(R.string.timer_log_size_ceiling) + "   /   "
+                + getString(R.string.timer_log_size_floor)));
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        final EditText ceiling = megabytes(row, Settings.timerLogCeilingMb(this));
+        final EditText floor = megabytes(row, Settings.timerLogFloorMb(this));
+        row.addView(actionButton(getString(R.string.timer_log_size_set),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Settings.setTimerLogSize(TimerSettingsActivity.this,
+                                wholeNumber(ceiling, TimerLogSpace.DEFAULT_CEILING_MB),
+                                wholeNumber(floor, TimerLogSpace.DEFAULT_FLOOR_MB));
+                        // Shown back as they will actually be used: a floor typed above its
+                        // ceiling comes back below it, rather than being quietly disobeyed.
+                        ceiling.setText(Integer.toString(
+                                Settings.timerLogCeilingMb(TimerSettingsActivity.this)));
+                        floor.setText(Integer.toString(
+                                Settings.timerLogFloorMb(TimerSettingsActivity.this)));
+                        refreshLogSize();
+                    }
+                }));
+        card.addView(row);
+        card.addView(footer(getString(R.string.timer_log_size_note)));
+
+        logKeptLine = footer("");
+        card.addView(logKeptLine);
+        refreshLogSize();
+
+        card.addView(actionButton(getString(R.string.timer_log_export),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        exportLog();
+                    }
+                }));
+        card.addView(actionButton(getString(R.string.timer_log_delete),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        new AlertDialog.Builder(TimerSettingsActivity.this)
+                                .setTitle(R.string.timer_log_delete)
+                                .setMessage(R.string.timer_log_delete_ask)
+                                .setPositiveButton(R.string.timer_log_delete_yes,
+                                        new DialogInterface.OnClickListener() {
+                                            @Override
+                                            public void onClick(DialogInterface d, int which) {
+                                                TimerLog.deleteAll(TimerSettingsActivity.this);
+                                                refreshLogSize();
+                                                toast(getString(R.string.timer_log_deleted));
+                                            }
+                                        })
+                                .setNegativeButton(android.R.string.cancel, null)
+                                .show();
+                    }
+                }));
+        return card;
+    }
+
+    /** One small box holding a whole number of megabytes. */
+    private EditText megabytes(LinearLayout row, int value) {
+        EditText field = new EditText(this);
+        field.setText(Integer.toString(value));
+        field.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        // No colour is set: an edit box brings the platform's own light background with it, and
+        // this screen's white on that is white on white.
+        field.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f);
+        field.setLayoutParams(new LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        row.addView(field);
+        return field;
+    }
+
+    private static int wholeNumber(EditText field, int fallback) {
+        try {
+            return Integer.parseInt(field.getText().toString().trim());
+        } catch (NumberFormatException notANumber) {
+            return fallback;
+        }
+    }
+
+    /** How much of the phone the log is using, in the plainest words that will say it. */
+    private void refreshLogSize() {
+        if (logKeptLine == null) {
+            return;
+        }
+        long bytes = TimerLog.bytesKept(this);
+        String size;
+        if (bytes >= 1024L * 1024L) {
+            size = (bytes / (1024L * 1024L)) + " MB";
+        } else if (bytes >= 1024L) {
+            size = (bytes / 1024L) + " KB";
+        } else {
+            size = bytes + " B";
+        }
+        logKeptLine.setText(getString(R.string.timer_log_kept, size));
+    }
+
+    /**
+     * Writes the whole log out as one zip.
+     *
+     * The same two roads as the settings export: the system's own "where shall I put it" on KitKat
+     * and later, and sharing the file on anything older, which is the only way off a 2011 phone
+     * that does not ask for the whole of external storage.
+     */
+    private void exportLog() {
+        if (TimerLog.isEmpty(this)) {
+            toast(getString(R.string.timer_log_export_empty));
+            return;
+        }
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
+            Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("application/zip");
+            intent.putExtra(Intent.EXTRA_TITLE, TimerLog.exportName());
+            try {
+                startActivityForResult(intent, REQUEST_SAVE_LOG);
+                return;
+            } catch (android.content.ActivityNotFoundException noPicker) {
+                // Falls through to sharing a copy, which is all an old phone can do.
+            }
+        }
+        shareLog();
+    }
+
+    /** Puts a copy where another app can reach it, and hands it over. */
+    private void shareLog() {
+        java.io.File copy = new java.io.File(getExternalFilesDir(null), TimerLog.exportName());
+        java.io.OutputStream out = null;
+        try {
+            out = new java.io.FileOutputStream(copy);
+            TimerLog.exportTo(this, out);
+        } catch (java.io.IOException cannotWrite) {
+            toast(getString(R.string.timer_log_export_failed));
+            return;
+        } catch (RuntimeException cannotWrite) {
+            toast(getString(R.string.timer_log_export_failed));
+            return;
+        } finally {
+            if (out != null) {
+                try {
+                    out.close();
+                } catch (java.io.IOException ignored) {
+                    // Nothing useful to do about a file that will not close.
+                }
+            }
+        }
+        Intent share = new Intent(Intent.ACTION_SEND);
+        share.setType("application/zip");
+        share.putExtra(Intent.EXTRA_SUBJECT, copy.getName());
+        share.putExtra(Intent.EXTRA_STREAM, android.net.Uri.fromFile(copy));
+        try {
+            startActivity(Intent.createChooser(share, getString(R.string.timer_log_export)));
+        } catch (android.content.ActivityNotFoundException nothingToShareWith) {
+            toast(getString(R.string.timer_log_export_failed));
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != REQUEST_SAVE_LOG || resultCode != RESULT_OK || data == null
+                || data.getData() == null) {
+            return;
+        }
+        java.io.OutputStream out = null;
+        try {
+            out = getContentResolver().openOutputStream(data.getData());
+            if (out == null) {
+                throw new java.io.IOException("cannot write " + data.getData());
+            }
+            TimerLog.exportTo(this, out);
+            toast(getString(R.string.timer_log_export_done));
+        } catch (java.io.IOException cannotWrite) {
+            toast(getString(R.string.timer_log_export_failed));
+        } catch (RuntimeException cannotWrite) {
+            toast(getString(R.string.timer_log_export_failed));
+        } finally {
+            if (out != null) {
+                try {
+                    out.close();
+                } catch (java.io.IOException ignored) {
+                    // Nothing useful to do about a file that will not close.
+                }
+            }
+        }
+    }
+
+    private void toast(String message) {
+        android.widget.Toast.makeText(this, message, android.widget.Toast.LENGTH_SHORT).show();
     }
 
     private TextView subheading(String text) {

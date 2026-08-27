@@ -23,6 +23,15 @@ public final class TimerBar {
     public static final int CONTROL_PAUSE = 1;
     public static final int CONTROL_STOP = 2;
     public static final int CONTROL_HOURGLASS = 3;
+    /**
+     * The capital L that says the log is being kept — nearest the bar, on play's left.
+     *
+     * It is last in this list and first on the strip, because it is not one of the timer's own
+     * controls: it appears only while runs are being written down, and pressing it opens the screen
+     * where that is turned off. A recording that leaves no mark on the screen is a recording
+     * somebody can forget is happening. See RFC-0006.
+     */
+    public static final int CONTROL_LOG = 4;
     private static final int CONTROLS = 4;
 
     /**
@@ -53,12 +62,16 @@ public final class TimerBar {
     private final float breadth;
     private final boolean horizontal;
     private final float controlSize;
+    /** Whether the log's L has a place on the strip: one control more, and one control less bar. */
+    private final boolean logShown;
 
-    private TimerBar(float length, float breadth, boolean horizontal, float controlSize) {
+    private TimerBar(float length, float breadth, boolean horizontal, float controlSize,
+            boolean logShown) {
         this.length = length;
         this.breadth = breadth;
         this.horizontal = horizontal;
         this.controlSize = controlSize;
+        this.logShown = logShown;
     }
 
     /**
@@ -66,13 +79,27 @@ public final class TimerBar {
      * false is the landscape one, up the left.
      */
     public static TimerBar of(int width, int height, boolean horizontal) {
+        return of(width, height, horizontal, false);
+    }
+
+    /**
+     * A strip of this size, with the log's L on it or without.
+     *
+     * With it, the bar is one control shorter — which is the whole of what "the bar gets shorter"
+     * means: the controls are laid out from the far end, so adding one moves where the bar has to
+     * stop and nothing else needs to know.
+     */
+    public static TimerBar of(int width, int height, boolean horizontal, boolean logShown) {
         float length = horizontal ? width : height;
         float breadth = horizontal ? height : width;
         // Square controls, at most as large as the strip is broad — and between them never more
-        // than a third of its length, because the bar is what the strip is for.
+        // than a third of its length, because the bar is what the strip is for. The count here is
+        // always four, even when the L makes five: sizing by the count would shrink every control
+        // to keep the same total, and the bar would not get shorter at all — which is the one thing
+        // the L is supposed to cost. It borrows a control's width; it does not squeeze the others.
         float control = Math.min(breadth, length * CONTROLS_SHARE / CONTROLS);
         return new TimerBar(Math.max(length, 1f), Math.max(breadth, 1f), horizontal,
-                Math.max(control, 1f));
+                Math.max(control, 1f), logShown);
     }
 
     /** Whether this is the portrait arrangement, laid out along x. */
@@ -81,7 +108,26 @@ public final class TimerBar {
     }
 
     public int controlCount() {
-        return CONTROLS;
+        return logShown ? CONTROLS + 1 : CONTROLS;
+    }
+
+    /** Whether the log's L is on this strip. */
+    public boolean isLogShown() {
+        return logShown;
+    }
+
+    /**
+     * Where a control sits in the row, counting from the bar outwards.
+     *
+     * The L takes the place nearest the bar and everything else moves one along, which is what "on
+     * play's left" means in portrait and "below play" means in landscape — the same slot either way
+     * up, since the strip is always measured from the end the bar fills from.
+     */
+    private int slotOf(int control) {
+        if (!logShown) {
+            return control;
+        }
+        return control == CONTROL_LOG ? 0 : control + 1;
     }
 
     /** How thick the bar is drawn, across the strip. */
@@ -141,13 +187,14 @@ public final class TimerBar {
 
     /** The middle of one control, along the strip: play nearest the bar, the hourglass furthest. */
     public float controlCenter(int index) {
-        int at = index < 0 ? 0 : index >= CONTROLS ? CONTROLS - 1 : index;
-        return length - controlSize * (CONTROLS - at - 0.5f);
+        int count = controlCount();
+        int wanted = index < 0 ? 0 : index >= count ? count - 1 : index;
+        return length - controlSize * (count - slotOf(wanted) - 0.5f);
     }
 
     /** Which control a touch at this point along the strip is on, or -1 for none. */
     public int controlAt(float along) {
-        for (int i = 0; i < CONTROLS; i++) {
+        for (int i = 0; i < controlCount(); i++) {
             if (Math.abs(along - controlCenter(i)) <= controlSize / 2f) {
                 return i;
             }
@@ -162,7 +209,7 @@ public final class TimerBar {
 
     /** Where the bar ends: short of the controls, beside which the remaining time is written. */
     public float barEnd() {
-        return Math.max(length - controlSize * CONTROLS, 0f);
+        return Math.max(length - controlSize * controlCount(), 0f);
     }
 
     /** How far along the bar a progress of 0..1 reaches. */

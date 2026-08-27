@@ -50,6 +50,14 @@ public final class Settings {
     public static final String KEY_TIMER_ALERT = "timer_alert";
     public static final String KEY_STAY_UNLOCKED = "stay_unlocked";
     public static final String KEY_TIMER_HIDDEN = "timer_hidden";
+    /** Whether runs are written down — off unless somebody turns it on. See RFC-0006. */
+    public static final String KEY_TIMER_LOG = "timer_log";
+    /** When the remembered run began, by the wall clock, and which ending is already written. */
+    public static final String KEY_RUN_STARTED = "run_started";
+    public static final String KEY_RUN_LOGGED = "run_logged";
+    /** How much of the phone the log may have, and how far a trim goes, in whole megabytes. */
+    public static final String KEY_TIMER_LOG_CEILING = "timer_log_ceiling_mb";
+    public static final String KEY_TIMER_LOG_FLOOR = "timer_log_floor_mb";
     public static final String KEY_CALENDAR_ON = "calendar_on";
     public static final String KEY_CALENDAR_MONDAY = "calendar_week_monday";
     public static final String KEY_CALENDAR_HEADER = "calendar_header";
@@ -217,6 +225,9 @@ public final class Settings {
         out.put(KEY_TIMER_ALERT, Integer.valueOf(timerAlert(context)));
         out.put(KEY_TIMER_PRESETS,
                 com.reteclock.core.TimerPresets.toText(timerPresets(context)));
+        out.put(KEY_TIMER_LOG, Boolean.valueOf(timerLogKept(context)));
+        out.put(KEY_TIMER_LOG_CEILING, Integer.valueOf(timerLogCeilingMb(context)));
+        out.put(KEY_TIMER_LOG_FLOOR, Integer.valueOf(timerLogFloorMb(context)));
 
         out.put(KEY_CALENDAR_ON, Boolean.valueOf(calendarOn(context)));
         out.put(KEY_CALENDAR_HEADER, Integer.valueOf(calendarHeaderStyle(context)));
@@ -630,13 +641,79 @@ public final class Settings {
         prefs(context).edit().putBoolean(KEY_TIMER_HIDDEN, hidden).commit();
     }
 
+    /**
+     * Whether the timer writes down what it did.
+     *
+     * Off unless it is turned on. A record of when somebody was at home and what they were doing is
+     * personal information, and personal information is not something an app starts keeping because
+     * a version arrived that could.
+     */
+    public static boolean timerLogKept(Context context) {
+        return prefs(context).getBoolean(KEY_TIMER_LOG, false);
+    }
+
+    public static void setTimerLogKept(Context context, boolean kept) {
+        prefs(context).edit().putBoolean(KEY_TIMER_LOG, kept).commit();
+    }
+
+    /** The log's ceiling in whole megabytes, as {@link com.reteclock.core.TimerLogSpace} takes it. */
+    public static int timerLogCeilingMb(Context context) {
+        return com.reteclock.core.TimerLogSpace.ceilingMb(prefs(context).getInt(
+                KEY_TIMER_LOG_CEILING, com.reteclock.core.TimerLogSpace.DEFAULT_CEILING_MB));
+    }
+
+    /** How far down a trim goes, in whole megabytes; always kept below the ceiling. */
+    public static int timerLogFloorMb(Context context) {
+        return com.reteclock.core.TimerLogSpace.floorMb(
+                prefs(context).getInt(KEY_TIMER_LOG_FLOOR,
+                        com.reteclock.core.TimerLogSpace.DEFAULT_FLOOR_MB),
+                prefs(context).getInt(KEY_TIMER_LOG_CEILING,
+                        com.reteclock.core.TimerLogSpace.DEFAULT_CEILING_MB));
+    }
+
+    /** Both numbers at once, because a floor is only meaningful against its own ceiling. */
+    public static void setTimerLogSize(Context context, int ceilingMb, int floorMb) {
+        int ceiling = com.reteclock.core.TimerLogSpace.ceilingMb(ceilingMb);
+        prefs(context).edit()
+                .putInt(KEY_TIMER_LOG_CEILING, ceiling)
+                .putInt(KEY_TIMER_LOG_FLOOR,
+                        com.reteclock.core.TimerLogSpace.floorMb(floorMb, ceiling))
+                .commit();
+    }
+
     public static void rememberRun(Context context, String identity, long originMs,
-            long pausedAtMs) {
+            long pausedAtMs, long startEpochMs) {
         prefs(context).edit()
                 .putString(KEY_RUN_PRESET, identity)
                 .putLong(KEY_RUN_ORIGIN, originMs)
                 .putLong(KEY_RUN_PAUSED_AT, pausedAtMs)
+                .putLong(KEY_RUN_STARTED, startEpochMs)
                 .commit();
+    }
+
+    /**
+     * When the remembered run began, by the wall clock.
+     *
+     * Kept beside the run rather than worked out from it: the run's own origin moves forward every
+     * time somebody pauses, so subtracting it from the present would say a run that was paused for
+     * ten minutes began ten minutes later than it did.
+     */
+    public static long runStarted(Context context) {
+        return prefs(context).getLong(KEY_RUN_STARTED, 0L);
+    }
+
+    /**
+     * The last run written into the log, named so the same one is not written twice.
+     *
+     * A finished run stays on the strip, and every view the screen builds afterwards notices it
+     * has finished — so the screen has to know which endings it has already heard about.
+     */
+    public static boolean runAlreadyLogged(Context context, String stamp) {
+        return prefs(context).getString(KEY_RUN_LOGGED, "").equals(stamp);
+    }
+
+    public static void markRunLogged(Context context, String stamp) {
+        prefs(context).edit().putString(KEY_RUN_LOGGED, stamp).commit();
     }
 
     public static void forgetRun(Context context) {

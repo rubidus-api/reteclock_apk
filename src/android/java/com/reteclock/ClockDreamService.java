@@ -74,7 +74,7 @@ public class ClockDreamService extends DreamService {
         timer = new TimerView(this);
         timer.setListener(dreamListener);
         timer.setPreset(running.preset());
-        timer.adopt(running);
+        timer.adopt(running, Settings.runStarted(this));
 
         int strip = stripThickness();
         row.addView(timer, landscape
@@ -116,15 +116,28 @@ public class ClockDreamService extends DreamService {
      */
     private final TimerView.Listener dreamListener = new TimerView.Listener() {
         @Override
-        public void remember(TimerRun run) {
+        public void remember(TimerRun run, long startEpochMs) {
             if (run == null) {
                 Settings.forgetRun(ClockDreamService.this);
             } else {
                 Settings.rememberRun(ClockDreamService.this,
                         TimerMemory.identityOf(timer == null ? null : timer.preset()),
                         TimerMemory.originOf(run, android.os.SystemClock.elapsedRealtime()),
-                        TimerMemory.pausedAtOf(run));
+                        TimerMemory.pausedAtOf(run), startEpochMs);
             }
+        }
+
+        @Override
+        public void runEnded(TimerRun run, long startEpochMs, long elapsedMs) {
+            ClockActivity.logRun(ClockDreamService.this, run, startEpochMs, elapsedMs);
+        }
+
+        /**
+         * The screensaver has no way to open a settings screen — a dream that launched an activity
+         * would be a dream that ended itself — so the L is not put on its strip in the first place.
+         */
+        @Override
+        public void openTimerSettings() {
         }
 
         @Override
