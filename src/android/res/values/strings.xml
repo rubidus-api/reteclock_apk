@@ -209,6 +209,7 @@
     <string name="settings_slide_6h">6 hours</string>
     <string name="settings_slide_day">a day — a different one each morning</string>
     <string name="settings_slide_5m">5 minutes</string>
+    <string name="settings_fit_preview_note">Upright and turned, at the fit chosen above. A picture taller than it is wide has to be stretched or shown from the middle outwards when the phone is turned; this is which. Tap the small preview beside any picture to see it larger.</string>
     <string name="settings_fit_cover">Fill the screen, cropping to keep the shape</string>
     <string name="settings_fit_contain">Show it all, keeping the shape</string>
     <string name="settings_fit_stretch">Stretch to the screen, shape free</string>
