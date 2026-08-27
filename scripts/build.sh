@@ -32,6 +32,18 @@ TARGET_SDK=28
 VERSION=$(sed -n 's/.*android:versionName="\([^"]*\)".*/\1/p' "$ROOT/src/android/AndroidManifest.xml")
 [ -n "$VERSION" ] || fail "cannot read versionName from the manifest"
 
+# A build that is not the app proper carries that in its file name (RFC-0005): a layout-editor
+# build and a release of the clock must never have to be told apart by their date. Set
+# RETECLOCK_VARIANT=layout for reteclock-<version>-layout.apk. A variable rather than a look at the
+# current branch, because a file's name should say what was built, not where it was sitting.
+VARIANT=""
+if [ -n "${RETECLOCK_VARIANT:-}" ]; then
+    case "$RETECLOCK_VARIANT" in
+        *[!a-z0-9-]*) fail "RETECLOCK_VARIANT takes lowercase letters, digits and dashes only" ;;
+    esac
+    VARIANT="-$RETECLOCK_VARIANT"
+fi
+
 MODE=debug
 case "${1:-}" in
     "")         MODE=debug ;;
@@ -107,7 +119,7 @@ echo "==> zipalign"
 "$ZIPALIGN" -f -p 4 "$STAGE/unsigned.apk" "$STAGE/aligned.apk"
 
 if [ "$MODE" = "unsigned" ]; then
-    APK="$ROOT/dist/reteclock-$VERSION-unsigned.apk"
+    APK="$ROOT/dist/reteclock-$VERSION$VARIANT-unsigned.apk"
     cp "$STAGE/aligned.apk" "$APK"
     echo
     echo "built $(basename "$APK") ($(wc -c < "$APK") bytes), unsigned on purpose"
@@ -136,7 +148,7 @@ else
     fi
 fi
 
-APK="$ROOT/dist/reteclock-$VERSION$SUFFIX.apk"
+APK="$ROOT/dist/reteclock-$VERSION$VARIANT$SUFFIX.apk"
 
 # --alignment-preserved keeps the archive exactly as zipalign left it. apksigner from build-tools
 # 35 re-aligns while signing unless told not to, and the v2/v3 signatures cover the whole archive,

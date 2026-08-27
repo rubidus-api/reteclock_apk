@@ -74,6 +74,13 @@ public final class Settings {
     public static final String KEY_MARKERS = "markers";
     /** The order of the date line under a landscape clock (issue #42). */
     public static final String KEY_DATE_ORDER = "date_order";
+    /**
+     * The layouts the user has drawn, and which one is in force (RFC-0005).
+     *
+     * One key rather than one per preset: the book is a single value that has to stay
+     * consistent — a chosen index means nothing without the list it points into.
+     */
+    public static final String KEY_LAYOUTS = "layouts";
     public static final String KEY_NAMES_MONTHS = "names_months_";
     public static final String KEY_NAMES_WEEKDAYS = "names_weekdays_";
     public static final String KEY_HOUR12 = "clock_hour12";
@@ -205,6 +212,7 @@ public final class Settings {
         out.put(KEY_MIDNIGHT_STYLE, Integer.valueOf(midnightStyle(context)));
         out.put(KEY_MARKERS, markers(context).text());
         out.put(KEY_DATE_ORDER, dateOrder(context).text());
+        out.put(KEY_LAYOUTS, layouts(context).text());
         out.put(KEY_PADDING, Integer.valueOf(padding(context).bits()));
 
         out.put(KEY_BACKGROUND_FIT, Integer.valueOf(backgroundFit(context)));
@@ -1290,6 +1298,60 @@ public final class Settings {
      * the third month of the Gregorian one, and somebody who renames both should not have the two
      * fight over one slot.
      */
+    /**
+     * The layouts the user has, with Automatic always first on each shelf (RFC-0005).
+     *
+     * A phone that has never been here gets the starters: the arrangements the app itself draws,
+     * with and without the month grid, one of each for both ways up. They are ordinary presets from
+     * the moment they arrive — movable, renamable, deletable — which is what makes them a starting
+     * point rather than a fifth kind of Automatic.
+     */
+    public static com.reteclock.core.layout.LayoutBook layouts(Context context) {
+        String stored = prefs(context).getString(KEY_LAYOUTS, null);
+        if (stored != null) {
+            return com.reteclock.core.layout.LayoutBook.parse(stored);
+        }
+        com.reteclock.core.layout.LayoutBook seeded = starters(context);
+        setLayouts(context, seeded);
+        return seeded;
+    }
+
+    /** The arrangements this app has always drawn, as presets to start from. */
+    private static com.reteclock.core.layout.LayoutBook starters(Context context) {
+        com.reteclock.core.layout.LayoutBook book =
+                com.reteclock.core.layout.LayoutBook.empty();
+        android.util.DisplayMetrics metrics = context.getResources().getDisplayMetrics();
+        int shorter = Math.min(metrics.widthPixels, metrics.heightPixels);
+        int longer = Math.max(metrics.widthPixels, metrics.heightPixels);
+        ClockOptions plain = options(context).withCalendar(false).withTimeOnly(false);
+        ClockOptions withGrid = plain.withCalendar(true);
+
+        for (int i = 0; i < 2; i++) {
+            boolean landscape = i == 1;
+            int w = landscape ? longer : shorter;
+            int h = landscape ? shorter : longer;
+            book = add(book, context.getString(R.string.layout_starter_clock), landscape,
+                    com.reteclock.core.layout.Builtin.of(w, h, plain));
+            book = add(book, context.getString(R.string.layout_starter_calendar), landscape,
+                    com.reteclock.core.layout.Builtin.of(w, h, withGrid));
+        }
+        return book;
+    }
+
+    private static com.reteclock.core.layout.LayoutBook add(
+            com.reteclock.core.layout.LayoutBook book, String name, boolean landscape,
+            java.util.List<com.reteclock.core.layout.LayoutBox> boxes) {
+        if (boxes == null || boxes.isEmpty()) {
+            return book;
+        }
+        return book.add(com.reteclock.core.layout.LayoutPreset.of(name, landscape, boxes));
+    }
+
+    public static void setLayouts(Context context,
+            com.reteclock.core.layout.LayoutBook book) {
+        prefs(context).edit().putString(KEY_LAYOUTS, book.text()).commit();
+    }
+
     /** How the date line under a wide clock is arranged (issue #42). */
     public static com.reteclock.core.DateOrder dateOrder(Context context) {
         return com.reteclock.core.DateOrder.parse(

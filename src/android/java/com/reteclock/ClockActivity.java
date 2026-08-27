@@ -241,14 +241,29 @@ public class ClockActivity extends Activity {
             // runs the whole width of the screen and the strip sits in it rather than cutting it in
             // two; only the digits keep clear.
             int strip = stripThickness(landscape);
+            // Which side the strip is on. The app's own arrangement puts it down the left when the
+            // phone lies down and across the top when it stands up; a drawn layout may put it on
+            // any of the four, and if it does, that is the layout's business rather than this
+            // method's (RFC-0005, D9).
+            int edge = timerEdge(landscape);
+            boolean vertical = edge == com.reteclock.core.layout.Strips.LEFT
+                    || edge == com.reteclock.core.layout.Strips.RIGHT;
+
             root.addView(view, new FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
-            view.setContentInset(landscape ? strip : 0, landscape ? 0 : strip);
+            view.setContentInset(
+                    edge == com.reteclock.core.layout.Strips.LEFT ? strip : 0,
+                    edge == com.reteclock.core.layout.Strips.TOP ? strip : 0,
+                    edge == com.reteclock.core.layout.Strips.RIGHT ? strip : 0,
+                    edge == com.reteclock.core.layout.Strips.BOTTOM ? strip : 0);
 
-            FrameLayout.LayoutParams band = landscape
+            FrameLayout.LayoutParams band = vertical
                     ? new FrameLayout.LayoutParams(strip, FrameLayout.LayoutParams.MATCH_PARENT)
                     : new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, strip);
-            band.gravity = landscape ? (Gravity.TOP | Gravity.LEFT) : (Gravity.TOP | Gravity.LEFT);
+            band.gravity = (edge == com.reteclock.core.layout.Strips.RIGHT
+                            ? Gravity.RIGHT : Gravity.LEFT)
+                    | (edge == com.reteclock.core.layout.Strips.BOTTOM
+                            ? Gravity.BOTTOM : Gravity.TOP);
             root.addView(timer, band);
         }
 
@@ -269,6 +284,37 @@ public class ClockActivity extends Activity {
             getWindow().addFlags(flags);
         } else if (getIntent() == null || !getIntent().getBooleanExtra(EXTRA_DOCK, false)) {
             getWindow().clearFlags(flags);
+        }
+    }
+
+    /**
+     * Which edge the timer's strip is on: the layout's answer where there is one, or the app's.
+     *
+     * The app's own answer is the one it has always given — down the left lying down, across the
+     * top standing up. A drawn layout can say otherwise, and a broken one says nothing: anything
+     * unreadable falls back, for the same reason the clock's own drawing does.
+     */
+    private int timerEdge(boolean landscape) {
+        int fallback = landscape ? com.reteclock.core.layout.Strips.LEFT
+                : com.reteclock.core.layout.Strips.TOP;
+        if (safeMode) {
+            return fallback;
+        }
+        try {
+            com.reteclock.core.layout.LayoutPreset preset =
+                    Settings.layouts(this).chosen(landscape);
+            if (preset.isAutomatic()) {
+                return fallback;
+            }
+            for (com.reteclock.core.layout.LayoutBox box : preset.boxes()) {
+                if (box.isStrip() && com.reteclock.core.layout.BoxPlan.FIELD_TIMER
+                        .equals(box.field)) {
+                    return box.edge;
+                }
+            }
+            return fallback;
+        } catch (RuntimeException broken) {
+            return fallback;
         }
     }
 

@@ -188,6 +188,15 @@ public class ClockView extends View {
      */
     private int insetLeft;
     private int insetTop;
+    /**
+     * And the far edges, for a strip that is not on the left or the top.
+     *
+     * The timer used to be on the left when the phone lay down and on the top when it stood up, and
+     * two numbers said all there was to say. A drawn layout may put it on any of the four
+     * (RFC-0005, D9), so the clock has to be able to be told about the other two as well.
+     */
+    private int insetRight;
+    private int insetBottom;
 
     /** The sayings, read once from the app's own resources, and which one is showing. */
     private java.util.List<com.reteclock.core.Quotes.Saying> sayings;
@@ -810,11 +819,19 @@ public class ClockView extends View {
      */
     /** Tells the clock how much of itself the timer's strip is covering. */
     void setContentInset(int left, int top) {
-        if (left == insetLeft && top == insetTop) {
+        setContentInset(left, top, 0, 0);
+    }
+
+    /** How much of the view something else is using, on each side. */
+    void setContentInset(int left, int top, int right, int bottom) {
+        if (left == insetLeft && top == insetTop
+                && right == insetRight && bottom == insetBottom) {
             return;
         }
         insetLeft = left;
         insetTop = top;
+        insetRight = right;
+        insetBottom = bottom;
         layout = null;
         plan = null;
         invalidate();
@@ -823,16 +840,56 @@ public class ClockView extends View {
     private void rebuild(int w, int h) {
         // The background is the size of the view; the text is laid out in what the strip leaves.
         refreshSlideForSize(w, h);
-        layout = ClockLayout.of(Math.max(1, w - insetLeft), Math.max(1, h - insetTop), options);
-        // Worked out once with the layout rather than at every tick: it decides the redraw cadence.
-        layoutHasColon = hasColon(layout);
-        plan = layout.plan(new ClockLayout.Metrics() {
+        int usableW = Math.max(1, w - insetLeft - insetRight);
+        int usableH = Math.max(1, h - insetTop - insetBottom);
+        ClockLayout.Metrics metrics = new ClockLayout.Metrics() {
             @Override
             public float width(String role, String text, float textSize) {
                 applyStyle(role, textSize);
                 return paint.measureText(text);
             }
-        });
+        };
+        layout = drawn(usableW, usableH, metrics);
+        if (layout == null) {
+            layout = ClockLayout.of(usableW, usableH, options);
+        }
+        // Worked out once with the layout rather than at every tick: it decides the redraw cadence.
+        layoutHasColon = hasColon(layout);
+        plan = layout.plan(metrics);
+    }
+
+    /**
+     * The layout the user drew for this way up, or null to let the app arrange it (RFC-0005).
+     *
+     * Null covers four cases and they are all the same case: there is no drawn layout to use.
+     * Automatic is chosen; the chosen preset leaves this orientation to the app; the preset draws
+     * nothing at all; or something in it threw. The last one is why this is wrapped: a layout is
+     * data the user typed into, and it may travel here from another phone in a package. A clock
+     * that will not draw because of a file is the one fault the clock face gives no way back from,
+     * so the built-in arrangement is always underneath.
+     */
+    private ClockLayout drawn(int w, int h, ClockLayout.Metrics metrics) {
+        if (safeMode) {
+            // A run that never came back leaves its mark, and this run does not repeat whatever it
+            // was doing. A drawn layout is one of the things it may have been doing: it is the
+            // user's own arithmetic, arriving through a file, in numbers nobody checked by drawing
+            // them. So a safe start is arranged by the app, exactly as it loads no imported
+            // pictures or fonts (R84). The layout is not thrown away — it comes back next time.
+            return null;
+        }
+        try {
+            com.reteclock.core.layout.LayoutPreset preset =
+                    Settings.layouts(getContext()).chosen(w > h);
+            if (preset.isAutomatic()) {
+                return null;
+            }
+            java.util.List<com.reteclock.core.layout.LayoutBox> boxes = preset.boxes();
+            ClockLayout composed = com.reteclock.core.layout.Composed.of(boxes, w, h, options,
+                    metrics);
+            return composed == null || composed.slots().isEmpty() ? null : composed;
+        } catch (RuntimeException broken) {
+            return null;
+        }
     }
 
     @Override
@@ -904,7 +961,8 @@ public class ClockView extends View {
             }
         }
         if (foreground != null) {
-            updateForegroundShader(Math.max(1, w - insetLeft), Math.max(1, h - insetTop),
+            updateForegroundShader(Math.max(1, w - insetLeft - insetRight),
+                    Math.max(1, h - insetTop - insetBottom),
                     textShow == null ? 0L : textShow.frameMs(elapsed));
         }
         paint.setShader(foreground != null ? foregroundShader : null);

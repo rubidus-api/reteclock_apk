@@ -308,21 +308,6 @@ public class SettingsActivity extends Activity {
         // ---- Clock ----
         LinearLayout clock = card(getString(R.string.settings_card_clock));
 
-        // First in the card, because it decides how much of the rest of the card applies: with it
-        // on, the screen is the time and the settings below it are waiting rather than gone.
-        final CheckBox timeOnly = new CheckBox(this);
-        timeOnly.setText(R.string.settings_time_only);
-        timeOnly.setTextColor(TEXT_WHITE);
-        timeOnly.setChecked(Settings.timeOnly(this));
-        timeOnly.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton button, boolean checked) {
-                Settings.setTimeOnly(SettingsActivity.this, checked);
-            }
-        });
-        clock.addView(timeOnly);
-        clock.addView(footer(getString(R.string.settings_time_only_note)));
-
         final CheckBox seconds = new CheckBox(this);
         seconds.setText(R.string.settings_show_seconds);
         seconds.setTextColor(TEXT_WHITE);
@@ -452,19 +437,10 @@ public class SettingsActivity extends Activity {
         clock.addView(colorSection);
         clock.addView(footer(getString(R.string.settings_color_note)));
 
-        clock.addView(subheading(getString(R.string.settings_ratio)));
-        clock.addView(ratioRow(R.string.settings_ratio_wide, Settings.KEY_TIME_PERCENT_WIDE));
-        clock.addView(ratioRow(R.string.settings_ratio_tall, Settings.KEY_TIME_PERCENT_TALL));
-        clock.addView(footer(getString(R.string.settings_ratio_note)));
-
-        // Directly under the two proportions, because it answers the same question about the same
-        // screen: what landscape does with the room the clock does not take (issue #42).
-        clock.addView(subheading(getString(R.string.settings_date_order)));
-        dateOrderList = new LinearLayout(this);
-        dateOrderList.setOrientation(LinearLayout.VERTICAL);
-        clock.addView(dateOrderList);
-        rebuildDateOrder();
-        clock.addView(footer(getString(R.string.settings_date_order_note)));
+        // Where things go — the time alone, the two proportions, the order of the landscape date
+        // line — is not here any more. It is the Layout screen on the main menu (RFC-0005, D7),
+        // beside the layouts the user draws, because those options are the automatic layout's
+        // settings and a second place to answer that question is how issue #44 happened.
         root.addView(clock);
 
         // The fonts, the pictures and the settings file are not linked from here. They are
@@ -890,8 +866,14 @@ public class SettingsActivity extends Activity {
         SettingsPackage.clearStaging(this);
         pendingImport = null;
         rebuildImportSection();
-        toast(getString(R.string.carry_import_done, result.settingsApplied,
-                result.fontsAdded + result.imagesAdded + result.soundsAdded, result.dropped));
+        // Layouts are only mentioned when some arrived: a line about zero of something is a line
+        // about a feature the reader may not have, on a screen they came to for another reason.
+        int files = result.fontsAdded + result.imagesAdded + result.soundsAdded;
+        toast(result.layoutsAdded > 0
+                ? getString(R.string.carry_import_done_layouts, result.settingsApplied, files,
+                        result.dropped, result.layoutsAdded)
+                : getString(R.string.carry_import_done, result.settingsApplied, files,
+                        result.dropped));
     }
 
     /** The picture pool and what each picture is for. */

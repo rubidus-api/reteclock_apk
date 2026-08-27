@@ -97,6 +97,14 @@ final class SettingsPackage {
         final List<Carried> fonts = new ArrayList<Carried>();
         final List<Carried> images = new ArrayList<Carried>();
         final List<Carried> sounds = new ArrayList<Carried>();
+        /**
+         * The layouts the package carried, already read (RFC-0005, D8).
+         *
+         * Held as values rather than staged on disk like the fonts and the pictures: a preset is a
+         * few hundred bytes of text, and there is no version of this that runs a phone out of heap.
+         */
+        final List<com.reteclock.core.layout.LayoutPreset> layouts =
+                new ArrayList<com.reteclock.core.layout.LayoutPreset>();
         /** Entries refused by name, each with the reason, for showing to the user. */
         final List<String> refused = new ArrayList<String>();
         /** Whether this was a package rather than a bare settings file. */
@@ -125,7 +133,7 @@ final class SettingsPackage {
 
         boolean isEmpty() {
             return settings.entries.isEmpty() && fonts.isEmpty() && images.isEmpty()
-                    && sounds.isEmpty();
+                    && sounds.isEmpty() && layouts.isEmpty();
         }
     }
 
@@ -135,6 +143,7 @@ final class SettingsPackage {
         int fontsAdded;
         int imagesAdded;
         int soundsAdded;
+        int layoutsAdded;
         int dropped;
     }
 
@@ -190,8 +199,45 @@ final class SettingsPackage {
             if (files[SOUNDS]) {
                 copyInto(zip, Settings.sounds(context), "sounds/");
             }
+            // The layouts ride with the clock's settings, because that is what they are — the whole
+            // book is already inside settings.ini. These files are the other half of D8: one preset
+            // on its own, so it can be sent to somebody who wants that layout and not your clock.
+            if (sections.contains("clock")) {
+                writeLayouts(zip, context);
+            }
         } finally {
             zip.finish();
+        }
+    }
+
+    /** Every layout the user has drawn, one text file each. Automatic is the app's, not theirs. */
+    private static void writeLayouts(ZipOutputStream zip, Context context) throws IOException {
+        com.reteclock.core.layout.LayoutBook book = Settings.layouts(context);
+        java.util.Set<String> used = new java.util.HashSet<String>();
+        java.util.List<com.reteclock.core.layout.LayoutPreset> all =
+                new ArrayList<com.reteclock.core.layout.LayoutPreset>();
+        for (boolean way : new boolean[] {false, true}) {
+            for (int i = 1; i < book.size(way); i++) {
+                all.add(book.get(way, i));
+            }
+        }
+        for (int i = 0; i < all.size(); i++) {
+            com.reteclock.core.layout.LayoutPreset preset = all.get(i);
+            // Two shelves may hold a layout of the same name, one each way up, so the file name
+            // says which: "Bedside (sideways).txt" and "Bedside.txt" are two files, not one lost.
+            String label = preset.landscape ? preset.name + " (sideways)" : preset.name;
+            String name = com.reteclock.core.layout.LayoutFiles.fileName(label);
+            // Two presets whose names differ only in what a file name may not hold would otherwise
+            // become one file, and the second would silently replace the first.
+            String unique = name;
+            for (int n = 2; used.contains(unique); n++) {
+                unique = com.reteclock.core.layout.LayoutFiles.fileName(label + " " + n);
+            }
+            used.add(unique);
+            zip.putNextEntry(new ZipEntry(
+                    com.reteclock.core.layout.LayoutFiles.FOLDER + unique));
+            zip.write(preset.text().getBytes("UTF-8"));
+            zip.closeEntry();
         }
     }
 
@@ -287,6 +333,8 @@ final class SettingsPackage {
         List<Carried> images = new ArrayList<Carried>();
         List<Carried> sounds = new ArrayList<Carried>();
         List<String> refused = new ArrayList<String>();
+        List<com.reteclock.core.layout.LayoutPreset> layouts =
+                new ArrayList<com.reteclock.core.layout.LayoutPreset>();
         SettingsIni.Reading settings = null;
         ZipEntry entry;
         int seen = 0;
@@ -301,12 +349,34 @@ final class SettingsPackage {
                         new String(readAll(zip, MAX_SETTINGS_BYTES), "UTF-8"));
                 continue;
             }
+            // A layout is text and small, and it is read rather than staged: see Preview.layouts.
+            String layout = com.reteclock.core.layout.LayoutFiles.entryName(path);
+            if (layout != null) {
+                java.util.List<com.reteclock.core.layout.LayoutPreset> found =
+                        com.reteclock.core.layout.LayoutPreset.parseAll(
+                                new String(readAll(zip, MAX_SETTINGS_BYTES), "UTF-8"));
+                if (found.isEmpty()) {
+                    refused.add(layout + " — it holds no layout");
+                } else {
+                    for (int i = 0; i < found.size(); i++) {
+                        com.reteclock.core.layout.LayoutPreset preset = found.get(i);
+                        // A file whose contents forgot to say what it is called is called after the
+                        // file, which is what somebody who wrote one by hand would expect.
+                        layouts.add(
+                                com.reteclock.core.layout.LayoutPreset.UNNAMED.equals(preset.name)
+                                        ? preset.named(com.reteclock.core.layout.LayoutFiles
+                                                .presetName(layout))
+                                        : preset);
+                    }
+                }
+                continue;
+            }
             String font = SafeName.insideFolder(path, FONT_FOLDERS);
             String image = font != null ? null : SafeName.insideFolder(path, IMAGE_FOLDERS);
             String sound = font != null || image != null
                     ? null : SafeName.insideFolder(path, SOUND_FOLDERS);
             if (font == null && image == null && sound == null) {
-                refused.add(path + " — not in fonts/, img/ or sounds/");
+                refused.add(path + " — not in fonts/, img/, sounds/ or layouts/");
                 continue;
             }
             String name = font != null ? font : image != null ? image : sound;
@@ -333,6 +403,7 @@ final class SettingsPackage {
         out.fonts.addAll(fonts);
         out.images.addAll(images);
         out.sounds.addAll(sounds);
+        out.layouts.addAll(layouts);
         out.refused.addAll(refused);
         return out;
     }
@@ -370,6 +441,16 @@ final class SettingsPackage {
             result.soundsAdded = install(Settings.sounds(context), preview.sounds, renamedSounds);
         }
 
+        // Every layout the package carried, whichever way it carried them: as files under layouts/,
+        // and as the book inside settings.ini. They are gathered here and *added* below rather than
+        // written over what is on the phone (D8) — the settings file holds the sender's whole book,
+        // and applying it as a plain setting would delete every layout the receiver had drawn.
+        List<com.reteclock.core.layout.LayoutPreset> arriving =
+                new ArrayList<com.reteclock.core.layout.LayoutPreset>();
+        if (sections.contains("clock")) {
+            arriving.addAll(preview.layouts);
+        }
+
         Set<String> fontNames = names(Settings.fonts(context));
         Set<String> imageNames = names(Settings.images(context));
         Set<String> soundNames = names(Settings.sounds(context));
@@ -381,6 +462,19 @@ final class SettingsPackage {
                 continue;
             }
             String value = entry.value;
+            if (Settings.KEY_LAYOUTS.equals(entry.key)) {
+                // The sender's whole book. Its presets join the ones on this phone; the sender's
+                // choice of which is in force does not, because that is about their clock.
+                com.reteclock.core.layout.LayoutBook theirs =
+                        com.reteclock.core.layout.LayoutBook.parse(value);
+                for (boolean way : new boolean[] {false, true}) {
+                    for (int p = 1; p < theirs.size(way); p++) {
+                        arriving.add(theirs.get(way, p));
+                    }
+                }
+                result.settingsApplied++;
+                continue;
+            }
             if (entry.kind == SettingsIni.STRING && isNameList(entry.key)) {
                 List<String> kept = new ArrayList<String>();
                 String[] lines = value.split("\n");
@@ -438,6 +532,33 @@ final class SettingsPackage {
             }
             result.settingsApplied++;
         }
+        // The layouts, added under free names. Done after the settings loop so that a package
+        // carrying both a book and loose files lands as one merge rather than two.
+        //
+        // A package made by this app carries every drawn layout *twice* — once as a file under
+        // layouts/ and once inside the sender's book in settings.ini — so the same preset arrives by
+        // two roads. Adding both gave "Sent one" and "Sent one 2", which is the merge working
+        // exactly as told and producing nonsense. Identical presets are one preset: compared by
+        // what they say, since that is all a preset is.
+        if (!arriving.isEmpty()) {
+            com.reteclock.core.layout.LayoutBook book = Settings.layouts(context);
+            Set<String> known = new java.util.HashSet<String>();
+            for (boolean way : new boolean[] {false, true}) {
+                for (int i = 0; i < book.size(way); i++) {
+                    known.add(book.get(way, i).text());
+                }
+            }
+            for (int i = 0; i < arriving.size(); i++) {
+                String said = arriving.get(i).text();
+                if (!known.add(said)) {
+                    continue;             // the same layout again, by the other road
+                }
+                book = book.add(arriving.get(i));
+                result.layoutsAdded++;
+            }
+            Settings.setLayouts(context, book);
+        }
+
         // A run belonging to this phone is stopped: the arrangement it was running under has just
         // been replaced underneath it.
         editor.putLong(Settings.KEY_RUN_ORIGIN, com.reteclock.core.TimerMemory.NONE);

@@ -592,6 +592,33 @@ public final class ClockLayout {
                 });
     }
 
+    /**
+     * A layout composed from boxes rather than chosen from the arrangements above (RFC-0005).
+     *
+     * The engine works out where everything goes; this wraps that answer in the shape the drawing
+     * code already consumes, so a composed layout is drawn by exactly the same renderer as a
+     * built-in one — the blink, the marker, the per-field fonts, the burn-in shift and the calendar
+     * all keep working because none of them can tell the difference.
+     *
+     * Taken as arrays rather than as the engine's own types so that this class does not depend on
+     * the layout package: the arrow points one way, and it points here.
+     *
+     * @param rects  one {left, top, width, height} per line, in pixels
+     */
+    public static ClockLayout composed(boolean wide, ClockOptions options, String[] roles,
+            String[][] fields, String[][] separators, float[][] rects,
+            float[] calendarRect, float[] quoteRect) {
+        List<Slot> out = new ArrayList<Slot>(roles.length);
+        for (int i = 0; i < roles.length; i++) {
+            float[] rect = rects[i];
+            out.add(new Slot(roles[i], parts(fields[i], separators[i]),
+                    rect[0] + rect[2] / 2f, rect[1] + rect[3] / 2f, rect[3], rect[2]));
+        }
+        ClockLayout layout = new ClockLayout(wide, out, options, calendarRect);
+        layout.quoteRect = quoteRect;
+        return layout;
+    }
+
     /** Builds the layout for a screen of the given pixel size. */
     public static ClockLayout of(int widthPx, int heightPx, ClockOptions options) {
         // The saying takes a strip off the bottom and the clock lays itself out in what is left,
