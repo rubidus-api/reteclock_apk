@@ -19,11 +19,11 @@ Features
 * Your own pictures, in one pool. Each image is ticked as a background or as the text fill — the digits become a window onto it — or held on hand, unused; a select-all tops each column. The backgrounds take turns: an animated GIF plays through once, a still holds for a time you choose, one cross-fades into the next, and six fit modes cover every shape. The text images cycle on the same rules. Sort by name or date, rename (001, 002 … makes the name sort your order), arrange by hand, or select many and delete together.
 * How much room the time takes is yours: two sliders — its share of the width in landscape, of the height in portrait.
 * Your colours: the text and the background, each from a palette — and never the same colour, so the clock cannot vanish into itself.
-* Settings, opened with a long press on the clock: show seconds, date format, colours, the fonts, images and sliders above, and start-when-charging.
+* Settings, reached from the menu a long press on the clock opens — or with the Menu key, or a remote's centre key held down: show seconds, date format, colours, the fonts, images and sliders above, and start-when-charging.
 
 Built small and plain
 
-Java and the Android framework only. No AndroidX, no support library, no Kotlin runtime, no third-party dependency, a single classes.dex, and an APK well under 100 KB. The only permission is WAKE_LOCK, which is a normal permission and is never requested at runtime.
+Java and the Android framework only. No AndroidX, no support library, no Kotlin runtime, no third-party dependency, a single classes.dex, and an APK of about 480 KB. It holds two normal permissions — WAKE_LOCK, to keep the screen on, and VIBRATE, which only the timer uses. Both are granted at install and neither is ever requested at runtime.
 
 The name
 
