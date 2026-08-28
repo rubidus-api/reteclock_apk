@@ -131,6 +131,9 @@ public class ClockActivity extends Activity {
         // long press. The tap used to open the menu, which cost the clock the one gesture a bedside
         // clock actually wants and, on a phone driven by gestures rather than buttons, put a dialog
         // in the way of every attempt to swipe the app away.
+        // Clickable, but deliberately *not* focusable: this is the whole screen. A focus ring
+        // around the clock face would be a teal rectangle on somebody's bedside table, and the
+        // keys it would catch are already answered by onKeyDown. See KeyRoute and Focusable.
         view.setClickable(true);
         // The calendar's arrows are part of the clock's own face, so a touch is offered to them
         // before it is taken as "open the menu". They exist only while the calendar does.

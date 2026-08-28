@@ -1371,7 +1371,7 @@ public class SettingsActivity extends Activity {
             column.addView(prepared);
         }
 
-        column.setClickable(true);
+        Focusable.make(column);
         column.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -1389,7 +1389,7 @@ public class SettingsActivity extends Activity {
         preview.setLayoutParams(new LinearLayout.LayoutParams(dp(76), dp(32)));
         preview.show(Thumbnails.of(this, entry.name), Settings.backgroundFit(this));
         livePreviews.add(preview);
-        preview.setClickable(true);
+        Focusable.make(preview);
         preview.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -1626,7 +1626,7 @@ public class SettingsActivity extends Activity {
         row.addView(name);
 
         View swatch = swatch(Settings.chosenColor(this, key), dp(30));
-        swatch.setClickable(true);
+        Focusable.make(swatch);
         swatch.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -1679,7 +1679,7 @@ public class SettingsActivity extends Activity {
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(44), dp(44));
             params.setMargins(dp(4), dp(4), dp(4), dp(4));
             swatch.setLayoutParams(params);
-            swatch.setClickable(true);
+            Focusable.make(swatch);
             swatch.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -2447,7 +2447,7 @@ public class SettingsActivity extends Activity {
         states.addState(new int[] {android.R.attr.state_pressed}, pressed);
         states.addState(new int[] {}, resting);
         arrow.setBackgroundDrawable(states);
-        arrow.setClickable(true);
+        Focusable.make(arrow);
         arrow.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -2700,7 +2700,7 @@ public class SettingsActivity extends Activity {
         states.addState(new int[] {android.R.attr.state_pressed}, pressed);
         states.addState(new int[] {}, resting);
         button.setBackgroundDrawable(states);
-        button.setClickable(true);
+        Focusable.make(button);
         button.setOnClickListener(onClick);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);

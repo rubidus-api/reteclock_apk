@@ -575,7 +575,7 @@ public final class LayoutEditorActivity extends Activity {
         view.setPadding(dp(10), dp(12), dp(10), dp(12));
         view.setLayoutParams(new LinearLayout.LayoutParams(0,
                 LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-        view.setClickable(true);
+        Focusable.make(view);
         view.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

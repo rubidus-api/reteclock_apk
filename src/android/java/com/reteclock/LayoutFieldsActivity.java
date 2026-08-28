@@ -205,7 +205,7 @@ public final class LayoutFieldsActivity extends Activity {
             remove.setTextColor(0xFFE57373);
             remove.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f);
             remove.setPadding(dp(10), dp(6), dp(2), dp(6));
-            remove.setClickable(true);
+            Focusable.make(remove);
             remove.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -348,7 +348,7 @@ public final class LayoutFieldsActivity extends Activity {
         add.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT));
-        add.setClickable(true);
+        Focusable.make(add);
         add.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -451,7 +451,7 @@ public final class LayoutFieldsActivity extends Activity {
         view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f);
         view.setPadding(dp(8), dp(6), dp(8), dp(6));
         if (live) {
-            view.setClickable(true);
+            Focusable.make(view);
             view.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -572,7 +572,7 @@ public final class LayoutFieldsActivity extends Activity {
         params.rightMargin = dp(4);
         params.bottomMargin = dp(4);
         button.setLayoutParams(params);
-        button.setClickable(true);
+        Focusable.make(button);
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -729,7 +729,7 @@ public final class LayoutFieldsActivity extends Activity {
                     LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
             params.rightMargin = dp(4);
             button.setLayoutParams(params);
-            button.setClickable(true);
+            Focusable.make(button);
             button.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -839,7 +839,7 @@ public final class LayoutFieldsActivity extends Activity {
         view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f);
         view.setGravity(Gravity.CENTER);
         view.setPadding(dp(8), dp(14), dp(8), dp(8));
-        view.setClickable(true);
+        Focusable.make(view);
         view.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -902,7 +902,7 @@ public final class LayoutFieldsActivity extends Activity {
                     LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
             params.rightMargin = dp(3);
             button.setLayoutParams(params);
-            button.setClickable(true);
+            Focusable.make(button);
             button.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {

@@ -211,7 +211,7 @@ final class ClockMenu {
         states.addState(new int[] {}, resting);
         view.setBackgroundDrawable(states);
 
-        view.setClickable(true);
+        Focusable.make(view);
         view.setOnClickListener(onClick);
         view.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));

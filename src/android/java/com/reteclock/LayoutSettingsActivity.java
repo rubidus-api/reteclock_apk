@@ -412,7 +412,7 @@ public final class LayoutSettingsActivity extends Activity {
         states.addState(new int[] {android.R.attr.state_pressed}, pressed);
         states.addState(new int[] {}, resting);
         view.setBackgroundDrawable(states);
-        view.setClickable(true);
+        Focusable.make(view);
         view.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
