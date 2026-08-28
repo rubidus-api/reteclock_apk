@@ -1,0 +1,18 @@
+Added: reteclock works on Android TV. It appears on the TV home screen with a
+banner of its own, and the remote drives it: the centre key starts the timer and
+stops it again, held down it opens the menu, and up and down dim the screen and
+give it back. Back still belongs to the television.
+
+Added: every button in the app can now be reached with a D-pad, a remote or a
+keyboard, and shows a ring when it is the one being pointed at. Most of this app's
+buttons are drawn by the app itself, and a drawn button that answers a tap did not
+exist to anything but a finger.
+
+Added: a margin for televisions that cut off the edges of the picture — in the
+general settings, off unless you turn it on. It moves the clock, the date line, the
+saying and the timer's bar in by a twentieth on every side.
+
+Changed: on a television the timer no longer offers Vibrate, since there is nothing
+there to buzz with. Your stored answer is untouched, so a phone still vibrates.
+
+Fixed: one activity was declared twice in the app's manifest.
