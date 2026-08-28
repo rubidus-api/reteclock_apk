@@ -16,6 +16,19 @@
          runtime and R5 still holds; it is here only because the timer offers vibration. -->
     <uses-permission android:name="android.permission.VIBRATE" />
 
+    <!-- A television, when there is one (issue #45, RFC-0009).
+
+         Leanback is what a TV home screen looks for and is not required: the same APK is a phone
+         app. The touchscreen line is the one that matters most — it is *required* by default, so
+         without it the app declares itself unfit for the device it is being installed on. The
+         clock has never needed one: everything it does answers a key as well (R102, R103). -->
+    <uses-feature
+        android:name="android.software.leanback"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.touchscreen"
+        android:required="false" />
+
     <supports-screens
         android:smallScreens="true"
         android:normalScreens="true"
@@ -26,6 +39,7 @@
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
+        android:banner="@drawable/banner"
         android:label="@string/app_name"
         android:theme="@style/ClockTheme">
 
@@ -45,6 +59,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.DESK_DOCK" />
+                <!-- A TV home screen lists only what carries this, and draws it as the banner
+                     below rather than as an icon. Harmless on a phone, which ignores it. -->
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
             <!-- Long-pressing the icon offers the settings, on the versions that have shortcuts
                  (API 25 and up). Older ones ignore this, and reach the settings from the clock. -->
@@ -102,18 +119,6 @@
             android:label="@string/layout_fields_title"
             android:theme="@android:style/Theme.Black" />
 
-        <activity
-            android:name=".SettingsActivity"
-            android:exported="true"
-            android:label="@string/settings_title"
-            android:theme="@android:style/Theme.Black">
-            <!-- Exported without the launcher category: it is no longer the front door, but the
-                 icon's shortcut menu starts it, and that is the launcher starting it. -->
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
 
         <service
             android:name=".ClockDreamService"
