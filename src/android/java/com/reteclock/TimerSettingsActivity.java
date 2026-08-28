@@ -104,7 +104,12 @@ public class TimerSettingsActivity extends Activity {
         RadioGroup alert = new RadioGroup(this);
         alert.setOrientation(RadioGroup.VERTICAL);
         alert.addView(radio(1, R.string.timer_alert_sound));
-        alert.addView(radio(2, R.string.timer_alert_vibrate));
+        // A television has nothing to buzz with, so offering the choice would be offering a
+        // setting that does nothing — which is how a settings screen becomes a list of lies. The
+        // stored answer is untouched: the same phone, plugged back in, still vibrates (RFC-0009).
+        if (!Settings.onTelevision(this)) {
+            alert.addView(radio(2, R.string.timer_alert_vibrate));
+        }
         alert.addView(radio(3, R.string.timer_alert_silent));
         alert.check(Settings.timerAlert(this) + 1);
         alert.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {

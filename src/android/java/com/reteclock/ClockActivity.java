@@ -207,9 +207,16 @@ public class ClockActivity extends Activity {
         boolean wantTimer = !safeMode && Settings.timerOn(this)
                 && !Settings.timerPresets(this).isEmpty();
 
+        // A television that overscans eats a border, and the saying and the date line live in it.
+        // Zero unless the option is on: see SafeArea, and RFC-0009 Q2.
+        int safe = com.reteclock.core.SafeArea.marginPx(
+                getResources().getDisplayMetrics().widthPixels,
+                getResources().getDisplayMetrics().heightPixels,
+                Settings.safeArea(this));
+
         if (!wantTimer) {
             timer = null;
-            view.setContentInset(0, 0);
+            view.setContentInset(safe, safe, safe, safe);
             root.addView(view, new FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
         } else {
@@ -255,10 +262,10 @@ public class ClockActivity extends Activity {
             root.addView(view, new FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
             view.setContentInset(
-                    edge == com.reteclock.core.layout.Strips.LEFT ? strip : 0,
-                    edge == com.reteclock.core.layout.Strips.TOP ? strip : 0,
-                    edge == com.reteclock.core.layout.Strips.RIGHT ? strip : 0,
-                    edge == com.reteclock.core.layout.Strips.BOTTOM ? strip : 0);
+                    safe + (edge == com.reteclock.core.layout.Strips.LEFT ? strip : 0),
+                    safe + (edge == com.reteclock.core.layout.Strips.TOP ? strip : 0),
+                    safe + (edge == com.reteclock.core.layout.Strips.RIGHT ? strip : 0),
+                    safe + (edge == com.reteclock.core.layout.Strips.BOTTOM ? strip : 0));
 
             FrameLayout.LayoutParams band = vertical
                     ? new FrameLayout.LayoutParams(strip, FrameLayout.LayoutParams.MATCH_PARENT)
@@ -267,6 +274,9 @@ public class ClockActivity extends Activity {
                             ? Gravity.RIGHT : Gravity.LEFT)
                     | (edge == com.reteclock.core.layout.Strips.BOTTOM
                             ? Gravity.BOTTOM : Gravity.TOP);
+            // The strip moves in with everything else: it is at an edge, which is the part of the
+            // screen a television is eating.
+            band.setMargins(safe, safe, safe, safe);
             root.addView(timer, band);
         }
 

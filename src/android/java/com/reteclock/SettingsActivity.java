@@ -336,6 +336,22 @@ public class SettingsActivity extends Activity {
         clock.addView(blink);
         clock.addView(footer(getString(R.string.settings_blink_colon_note)));
 
+        // The television's margin (issue #45). Here rather than on a screen of its own, because it
+        // is one question about where the clock is drawn — and off unless it is asked for: a set
+        // that does not overscan would just get a smaller clock.
+        final CheckBox safeArea = new CheckBox(this);
+        safeArea.setText(R.string.settings_safe_area);
+        safeArea.setTextColor(TEXT_WHITE);
+        safeArea.setChecked(Settings.safeArea(this));
+        safeArea.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                Settings.setSafeArea(SettingsActivity.this, checked);
+            }
+        });
+        clock.addView(safeArea);
+        clock.addView(footer(getString(R.string.settings_safe_area_note)));
+
         // Everything the twelve-hour clock brings with it — the warning, what other countries do,
         // and the two questions about noon and midnight — lives in one box that is only there when
         // the twelve-hour clock is. On a 24-hour clock none of it applies: 00:00 and 12:00 say what
