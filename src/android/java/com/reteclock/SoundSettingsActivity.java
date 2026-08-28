@@ -756,7 +756,7 @@ public class SoundSettingsActivity extends Activity {
             face.setColor(rings ? ACCENT : BUTTON_FACE);
             face.setCornerRadius(dp(6));
             chip.setBackgroundDrawable(face);
-            chip.setClickable(true);
+            Focusable.make(chip);
             chip.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -917,7 +917,7 @@ public class SoundSettingsActivity extends Activity {
         states.addState(new int[] {android.R.attr.state_pressed}, pressed);
         states.addState(new int[] {}, resting);
         button.setBackgroundDrawable(states);
-        button.setClickable(true);
+        Focusable.make(button);
         if (onClick != null) {
             button.setOnClickListener(onClick);
         }
@@ -948,7 +948,7 @@ public class SoundSettingsActivity extends Activity {
         states.addState(new int[] {android.R.attr.state_pressed}, pressed);
         states.addState(new int[] {}, resting);
         button.setBackgroundDrawable(states);
-        button.setClickable(true);
+        Focusable.make(button);
         button.setOnClickListener(onClick);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);

@@ -104,7 +104,12 @@ public class TimerSettingsActivity extends Activity {
         RadioGroup alert = new RadioGroup(this);
         alert.setOrientation(RadioGroup.VERTICAL);
         alert.addView(radio(1, R.string.timer_alert_sound));
-        alert.addView(radio(2, R.string.timer_alert_vibrate));
+        // A television has nothing to buzz with, so offering the choice would be offering a
+        // setting that does nothing — which is how a settings screen becomes a list of lies. The
+        // stored answer is untouched: the same phone, plugged back in, still vibrates (RFC-0009).
+        if (!Settings.onTelevision(this)) {
+            alert.addView(radio(2, R.string.timer_alert_vibrate));
+        }
         alert.addView(radio(3, R.string.timer_alert_silent));
         alert.check(Settings.timerAlert(this) + 1);
         alert.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
@@ -259,7 +264,7 @@ public class TimerSettingsActivity extends Activity {
         summary.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f);
         column.addView(summary);
 
-        column.setClickable(true);
+        Focusable.make(column);
         column.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -393,7 +398,7 @@ public class TimerSettingsActivity extends Activity {
         name.setEllipsize(android.text.TextUtils.TruncateAt.END);
         name.setLayoutParams(new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-        name.setClickable(true);
+        Focusable.make(name);
         name.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -682,7 +687,7 @@ public class TimerSettingsActivity extends Activity {
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(26), dp(26));
         params.leftMargin = dp(4);
         view.setLayoutParams(params);
-        view.setClickable(true);
+        Focusable.make(view);
         view.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -719,7 +724,7 @@ public class TimerSettingsActivity extends Activity {
             params.rightMargin = dp(6);
             params.bottomMargin = dp(6);
             cell.setLayoutParams(params);
-            cell.setClickable(true);
+            Focusable.make(cell);
             cell.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -1100,7 +1105,7 @@ public class TimerSettingsActivity extends Activity {
         states.addState(new int[] {android.R.attr.state_pressed}, pressed);
         states.addState(new int[] {}, resting);
         button.setBackgroundDrawable(states);
-        button.setClickable(true);
+        Focusable.make(button);
         button.setOnClickListener(onClick);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -1129,7 +1134,7 @@ public class TimerSettingsActivity extends Activity {
         states.addState(new int[] {android.R.attr.state_pressed}, pressed);
         states.addState(new int[] {}, resting);
         button.setBackgroundDrawable(states);
-        button.setClickable(true);
+        Focusable.make(button);
         button.setOnClickListener(onClick);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);

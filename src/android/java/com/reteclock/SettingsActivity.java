@@ -336,6 +336,22 @@ public class SettingsActivity extends Activity {
         clock.addView(blink);
         clock.addView(footer(getString(R.string.settings_blink_colon_note)));
 
+        // The television's margin (issue #45). Here rather than on a screen of its own, because it
+        // is one question about where the clock is drawn — and off unless it is asked for: a set
+        // that does not overscan would just get a smaller clock.
+        final CheckBox safeArea = new CheckBox(this);
+        safeArea.setText(R.string.settings_safe_area);
+        safeArea.setTextColor(TEXT_WHITE);
+        safeArea.setChecked(Settings.safeArea(this));
+        safeArea.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                Settings.setSafeArea(SettingsActivity.this, checked);
+            }
+        });
+        clock.addView(safeArea);
+        clock.addView(footer(getString(R.string.settings_safe_area_note)));
+
         // Everything the twelve-hour clock brings with it — the warning, what other countries do,
         // and the two questions about noon and midnight — lives in one box that is only there when
         // the twelve-hour clock is. On a 24-hour clock none of it applies: 00:00 and 12:00 say what
@@ -1371,7 +1387,7 @@ public class SettingsActivity extends Activity {
             column.addView(prepared);
         }
 
-        column.setClickable(true);
+        Focusable.make(column);
         column.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -1389,7 +1405,7 @@ public class SettingsActivity extends Activity {
         preview.setLayoutParams(new LinearLayout.LayoutParams(dp(76), dp(32)));
         preview.show(Thumbnails.of(this, entry.name), Settings.backgroundFit(this));
         livePreviews.add(preview);
-        preview.setClickable(true);
+        Focusable.make(preview);
         preview.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -1626,7 +1642,7 @@ public class SettingsActivity extends Activity {
         row.addView(name);
 
         View swatch = swatch(Settings.chosenColor(this, key), dp(30));
-        swatch.setClickable(true);
+        Focusable.make(swatch);
         swatch.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -1679,7 +1695,7 @@ public class SettingsActivity extends Activity {
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(44), dp(44));
             params.setMargins(dp(4), dp(4), dp(4), dp(4));
             swatch.setLayoutParams(params);
-            swatch.setClickable(true);
+            Focusable.make(swatch);
             swatch.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -2447,7 +2463,7 @@ public class SettingsActivity extends Activity {
         states.addState(new int[] {android.R.attr.state_pressed}, pressed);
         states.addState(new int[] {}, resting);
         arrow.setBackgroundDrawable(states);
-        arrow.setClickable(true);
+        Focusable.make(arrow);
         arrow.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -2700,7 +2716,7 @@ public class SettingsActivity extends Activity {
         states.addState(new int[] {android.R.attr.state_pressed}, pressed);
         states.addState(new int[] {}, resting);
         button.setBackgroundDrawable(states);
-        button.setClickable(true);
+        Focusable.make(button);
         button.setOnClickListener(onClick);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);

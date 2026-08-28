@@ -50,6 +50,8 @@ public final class Settings {
     public static final String KEY_TIMER_ALERT = "timer_alert";
     public static final String KEY_STAY_UNLOCKED = "stay_unlocked";
     public static final String KEY_TIMER_HIDDEN = "timer_hidden";
+    /** Whether a margin is kept clear of the screen's edges — for a television. See RFC-0009. */
+    public static final String KEY_SAFE_AREA = "safe_area";
     /** Whether the layout editor shows the background behind the boxes. See RFC-0008. */
     public static final String KEY_EDITOR_BACKGROUND = "editor_background";
     /** Whether runs are written down — off unless somebody turns it on. See RFC-0006. */
@@ -665,6 +667,33 @@ public final class Settings {
      * photograph is arranging it blind, which is what issue #47 said. Off is for when the picture
      * is busy enough that the outlines are hard to follow.
      */
+    /**
+     * Whether the clock keeps a margin clear of the screen's edges.
+     *
+     * Off unless it is asked for. It is for a television that overscans — one made in the last ten
+     * years does not — and nothing inside the app can tell which kind of set it is on, so the
+     * person looking at the screen decides. See {@link com.reteclock.core.SafeArea}.
+     */
+    public static boolean safeArea(Context context) {
+        return prefs(context).getBoolean(KEY_SAFE_AREA, false);
+    }
+
+    public static void setSafeArea(Context context, boolean wanted) {
+        prefs(context).edit().putBoolean(KEY_SAFE_AREA, wanted).commit();
+    }
+
+    /** Whether this is running on a television, which the clock asks before offering some things. */
+    public static boolean onTelevision(Context context) {
+        try {
+            android.app.UiModeManager modes = (android.app.UiModeManager)
+                    context.getSystemService(Context.UI_MODE_SERVICE);
+            return modes != null && modes.getCurrentModeType()
+                    == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION;
+        } catch (RuntimeException notAsked) {
+            return false;
+        }
+    }
+
     public static boolean editorBackground(Context context) {
         return prefs(context).getBoolean(KEY_EDITOR_BACKGROUND, true);
     }

@@ -285,6 +285,22 @@ public class TimerView extends View {
         listener.runEnded(run, startEpochMs, elapsed);
     }
 
+    /**
+     * What the centre key does: start what is stopped, stop what is running (issue #45).
+     *
+     * The strip's own play and pause, chosen by the same question the play button asks itself, so a
+     * remote and a finger cannot end up driving two different transports.
+     */
+    void toggle() {
+        if (isRunning()) {
+            pause();
+        } else if (run == null || run.finishedAt(SystemClock.elapsedRealtime())) {
+            start();
+        } else {
+            resume();
+        }
+    }
+
     void pause() {
         if (run == null || run.isPaused()) {
             return;
