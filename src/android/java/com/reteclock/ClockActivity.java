@@ -543,7 +543,17 @@ public class ClockActivity extends Activity {
      * permission is asked for, and the dark ends with the clock however it ends.
      */
     private void toggleDim() {
-        dimmed = com.reteclock.core.ScreenDim.next(dimmed);
+        setDim(com.reteclock.core.ScreenDim.next(dimmed));
+    }
+
+    /**
+     * Dark, or the phone's own level again.
+     *
+     * A tap toggles; a key says which it wants, because a remote has a key for each way and being
+     * asked to dim twice should leave the screen dim rather than bright.
+     */
+    private void setDim(boolean wanted) {
+        dimmed = wanted;
         WindowManager.LayoutParams params = getWindow().getAttributes();
         params.screenBrightness = com.reteclock.core.ScreenDim.brightness(dimmed);
         getWindow().setAttributes(params);
@@ -559,11 +569,56 @@ public class ClockActivity extends Activity {
      */
     @Override
     public boolean onKeyDown(int keyCode, android.view.KeyEvent event) {
-        if (com.reteclock.core.KeyRoute.onClock(keyCode) == com.reteclock.core.KeyRoute.SETTINGS) {
+        // A held centre key has to be seen as held: the platform sets the flag on the repeat, and
+        // asking for it is what tells a press apart from a hold without a timer of our own.
+        if (event != null && (keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER
+                || keyCode == android.view.KeyEvent.KEYCODE_ENTER)) {
+            event.startTracking();
+        }
+        boolean held = event != null && event.isLongPress();
+        return obey(com.reteclock.core.KeyRoute.onClock(keyCode, held, timerRunning()))
+                || super.onKeyDown(keyCode, event);
+    }
+
+    /** Whether the strip is counting just now — the question the centre key's answer turns on. */
+    private boolean timerRunning() {
+        return timer != null && timer.isRunning();
+    }
+
+    /**
+     * Does what the rule said, and says whether it did anything.
+     *
+     * Every one of these is something the face already does with a finger; nothing here is a second
+     * way of working, only a second way of asking. See {@link com.reteclock.core.KeyRoute}.
+     */
+    private boolean obey(int route) {
+        if (route == com.reteclock.core.KeyRoute.SETTINGS) {
             startActivity(new Intent(this, SettingsActivity.class));
             return true;
         }
-        return super.onKeyDown(keyCode, event);
+        if (route == com.reteclock.core.KeyRoute.MENU) {
+            ClockMenu.show(this);
+            return true;
+        }
+        if (route == com.reteclock.core.KeyRoute.DIM || route == com.reteclock.core.KeyRoute.UNDIM) {
+            setDim(route == com.reteclock.core.KeyRoute.DIM);
+            return true;
+        }
+        if (timer == null) {
+            // The timer is switched off, so its keys are nobody's: they go to the platform, where
+            // a media key at least reaches whatever is playing.
+            return false;
+        }
+        if (route == com.reteclock.core.KeyRoute.TIMER_START
+                || route == com.reteclock.core.KeyRoute.TIMER_PAUSE) {
+            timer.toggle();
+            return true;
+        }
+        if (route == com.reteclock.core.KeyRoute.TIMER_STOP) {
+            timer.stop();
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -573,6 +628,12 @@ public class ClockActivity extends Activity {
     @Override
     public boolean onKeyUp(int keyCode, android.view.KeyEvent event) {
         if (com.reteclock.core.KeyRoute.onClock(keyCode) == com.reteclock.core.KeyRoute.SETTINGS) {
+            return true;
+        }
+        // The centre key was answered on the way down; letting its release through would have the
+        // platform click whatever happens to hold the focus.
+        if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER
+                || keyCode == android.view.KeyEvent.KEYCODE_ENTER) {
             return true;
         }
         return super.onKeyUp(keyCode, event);
