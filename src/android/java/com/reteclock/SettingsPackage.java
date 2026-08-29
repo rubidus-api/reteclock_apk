@@ -98,6 +98,16 @@ final class SettingsPackage {
         final List<Carried> images = new ArrayList<Carried>();
         final List<Carried> sounds = new ArrayList<Carried>();
         /**
+         * The pictures layouts brought with them, named "<folder>/<file>" (RFC-0010).
+         *
+         * Staged to disc like every other carried file rather than held in memory: a skin is
+         * photographs, and a package with a dozen layouts in it is a package this app cannot hold
+         * twice over on a phone from 2011.
+         */
+        final List<Carried> layoutPictures = new ArrayList<Carried>();
+        /** Which folder each layout came out of, aligned with {@link #layouts}; "" for a flat file. */
+        final List<String> layoutFolders = new ArrayList<String>();
+        /**
          * The layouts the package carried, already read (RFC-0005, D8).
          *
          * Held as values rather than staged on disk like the fonts and the pictures: a preset is a
@@ -223,20 +233,63 @@ final class SettingsPackage {
         }
         for (int i = 0; i < all.size(); i++) {
             com.reteclock.core.layout.LayoutPreset preset = all.get(i);
-            // Two shelves may hold a layout of the same name, one each way up, so the file name
-            // says which: "Bedside (sideways).txt" and "Bedside.txt" are two files, not one lost.
-            String label = preset.landscape ? preset.name + " (sideways)" : preset.name;
-            String name = com.reteclock.core.layout.LayoutFiles.fileName(label);
-            // Two presets whose names differ only in what a file name may not hold would otherwise
-            // become one file, and the second would silently replace the first.
-            String unique = name;
+            // A folder of its own, named after the layout, holding the arrangement and the
+            // pictures it carries — the same shape the phone keeps them in, so the zip can be
+            // opened and rearranged by hand (RFC-0010, D2). Which way up is part of the name:
+            // "Bedside" and "Bedside - sideways" are two layouts, not one lost.
+            //
+            // The number that separates two layouts wanting one folder goes on the *safe* name,
+            // not on the layout's own. Adding it to the layout's name and cleaning again finds no
+            // free name at all when the name cleans away to nothing — an endless search, and an
+            // app that stopped answering in the middle of writing the file.
+            String unique = com.reteclock.core.layout.LayoutFiles.folderName(
+                    preset.name, preset.landscape);
             for (int n = 2; used.contains(unique); n++) {
-                unique = com.reteclock.core.layout.LayoutFiles.fileName(label + " " + n);
+                unique = com.reteclock.core.layout.LayoutFiles.folderName(
+                        preset.name, preset.landscape, n);
             }
             used.add(unique);
+            String folder = com.reteclock.core.layout.LayoutFiles.FOLDER + unique + "/";
             zip.putNextEntry(new ZipEntry(
-                    com.reteclock.core.layout.LayoutFiles.FOLDER + unique));
+                    folder + com.reteclock.core.layout.LayoutFiles.PRESET_FILE));
             zip.write(preset.text().getBytes("UTF-8"));
+            zip.closeEntry();
+            writePictures(context, zip, preset, folder);
+        }
+    }
+
+    /** The pictures one layout carries, beside its arrangement in its own folder. */
+    private static void writePictures(Context context, ZipOutputStream zip,
+            com.reteclock.core.layout.LayoutPreset preset, String folder) throws IOException {
+        java.util.List<String> names = new ArrayList<String>(
+                preset.pictures(com.reteclock.core.layout.LayoutPreset.PICTURE_BACKGROUND));
+        names.addAll(preset.pictures(com.reteclock.core.layout.LayoutPreset.PICTURE_TEXT));
+        java.util.Set<String> done = new java.util.HashSet<String>();
+        for (int i = 0; i < names.size(); i++) {
+            String name = names.get(i);
+            if (!done.add(name)) {
+                continue;                 // one file, however many roles point at it
+            }
+            File file = LayoutSkins.file(context, preset, name);
+            if (file == null) {
+                continue;                 // it says it carries one and the file is gone
+            }
+            zip.putNextEntry(new ZipEntry(folder + name));
+            java.io.InputStream in = new java.io.FileInputStream(file);
+            try {
+                byte[] buffer = new byte[8192];
+                int read = in.read(buffer);
+                while (read > 0) {
+                    zip.write(buffer, 0, read);
+                    read = in.read(buffer);
+                }
+            } finally {
+                try {
+                    in.close();
+                } catch (IOException ignored) {
+                    // Nothing useful to do about a file that will not close.
+                }
+            }
             zip.closeEntry();
         }
     }
@@ -335,6 +388,9 @@ final class SettingsPackage {
         List<String> refused = new ArrayList<String>();
         List<com.reteclock.core.layout.LayoutPreset> layouts =
                 new ArrayList<com.reteclock.core.layout.LayoutPreset>();
+        List<String> layoutFolders = new ArrayList<String>();
+        List<Carried> layoutPictures = new ArrayList<Carried>();
+        File skinsDir = new File(staging(context), "skins");
         SettingsIni.Reading settings = null;
         ZipEntry entry;
         int seen = 0;
@@ -347,6 +403,41 @@ final class SettingsPackage {
             if (isSettingsEntry(path)) {
                 settings = SettingsIni.parse(
                         new String(readAll(zip, MAX_SETTINGS_BYTES), "UTF-8"));
+                continue;
+            }
+            // A layout may arrive in a folder of its own, with its pictures beside it (RFC-0010).
+            String[] inFolder = com.reteclock.core.layout.LayoutFiles.entryInFolder(path);
+            if (inFolder != null) {
+                if (com.reteclock.core.layout.LayoutFiles.PRESET_FILE.equals(inFolder[1])) {
+                    java.util.List<com.reteclock.core.layout.LayoutPreset> here =
+                            com.reteclock.core.layout.LayoutPreset.parseAll(
+                                    new String(readAll(zip, MAX_SETTINGS_BYTES), "UTF-8"));
+                    if (here.isEmpty()) {
+                        refused.add(path + " — it holds no layout");
+                    }
+                    for (int i = 0; i < here.size(); i++) {
+                        com.reteclock.core.layout.LayoutPreset preset = here.get(i);
+                        layouts.add(
+                                com.reteclock.core.layout.LayoutPreset.UNNAMED.equals(preset.name)
+                                        ? preset.named(inFolder[0]) : preset);
+                        layoutFolders.add(inFolder[0]);
+                    }
+                } else {
+                    // A picture the layout carries. Staged under its folder, so two layouts may
+                    // carry different pictures of the same name without either losing one.
+                    File into = new File(skinsDir, inFolder[0]);
+                    if (into.isDirectory() || into.mkdirs()) {
+                        File staged = new File(into, inFolder[1]);
+                        long written = drain(zip, staged, MAX_FILE_BYTES);
+                        if (written >= MAX_FILE_BYTES) {
+                            staged.delete();
+                            refused.add(path + " — too large");
+                        } else {
+                            layoutPictures.add(new Carried(inFolder[0] + "/" + inFolder[1],
+                                    staged, written));
+                        }
+                    }
+                }
                 continue;
             }
             // A layout is text and small, and it is read rather than staged: see Preview.layouts.
@@ -367,6 +458,7 @@ final class SettingsPackage {
                                         ? preset.named(com.reteclock.core.layout.LayoutFiles
                                                 .presetName(layout))
                                         : preset);
+                        layoutFolders.add("");
                     }
                 }
                 continue;
@@ -404,6 +496,8 @@ final class SettingsPackage {
         out.images.addAll(images);
         out.sounds.addAll(sounds);
         out.layouts.addAll(layouts);
+        out.layoutFolders.addAll(layoutFolders);
+        out.layoutPictures.addAll(layoutPictures);
         out.refused.addAll(refused);
         return out;
     }
@@ -447,8 +541,14 @@ final class SettingsPackage {
         // and applying it as a plain setting would delete every layout the receiver had drawn.
         List<com.reteclock.core.layout.LayoutPreset> arriving =
                 new ArrayList<com.reteclock.core.layout.LayoutPreset>();
+        // Which folder each arriving layout came out of, so its pictures can follow it in.
+        List<String> arrivingFolders = new ArrayList<String>();
         if (sections.contains("clock")) {
             arriving.addAll(preview.layouts);
+            arrivingFolders.addAll(preview.layoutFolders);
+            while (arrivingFolders.size() < arriving.size()) {
+                arrivingFolders.add("");
+            }
         }
 
         Set<String> fontNames = names(Settings.fonts(context));
@@ -553,7 +653,15 @@ final class SettingsPackage {
                 if (!known.add(said)) {
                     continue;             // the same layout again, by the other road
                 }
-                book = book.add(arriving.get(i));
+                com.reteclock.core.layout.LayoutPreset landed = arriving.get(i);
+                book = book.add(landed);
+                // The pictures it brought, into the folder that now belongs to it. A layout added
+                // under a free name is a different layout from the sender's, so its folder is named
+                // after the name it actually landed under (RFC-0010, D5).
+                com.reteclock.core.layout.LayoutPreset added =
+                        book.get(landed.landscape, book.size(landed.landscape) - 1);
+                carryPicturesIn(context, preview, i < arrivingFolders.size()
+                        ? arrivingFolders.get(i) : "", added);
                 result.layoutsAdded++;
             }
             Settings.setLayouts(context, book);
@@ -565,6 +673,28 @@ final class SettingsPackage {
         editor.putString(Settings.KEY_RUN_PRESET, "");
         editor.commit();
         return result;
+    }
+
+    /**
+     * Copies the pictures a layout brought into the folder that belongs to it here.
+     *
+     * Best effort, as everything about a picture is: a layout whose pictures did not arrive is a
+     * layout that draws what the pool says, which is what it did before this feature existed.
+     */
+    private static void carryPicturesIn(Context context, Preview preview, String folder,
+            com.reteclock.core.layout.LayoutPreset landed) {
+        if (folder == null || folder.length() == 0 || preview.layoutPictures.isEmpty()) {
+            return;
+        }
+        String prefix = folder + "/";
+        for (int i = 0; i < preview.layoutPictures.size(); i++) {
+            Carried carried = preview.layoutPictures.get(i);
+            if (!carried.name.startsWith(prefix)) {
+                continue;
+            }
+            String file = carried.name.substring(prefix.length());
+            LayoutSkins.bring(context, landed, file, carried.file);
+        }
     }
 
     /**

@@ -60,6 +60,92 @@ public final class LayoutFiles {
         return inside;
     }
 
+    /**
+     * The folder a layout's own pictures live in, inside `layouts/` (RFC-0010, D2).
+     *
+     * The two shelves may hold layouts of the same name — an upright one and a sideways one, often
+     * a pair — so which way up it is is part of the folder's name. The suffix is a readable word
+     * rather than a code, because the point of the folder is that a person can open the zip and
+     * know what they are looking at.
+     */
+    public static String folderName(String presetName, boolean landscape) {
+        String cleaned = clean(presetName);
+        String base = cleaned.isEmpty() ? FALLBACK : cleaned;
+        // " - sideways" rather than "(sideways)": a package entry has to pass SafeName, and
+        // SafeName allows letters, digits, spaces, dashes, underscores and dots — and nothing else.
+        // Brackets are refused, which is how every sideways layout came to be exported under the
+        // fallback name and two of them collided.
+        return landscape ? base + SIDEWAYS : base;
+    }
+
+    /** What a sideways layout's folder is called, so the caller does not have to know. */
+    public static final String SIDEWAYS = " - sideways";
+
+    /**
+     * The same folder name with a number on the end, for when two layouts want one folder.
+     *
+     * The number goes on the *cleaned* name rather than on the layout's own, because a name that
+     * cleans away to nothing cleans away to nothing however many numbers are added to it — which is
+     * an endless search for a free name, and was one.
+     */
+    public static String folderName(String presetName, boolean landscape, int n) {
+        String base = folderName(presetName, landscape);
+        return n <= 1 ? base : base + " " + n;
+    }
+
+    /** The file the arrangement itself is kept in, inside that folder. */
+    public static final String PRESET_FILE = "preset.txt";
+
+    /**
+     * The folder and file of a package entry two levels deep — `layouts/<folder>/<file>` — or null
+     * when the entry is not one of those.
+     *
+     * Null for everything that could go wrong: another folder at the top, a directory, one level
+     * only (which is the older flat shape and read elsewhere), three levels, and any path that
+     * tries to climb out with `..`. A zip is something somebody else may have made.
+     *
+     * @return {folder, file}, or null
+     */
+    public static String[] entryInFolder(String path) {
+        if (path == null) {
+            return null;
+        }
+        // Not SafeName.insideFolder: that one refuses anything with a second slash in it, which is
+        // exactly what this shape is. The top folder is checked the same way it checks it, and then
+        // the rest is split by hand — and every piece is put through SafeName below, which is where
+        // "..", path separators and invisible characters are turned away.
+        String cleaned = path.replace('\\', '/');
+        int top = cleaned.indexOf('/');
+        if (top <= 0) {
+            return null;
+        }
+        String folderAtTop = cleaned.substring(0, top).toLowerCase(java.util.Locale.US);
+        boolean ours = false;
+        for (int i = 0; i < FOLDERS.length; i++) {
+            ours = ours || FOLDERS[i].equals(folderAtTop);
+        }
+        if (!ours) {
+            return null;
+        }
+        String inside = cleaned.substring(top + 1);
+        if (inside.isEmpty() || inside.endsWith("/")) {
+            return null;
+        }
+        int slash = inside.indexOf('/');
+        if (slash <= 0 || slash == inside.length() - 1) {
+            return null;
+        }
+        String folder = inside.substring(0, slash);
+        String file = inside.substring(slash + 1);
+        if (file.indexOf('/') >= 0) {
+            return null;                  // deeper than a layout's own folder
+        }
+        if (SafeName.complaint(folder) != null || SafeName.complaint(file) != null) {
+            return null;
+        }
+        return new String[] {folder, file};
+    }
+
     /** The name to show for a file called this — the file name without its folder or its suffix. */
     public static String presetName(String path) {
         String name = path == null ? "" : path.replace('\\', '/');

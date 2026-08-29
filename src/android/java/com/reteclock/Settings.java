@@ -448,6 +448,45 @@ public final class Settings {
         return out;
     }
 
+    /**
+     * The pictures the clock should draw, given which way up it is.
+     *
+     * **The chosen layout wins.** A layout that carries pictures of its own is a small skin, and
+     * while it is chosen those are what is drawn; the pool's own choice is left untouched and comes
+     * back the moment a layout without pictures is chosen. One place decides, so the two cannot
+     * disagree (RFC-0010, D4).
+     *
+     * A name the layout carries whose file has gone is skipped, exactly as a missing pool file is.
+     */
+    public static java.util.List<File> backgroundFiles(Context context, boolean landscape) {
+        java.util.List<File> own = carried(context, landscape,
+                com.reteclock.core.layout.LayoutPreset.PICTURE_BACKGROUND);
+        return own != null ? own : filesFor(context, roles(context).background);
+    }
+
+    public static java.util.List<File> textFiles(Context context, boolean landscape) {
+        java.util.List<File> own = carried(context, landscape,
+                com.reteclock.core.layout.LayoutPreset.PICTURE_TEXT);
+        return own != null ? own : filesFor(context, roles(context).text);
+    }
+
+    /** What the chosen layout carries in this role, or null when it carries nothing at all. */
+    private static java.util.List<File> carried(Context context, boolean landscape, int role) {
+        com.reteclock.core.layout.LayoutPreset chosen = layouts(context).chosen(landscape);
+        if (chosen == null || !chosen.hasPictures()) {
+            return null;
+        }
+        java.util.List<File> out = new java.util.ArrayList<File>();
+        java.util.List<String> names = chosen.pictures(role);
+        for (int i = 0; i < names.size(); i++) {
+            File file = LayoutSkins.file(context, chosen, names.get(i));
+            if (file != null) {
+                out.add(file);
+            }
+        }
+        return out;
+    }
+
     /** How long a still background shows before the slideshow moves on. */
     public static int backgroundStillSeconds(Context context) {
         return prefs(context).getInt(KEY_BACKGROUND_STILL_SECONDS, DEFAULT_STILL_SECONDS);
@@ -1369,6 +1408,47 @@ public final class Settings {
         com.reteclock.core.layout.LayoutBook seeded = starters(context);
         setLayouts(context, seeded);
         return seeded;
+    }
+
+    /**
+     * Puts the starter layouts back, without touching anything that is already there.
+     *
+     * A starter is only ever *added*. Restoring is not "throw mine away and begin again" — that
+     * would be a button that destroys an evening's work while claiming to help — so a starter whose
+     * name is already taken on that shelf is **refused**, and the ones that are missing arrive.
+     *
+     * @return how many were added; zero means every starter name was already in use
+     */
+    public static int restoreStarterLayouts(Context context) {
+        com.reteclock.core.layout.LayoutBook book = layouts(context);
+        com.reteclock.core.layout.LayoutBook wanted = starters(context);
+        int added = 0;
+        for (int i = 0; i < 2; i++) {
+            boolean landscape = i == 1;
+            for (int at = 0; at < wanted.size(landscape); at++) {
+                com.reteclock.core.layout.LayoutPreset starter = wanted.get(landscape, at);
+                if (starter.isAutomatic() || hasLayoutNamed(book, landscape, starter.name)) {
+                    continue;
+                }
+                book = book.add(starter);
+                added++;
+            }
+        }
+        if (added > 0) {
+            setLayouts(context, book);
+        }
+        return added;
+    }
+
+    /** Whether this shelf already holds a layout by this name, however it got there. */
+    private static boolean hasLayoutNamed(com.reteclock.core.layout.LayoutBook book,
+            boolean landscape, String name) {
+        for (int i = 0; i < book.size(landscape); i++) {
+            if (book.get(landscape, i).name.equals(name)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** The arrangements this app has always drawn, as presets to start from. */

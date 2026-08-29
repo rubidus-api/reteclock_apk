@@ -338,9 +338,12 @@ public class ClockView extends View {
         slides.clear();
         textSlides.clear();
         if (!safeMode) {
-            com.reteclock.core.ImageRoles.Lists roles = Settings.roles(context);
-            slides.addAll(Settings.filesFor(context, roles.background));
-            textSlides.addAll(Settings.filesFor(context, roles.text));
+            // Which way up decides which layout is chosen, and the chosen layout may carry its own
+            // pictures — see Settings.backgroundFiles and RFC-0010.
+            boolean landscape = context.getResources().getConfiguration().orientation
+                    == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+            slides.addAll(Settings.backgroundFiles(context, landscape));
+            textSlides.addAll(Settings.textFiles(context, landscape));
         }
         slidesDay = Settings.today(context);
         stillMs = Settings.backgroundStillSeconds(context) * 1000L;
@@ -1287,8 +1290,21 @@ public class ClockView extends View {
      * on an old phone. Anything not yet prepared, or that could not be, falls back to decoding the
      * original here.
      */
+    /** Whether this picture is one a layout carries rather than one from the shared pool. */
+    private boolean carried(java.io.File source) {
+        java.io.File parent = source == null ? null : source.getParentFile();
+        java.io.File skins = LayoutSkins.root(getContext());
+        return parent != null && parent.getParentFile() != null
+                && parent.getParentFile().equals(skins);
+    }
+
     private BackgroundImage openSlide(java.io.File source) {
-        java.io.File pack = PreparedImages.packFor(getContext(), source.getName(), preparedEdge);
+        // A prepared pack is named after the picture, and a picture a layout carries is a copy that
+        // shares its name with the pool's. They are the same bytes when the copy is taken and may
+        // not be later, so a carried picture is decoded live rather than trusting a pack that was
+        // baked from something else. It is one decode, and it is always the right one.
+        java.io.File pack = carried(source) ? null
+                : PreparedImages.packFor(getContext(), source.getName(), preparedEdge);
         return BackgroundImage.open(source, pack);
     }
 

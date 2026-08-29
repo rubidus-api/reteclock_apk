@@ -26,6 +26,7 @@
     <string name="carry_import_found">What is in the file</string>
     <string name="carry_import_as_read">As this app reads it</string>
     <string name="carry_import_count">%1$d settings</string>
+    <string name="carry_import_count_layouts">%1$d settings and %2$d layouts</string>
     <string name="carry_import_do">Bring in what is ticked</string>
     <string name="carry_import_nothing">Nothing in this file could be read as settings.</string>
     <string name="carry_import_done">Brought in %1$d settings and %2$d files. %3$d names dropped, because what they pointed at is not here.</string>
@@ -163,10 +164,18 @@
     <string name="layout_drawn">A layout of your own</string>
     <string name="layout_drawn_note">This one is drawn rather than decided. Choose Automatic above to see the settings that steer the app\'s own arrangement; they are kept exactly as you left them.</string>
     <string name="layout_copy">Copy</string>
+    <string name="layout_pictures">Pictures…</string>
+    <string name="layout_pictures_columns">Background  ·  Writing  ·  Picture</string>
+    <string name="layout_pictures_none">There are no pictures yet. Add some under Pictures, then they can be given to a layout.</string>
+    <string name="layout_pictures_carried">Carries %1$d picture(s).</string>
+    <string name="layout_new">New layout…</string>
+    <string name="layout_restore">Put the starter layouts back</string>
+    <string name="layout_restore_done">Added %1$d.</string>
+    <string name="layout_restore_already">They are already here. Nothing was changed — rename or delete the ones you have first.</string>
+    <string name="layout_new_name">My layout</string>
     <string name="layout_rename">Rename</string>
     <string name="layout_delete">Delete</string>
     <string name="layout_delete_ask">Delete “%1$s”? The layout is thrown away.</string>
-    <string name="layout_new_name">My layout</string>
     <string name="menu_layout">Layout</string>
     <string name="settings_date_order">Landscape — the line under the clock</string>
     <string name="settings_date_order_note">Move them into the order you read a date in. This is the line under the clock in landscape, when the calendar is off; the month and the day travel together, written the way the date style says.</string>
