@@ -796,9 +796,16 @@ public class SettingsActivity extends Activity {
         for (int i = 0; i < SettingsIni.SECTIONS.length; i++) {
             String section = SettingsIni.SECTIONS[i];
             int count = pendingImport.settings.countIn(section);
+            // Layouts ride in the clock's section, and a package can carry layouts and no settings
+            // at all — a skin somebody built by hand, which is exactly the shape this app writes a
+            // folder per layout for. Counting only the settings left that box dead, so the one
+            // thing in the file could not be ticked and the import brought in nothing.
+            int layouts = "clock".equals(section) ? pendingImport.layouts.size() : 0;
             CheckBox box = sectionBox(section, sectionLabel(section), importSections,
-                    getString(R.string.carry_import_count, count));
-            box.setEnabled(count > 0);
+                    layouts > 0
+                            ? getString(R.string.carry_import_count_layouts, count, layouts)
+                            : getString(R.string.carry_import_count, count));
+            box.setEnabled(count > 0 || layouts > 0);
             importSection.addView(box);
         }
         if (!pendingImport.fonts.isEmpty()) {

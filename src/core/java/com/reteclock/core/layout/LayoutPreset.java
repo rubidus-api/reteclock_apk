@@ -20,7 +20,12 @@ import java.util.List;
 public final class LayoutPreset {
 
     /** What a preset is called when it has not been given a name. */
-    public static final String UNNAMED = "Layout";
+    public static final String UNNAMED = "layout";
+
+    /** A picture this layout carries as its background. See RFC-0010. */
+    public static final int PICTURE_BACKGROUND = 0;
+    /** A picture this layout fills its writing with. */
+    public static final int PICTURE_TEXT = 1;
 
     /** The user's own words. Never empty. */
     public final String name;
@@ -28,10 +33,21 @@ public final class LayoutPreset {
     public final boolean landscape;
 
     private final List<LayoutBox> boxes;
+    /** The file names this layout carries, in the folder that belongs to it. */
+    private final List<String> backgrounds;
+    private final List<String> textPictures;
 
     private LayoutPreset(String name, boolean landscape, List<LayoutBox> boxes) {
+        this(name, landscape, boxes, null, null);
+    }
+
+    private LayoutPreset(String name, boolean landscape, List<LayoutBox> boxes,
+            List<String> backgrounds, List<String> textPictures) {
+        // A name is a folder on disc and an entry in a zip, so it is made to fit that here rather
+        // than trusted to whoever typed it — an old file, a package built by hand, or a screen with
+        // a bug in it. See LayoutName: named like a variable in C, the underscore reserved.
         String trimmed = name == null ? "" : name.trim();
-        this.name = trimmed.isEmpty() ? UNNAMED : trimmed;
+        this.name = LayoutName.isValid(trimmed) ? trimmed : LayoutName.clean(trimmed);
         this.landscape = landscape;
         List<LayoutBox> out = new ArrayList<LayoutBox>();
         if (boxes != null) {
@@ -42,6 +58,40 @@ public final class LayoutPreset {
             }
         }
         this.boxes = Collections.unmodifiableList(out);
+        this.backgrounds = names(backgrounds);
+        this.textPictures = names(textPictures);
+    }
+
+    /** A copy with the empties and the nulls left out; a file name is never either. */
+    private static List<String> names(List<String> given) {
+        List<String> out = new ArrayList<String>();
+        if (given != null) {
+            for (String name : given) {
+                if (name != null && !name.trim().isEmpty()) {
+                    out.add(name.trim());
+                }
+            }
+        }
+        return Collections.unmodifiableList(out);
+    }
+
+    /**
+     * The pictures this layout carries in the role given, in the order they were added.
+     *
+     * Empty means it carries none, and the pool's own choice is what the clock draws (RFC-0010, D4).
+     */
+    public List<String> pictures(int role) {
+        return role == PICTURE_TEXT ? textPictures : backgrounds;
+    }
+
+    /** Whether this layout brings any pictures of its own at all. */
+    public boolean hasPictures() {
+        return !backgrounds.isEmpty() || !textPictures.isEmpty();
+    }
+
+    /** The same layout carrying these pictures instead. */
+    public LayoutPreset withPictures(List<String> backgrounds, List<String> textPictures) {
+        return new LayoutPreset(name, landscape, boxes, backgrounds, textPictures);
     }
 
     public static LayoutPreset of(String name, boolean landscape, List<LayoutBox> boxes) {
@@ -59,16 +109,16 @@ public final class LayoutPreset {
     }
 
     public LayoutPreset named(String name) {
-        return new LayoutPreset(name, landscape, boxes);
+        return new LayoutPreset(name, landscape, boxes, backgrounds, textPictures);
     }
 
     public LayoutPreset with(List<LayoutBox> boxes) {
-        return new LayoutPreset(name, landscape, boxes);
+        return new LayoutPreset(name, landscape, boxes, backgrounds, textPictures);
     }
 
     /** The same arrangement, turned the other way up — what "copy to the other orientation" needs. */
     public LayoutPreset turned() {
-        return new LayoutPreset(name, !landscape, boxes);
+        return new LayoutPreset(name, !landscape, boxes, backgrounds, textPictures);
     }
 
     /**
@@ -83,6 +133,14 @@ public final class LayoutPreset {
         out.append("way=").append(landscape ? "landscape" : "portrait").append('\n');
         for (LayoutBox box : boxes) {
             out.append("box=").append(box.text()).append('\n');
+        }
+        // The pictures this layout carries, by role, in the order they were added — the order a
+        // slideshow walks them in. The names are files in the layout's own folder (RFC-0010, D3).
+        for (String picture : backgrounds) {
+            out.append("picture=background|").append(escape(picture)).append('\n');
+        }
+        for (String picture : textPictures) {
+            out.append("picture=text|").append(escape(picture)).append('\n');
         }
         return out.toString();
     }
@@ -112,6 +170,8 @@ public final class LayoutPreset {
         String name = null;
         Boolean way = null;
         List<LayoutBox> boxes = new ArrayList<LayoutBox>();
+        List<String> backgrounds = new ArrayList<String>();
+        List<String> textPictures = new ArrayList<String>();
         List<LayoutBox> oldPortrait = new ArrayList<LayoutBox>();
         List<LayoutBox> oldLandscape = new ArrayList<LayoutBox>();
 
@@ -129,6 +189,20 @@ public final class LayoutPreset {
                 way = Boolean.valueOf(value.trim().startsWith("l"));
             } else if ("box".equals(key)) {
                 add(boxes, value);
+            } else if ("picture".equals(key)) {
+                int bar = value.indexOf('|');
+                if (bar > 0) {
+                    String role = value.substring(0, bar).trim();
+                    String file = unescape(value.substring(bar + 1)).trim();
+                    if (!file.isEmpty()) {
+                        if ("text".equals(role)) {
+                            textPictures.add(file);
+                        } else if ("background".equals(role)) {
+                            backgrounds.add(file);
+                        }
+                        // an unknown role belongs to a later version; the line is skipped
+                    }
+                }
             } else if ("portrait".equals(key)) {
                 add(oldPortrait, value);
             } else if ("landscape".equals(key)) {
@@ -150,7 +224,8 @@ public final class LayoutPreset {
         if (name == null && boxes.isEmpty() && way == null) {
             return out;
         }
-        out.add(new LayoutPreset(name, way != null && way.booleanValue(), boxes));
+        out.add(new LayoutPreset(name, way != null && way.booleanValue(), boxes,
+                backgrounds, textPictures));
         return out;
     }
 

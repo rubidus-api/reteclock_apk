@@ -237,17 +237,15 @@ public final class LayoutBook {
 
     /** {@code name}, or {@code name 2}, {@code name 3}… — whichever is not taken on this shelf. */
     private static String free(List<LayoutPreset> taken, String name) {
-        String wanted = name == null || name.trim().isEmpty() ? LayoutPreset.UNNAMED : name.trim();
-        if (!isTaken(taken, wanted)) {
-            return wanted;
-        }
-        for (int n = 2; n < 1000; n++) {
-            String candidate = wanted + " " + n;
-            if (!isTaken(taken, candidate)) {
-                return candidate;
+        java.util.Set<String> used = new java.util.HashSet<String>();
+        for (LayoutPreset preset : taken) {
+            if (preset != null) {
+                used.add(preset.name);
             }
         }
-        return wanted;
+        // Numbered by the same rule that made the name, so the answer is a name too: "bedside_2",
+        // not "bedside 2", which would not be one (LayoutName).
+        return LayoutName.free(name, used);
     }
 
     private static boolean isTaken(List<LayoutPreset> presets, String name) {

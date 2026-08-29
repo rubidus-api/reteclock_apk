@@ -159,8 +159,12 @@ public final class LayoutSettingsActivity extends Activity {
             top.addView(button(getString(R.string.layout_copy), !automatic, new Runnable() {
                 @Override
                 public void run() {
-                    Settings.setLayouts(LayoutSettingsActivity.this,
-                            book.duplicate(landscape, index));
+                    LayoutBook grown = book.duplicate(landscape, index);
+                    // A copy of a layout is a copy of what it carries: the two are separate skins
+                    // from the moment they exist, so editing one cannot touch the other.
+                    LayoutSkins.copied(LayoutSettingsActivity.this, book.get(landscape, index),
+                            grown.get(landscape, grown.size(landscape) - 1));
+                    Settings.setLayouts(LayoutSettingsActivity.this, grown);
                     refresh();
                 }
             }));
@@ -180,12 +184,21 @@ public final class LayoutSettingsActivity extends Activity {
                     askName(book, landscape, index);
                 }
             }));
+            more.addView(button(getString(R.string.layout_pictures), !automatic, new Runnable() {
+                @Override
+                public void run() {
+                    choosePictures(book, landscape, index);
+                }
+            }));
             more.addView(button(getString(R.string.layout_copy_other_way), !automatic,
                     new Runnable() {
                         @Override
                         public void run() {
-                            Settings.setLayouts(LayoutSettingsActivity.this,
-                                    book.copyToOtherWay(landscape, index));
+                            LayoutBook grown = book.copyToOtherWay(landscape, index);
+                            LayoutSkins.copied(LayoutSettingsActivity.this,
+                                    book.get(landscape, index),
+                                    grown.get(!landscape, grown.size(!landscape) - 1));
+                            Settings.setLayouts(LayoutSettingsActivity.this, grown);
                             refresh();
                         }
                     }));
@@ -201,19 +214,202 @@ public final class LayoutSettingsActivity extends Activity {
 
             presetList.addView(entry);
         }
+
+        // A way to start one from nothing (issue #49). Without it a layout could only be made by
+        // copying another, so somebody who deleted them all was left with Automatic — which cannot
+        // be edited — and no road back.
+        presetList.addView(button(getString(R.string.layout_new), true, new Runnable() {
+            @Override
+            public void run() {
+                newLayout(book, landscape);
+            }
+        }));
+
+        // And a way back to the ones the app ships with, always — even from an empty shelf. It only
+        // ever adds: a starter whose name is already here is refused rather than written over.
+        presetList.addView(button(getString(R.string.layout_restore), true, new Runnable() {
+            @Override
+            public void run() {
+                int added = Settings.restoreStarterLayouts(LayoutSettingsActivity.this);
+                toast(added > 0
+                        ? getString(R.string.layout_restore_done, added)
+                        : getString(R.string.layout_restore_already));
+                refresh();
+            }
+        }));
+    }
+
+    private void toast(String message) {
+        android.widget.Toast.makeText(this, message, android.widget.Toast.LENGTH_SHORT).show();
+    }
+
+    /**
+     * A new layout, starting from what the app would have arranged itself.
+     *
+     * Not an empty one: a preset with no boxes *is* Automatic, so an empty new layout would be a
+     * layout that draws the app's arrangement and pretends to be the user's. Starting from the
+     * built-in boxes gives something that already looks like the clock and can be moved about —
+     * which is what somebody pressing "New layout" wants, and it is also the only starting point
+     * that cannot be blank on a screen where blank means broken.
+     */
+    private void newLayout(LayoutBook book, boolean landscape) {
+        int width = getResources().getDisplayMetrics().widthPixels;
+        int height = getResources().getDisplayMetrics().heightPixels;
+        int wide = landscape ? Math.max(width, height) : Math.min(width, height);
+        int tall = landscape ? Math.min(width, height) : Math.max(width, height);
+        java.util.List<com.reteclock.core.layout.LayoutBox> boxes =
+                com.reteclock.core.layout.Builtin.of(wide, tall, Settings.options(this));
+        LayoutBook grown = book.add(LayoutPreset.of(getString(R.string.layout_new_name),
+                landscape, boxes));
+        Settings.setLayouts(this, grown.choose(landscape, grown.size(landscape) - 1));
+        refresh();
+    }
+
+    /**
+     * Which pictures this layout carries: a list of the pool, ticked twice over.
+     *
+     * Two columns, because a picture serves in one of two ways — behind the clock, or inside its
+     * writing — and the same picture may reasonably do either. Ticking copies it into the layout's
+     * own folder; unticking throws that copy away and leaves the pool alone (RFC-0010, D1).
+     */
+    private void choosePictures(final LayoutBook book, final boolean landscape, final int index) {
+        final LayoutPreset preset = book.get(landscape, index);
+        final java.util.List<com.reteclock.core.FontLibrary.Entry> pool =
+                Settings.orderedImages(this);
+        if (pool.isEmpty()) {
+            toast(getString(R.string.layout_pictures_none));
+            return;
+        }
+        final java.util.List<String> backgrounds = new java.util.ArrayList<String>(
+                preset.pictures(LayoutPreset.PICTURE_BACKGROUND));
+        final java.util.List<String> text = new java.util.ArrayList<String>(
+                preset.pictures(LayoutPreset.PICTURE_TEXT));
+
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        list.setPadding(dp(12), dp(8), dp(12), dp(8));
+        TextView heading = subheading(getString(R.string.layout_pictures_columns));
+        list.addView(heading);
+
+        for (int i = 0; i < pool.size(); i++) {
+            final String name = pool.get(i).name;
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+
+            row.addView(pictureTick(backgrounds, name));
+            row.addView(pictureTick(text, name));
+
+            TextView label = new TextView(this);
+            label.setText(name);
+            label.setTextColor(TEXT_WHITE);
+            label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f);
+            label.setSingleLine(true);
+            label.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
+            label.setLayoutParams(new LinearLayout.LayoutParams(0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+            row.addView(label);
+            list.addView(row);
+        }
+
+        ScrollView scroll = new ScrollView(this);
+        scroll.addView(list);
+
+        new AlertDialog.Builder(this)
+                .setTitle(preset.name)
+                .setView(scroll)
+                .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        carry(book, landscape, index, backgrounds, text);
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    /** One tick that adds this picture's name to a list, or takes it out again. */
+    private CheckBox pictureTick(final java.util.List<String> into, final String name) {
+        CheckBox tick = new CheckBox(this);
+        tick.setChecked(into.contains(name));
+        tick.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                if (checked) {
+                    if (!into.contains(name)) {
+                        into.add(name);
+                    }
+                } else {
+                    into.remove(name);
+                }
+            }
+        });
+        return tick;
+    }
+
+    /**
+     * Makes it so: copies in what was ticked, throws away what was not, and writes the layout.
+     *
+     * The copying is the slow part and it happens here rather than as each box is ticked, so a
+     * picker that is opened and cancelled costs nothing at all.
+     */
+    private void carry(LayoutBook book, boolean landscape, int index,
+            java.util.List<String> backgrounds, java.util.List<String> text) {
+        LayoutPreset preset = book.get(landscape, index);
+        java.util.List<String> keptBackgrounds = new java.util.ArrayList<String>();
+        java.util.List<String> keptText = new java.util.ArrayList<String>();
+        for (int i = 0; i < backgrounds.size(); i++) {
+            String stored = LayoutSkins.take(this, preset, backgrounds.get(i));
+            if (stored != null) {
+                keptBackgrounds.add(stored);
+            }
+        }
+        for (int i = 0; i < text.size(); i++) {
+            String stored = LayoutSkins.take(this, preset, text.get(i));
+            if (stored != null) {
+                keptText.add(stored);
+            }
+        }
+        // Anything the folder holds that nothing points at any more is gone, not orphaned.
+        java.util.List<String> wanted = new java.util.ArrayList<String>(keptBackgrounds);
+        wanted.addAll(keptText);
+        java.util.List<String> onDisc = LayoutSkins.inFolder(this, preset);
+        for (int i = 0; i < onDisc.size(); i++) {
+            if (!wanted.contains(onDisc.get(i))) {
+                LayoutSkins.drop(this, preset, onDisc.get(i));
+            }
+        }
+        Settings.setLayouts(this, book.replace(landscape, index,
+                preset.withPictures(keptBackgrounds, keptText)));
+        refresh();
     }
 
     private void askName(final LayoutBook book, final boolean landscape, final int index) {
         final EditText field = new EditText(this);
         field.setText(book.get(landscape, index).name);
+        field.setHint(R.string.layout_name_rule);
+        field.setSingleLine(true);
         new AlertDialog.Builder(this)
                 .setTitle(R.string.layout_rename)
                 .setView(field)
                 .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        Settings.setLayouts(LayoutSettingsActivity.this,
-                                book.rename(landscape, index, field.getText().toString()));
+                        String wanted = field.getText().toString().trim();
+                        // The name is a folder and a zip entry, so it is refused here rather than
+                        // quietly repaired: somebody typing a name should be told the rule, not
+                        // handed a different name than the one they typed (LayoutName, T094).
+                        String wrong = com.reteclock.core.layout.LayoutName.complaint(wanted);
+                        if (wrong != null) {
+                            toast(wrong);
+                            return;
+                        }
+                        LayoutBook renamed = book.rename(landscape, index, wanted);
+                        // The folder follows the name, or the layout loses what it was carrying.
+                        LayoutSkins.renamed(LayoutSettingsActivity.this,
+                                book.get(landscape, index).name,
+                                renamed.get(landscape, index).name, landscape);
+                        Settings.setLayouts(LayoutSettingsActivity.this, renamed);
                         refresh();
                     }
                 })
@@ -228,6 +424,8 @@ public final class LayoutSettingsActivity extends Activity {
                 .setPositiveButton(R.string.layout_delete, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
+                        LayoutSkins.forget(LayoutSettingsActivity.this,
+                                book.get(landscape, index));
                         Settings.setLayouts(LayoutSettingsActivity.this,
                                 book.remove(landscape, index));
                         refresh();
