@@ -1403,7 +1403,17 @@ public final class Settings {
     public static com.reteclock.core.layout.LayoutBook layouts(Context context) {
         String stored = prefs(context).getString(KEY_LAYOUTS, null);
         if (stored != null) {
-            return com.reteclock.core.layout.LayoutBook.parse(stored);
+            com.reteclock.core.layout.LayoutBook book =
+                    com.reteclock.core.layout.LayoutBook.parse(stored);
+            // Names written before the rule existed are cleaned as they are read (LayoutName), so
+            // this writes the cleaned book back once and moves each layout's picture folder to
+            // match. Without the move a layout would keep its name and lose its pictures.
+            String cleaned = book.text();
+            if (!cleaned.equals(stored)) {
+                followRenamedFolders(context, stored);
+                prefs(context).edit().putString(KEY_LAYOUTS, cleaned).commit();
+            }
+            return book;
         }
         com.reteclock.core.layout.LayoutBook seeded = starters(context);
         setLayouts(context, seeded);
@@ -1449,6 +1459,44 @@ public final class Settings {
             }
         }
         return false;
+    }
+
+    /**
+     * Moves each layout's picture folder to the name that layout now has.
+     *
+     * The old book and the new one hold the same layouts in the same order — cleaning changes names
+     * and nothing else — so the two can be walked together.
+     */
+    private static void followRenamedFolders(Context context, String storedText) {
+        try {
+            // Read the names straight out of the stored text: parsing it into presets would clean
+            // them, which is precisely the information wanted here — what they used to be called.
+            for (String block : storedText.split("\n--\n")) {
+                String was = null;
+                boolean landscape = false;
+                for (String raw : block.split("\n")) {
+                    String line = raw.trim();
+                    if (line.startsWith("name=")) {
+                        was = line.substring("name=".length()).replace("\\n", " ")
+                                .replace("\\\\", "\\");
+                    } else if (line.startsWith("way=")) {
+                        landscape = line.substring("way=".length()).trim().startsWith("l");
+                    }
+                }
+                if (was == null) {
+                    continue;
+                }
+                String now = com.reteclock.core.layout.LayoutName.isValid(was)
+                        ? was : com.reteclock.core.layout.LayoutName.clean(was);
+                if (!was.equals(now)) {
+                    LayoutSkins.renamed(context, was, now, landscape);
+                }
+            }
+        } catch (RuntimeException cannotFollow) {
+            // A folder left under the old name is a folder nobody asks for, and the sweep on the
+            // Layout screen takes it. Nothing here is worth failing a settings read over.
+            return;
+        }
     }
 
     /** The arrangements this app has always drawn, as presets to start from. */

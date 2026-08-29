@@ -91,8 +91,8 @@
     <string name="settings_ratio_tall">Portrait — the time’s share of the height: %1$d%%</string>
     <string name="settings_ratio_note">Everything sizes itself to fill its share, until it would not fit.</string>
     <string name="layout_title">Layout</string>
-    <string name="layout_starter_clock">The clock</string>
-    <string name="layout_starter_calendar">The clock with a month</string>
+    <string name="layout_starter_clock" translatable="false">_clock</string>
+    <string name="layout_starter_calendar" translatable="false">_clock_with_month</string>
     <string name="layout_upright_list">Upright</string>
     <string name="layout_sideways_list">Sideways</string>
     <string name="layout_copy_other_way">Copy to the other way up</string>
@@ -168,11 +168,12 @@
     <string name="layout_pictures_columns">Background  ·  Writing  ·  Picture</string>
     <string name="layout_pictures_none">There are no pictures yet. Add some under Pictures, then they can be given to a layout.</string>
     <string name="layout_pictures_carried">Carries %1$d picture(s).</string>
+    <string name="layout_name_rule">letters, digits and _ ; start with a letter</string>
     <string name="layout_new">New layout…</string>
     <string name="layout_restore">Put the starter layouts back</string>
     <string name="layout_restore_done">Added %1$d.</string>
     <string name="layout_restore_already">They are already here. Nothing was changed — rename or delete the ones you have first.</string>
-    <string name="layout_new_name">My layout</string>
+    <string name="layout_new_name" translatable="false">my_layout</string>
     <string name="layout_rename">Rename</string>
     <string name="layout_delete">Delete</string>
     <string name="layout_delete_ask">Delete “%1$s”? The layout is thrown away.</string>

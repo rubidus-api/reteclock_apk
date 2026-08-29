@@ -20,7 +20,7 @@ import java.util.List;
 public final class LayoutPreset {
 
     /** What a preset is called when it has not been given a name. */
-    public static final String UNNAMED = "Layout";
+    public static final String UNNAMED = "layout";
 
     /** A picture this layout carries as its background. See RFC-0010. */
     public static final int PICTURE_BACKGROUND = 0;
@@ -43,8 +43,11 @@ public final class LayoutPreset {
 
     private LayoutPreset(String name, boolean landscape, List<LayoutBox> boxes,
             List<String> backgrounds, List<String> textPictures) {
+        // A name is a folder on disc and an entry in a zip, so it is made to fit that here rather
+        // than trusted to whoever typed it — an old file, a package built by hand, or a screen with
+        // a bug in it. See LayoutName: named like a variable in C, the underscore reserved.
         String trimmed = name == null ? "" : name.trim();
-        this.name = trimmed.isEmpty() ? UNNAMED : trimmed;
+        this.name = LayoutName.isValid(trimmed) ? trimmed : LayoutName.clean(trimmed);
         this.landscape = landscape;
         List<LayoutBox> out = new ArrayList<LayoutBox>();
         if (boxes != null) {

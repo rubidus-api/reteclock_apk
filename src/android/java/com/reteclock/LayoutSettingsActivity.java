@@ -387,13 +387,23 @@ public final class LayoutSettingsActivity extends Activity {
     private void askName(final LayoutBook book, final boolean landscape, final int index) {
         final EditText field = new EditText(this);
         field.setText(book.get(landscape, index).name);
+        field.setHint(R.string.layout_name_rule);
+        field.setSingleLine(true);
         new AlertDialog.Builder(this)
                 .setTitle(R.string.layout_rename)
                 .setView(field)
                 .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        String wanted = field.getText().toString();
+                        String wanted = field.getText().toString().trim();
+                        // The name is a folder and a zip entry, so it is refused here rather than
+                        // quietly repaired: somebody typing a name should be told the rule, not
+                        // handed a different name than the one they typed (LayoutName, T094).
+                        String wrong = com.reteclock.core.layout.LayoutName.complaint(wanted);
+                        if (wrong != null) {
+                            toast(wrong);
+                            return;
+                        }
                         LayoutBook renamed = book.rename(landscape, index, wanted);
                         // The folder follows the name, or the layout loses what it was carrying.
                         LayoutSkins.renamed(LayoutSettingsActivity.this,
