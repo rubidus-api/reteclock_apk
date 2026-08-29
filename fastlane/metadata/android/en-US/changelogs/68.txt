@@ -1,0 +1,20 @@
+Added: a layout can carry its own pictures. Layout → Pictures… ticks them from your
+pool; they are copied into a folder belonging to that layout, and while it is chosen
+they are what the clock draws — the arrangement and the pictures as one set, like a
+simple skin. Import and Export carry them as an ordinary folder per layout, so the
+zip can be opened, rearranged by hand and put back.
+
+Added: New layout, and a way to put the starter layouts back, on each list. Before
+this a layout could only be made by copying one, so deleting them all left no way
+back. Putting the starters back only ever adds — one whose name is already there is
+refused rather than written over.
+
+Changed: a layout is named like a variable in C — a letter, then letters, digits and
+underscores. The name is a folder on the phone and an entry in an exported zip, and
+names differing only by a space or a bracket collide there. Names beginning with _
+belong to the app. Layouts you already have are renamed to fit when they are next
+read, and their pictures move with them.
+
+Fixed: every sideways layout was exported under the same name, and writing the
+package could stop the app responding. Fixed: a package holding layouts and no
+settings could not be brought in at all.

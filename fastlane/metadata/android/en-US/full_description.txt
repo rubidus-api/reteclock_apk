@@ -23,7 +23,7 @@ Features
 
 Built small and plain
 
-Java and the Android framework only. No AndroidX, no support library, no Kotlin runtime, no third-party dependency, a single classes.dex, and an APK of about 480 KB. It holds two normal permissions — WAKE_LOCK, to keep the screen on, and VIBRATE, which only the timer uses. Both are granted at install and neither is ever requested at runtime.
+Java and the Android framework only. No AndroidX, no support library, no Kotlin runtime, no third-party dependency, a single classes.dex, and an APK of about 490 KB. It holds two normal permissions — WAKE_LOCK, to keep the screen on, and VIBRATE, which only the timer uses. Both are granted at install and neither is ever requested at runtime.
 
 The name
 
