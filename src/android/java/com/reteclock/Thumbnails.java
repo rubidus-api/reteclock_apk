@@ -84,6 +84,33 @@ final class Thumbnails {
         return made;
     }
 
+    /**
+     * A thumbnail for a picture that is not in the shared pool — one a layout carries (RFC-0010).
+     *
+     * Held under the folder it is in as well as its name, because two layouts may carry different
+     * pictures called the same thing, and a preview that showed one for the other would be a
+     * preview of the wrong layout.
+     */
+    static Bitmap of(Context context, File source) {
+        if (context == null || source == null || !source.isFile()) {
+            return null;
+        }
+        String key = source.getParentFile() == null ? source.getName()
+                : source.getParentFile().getName() + "/" + source.getName();
+        Bitmap known = held.get(key);
+        if (known != null && !known.isRecycled()) {
+            return known;
+        }
+        Bitmap made = decode(source);
+        if (made != null) {
+            if (held.size() >= HELD) {
+                held.clear();
+            }
+            held.put(key, made);
+        }
+        return made;
+    }
+
     private static Bitmap read(File file) {
         if (!file.isFile() || file.length() == 0L) {
             return null;
@@ -109,6 +136,16 @@ final class Thumbnails {
         if (source == null || !source.isFile()) {
             return null;
         }
+        Bitmap made = decode(source);
+        if (made == null) {
+            return null;
+        }
+        write(made, thumb);
+        return made;
+    }
+
+    /** The decode itself: the header first, so the step is chosen from the picture's real size. */
+    private static Bitmap decode(File source) {
         BitmapFactory.Options bounds = new BitmapFactory.Options();
         bounds.inJustDecodeBounds = true;
         try {
@@ -125,19 +162,13 @@ final class Thumbnails {
         // A preview is drawn behind nothing and read at the size of a postage stamp; sixteen bits
         // a pixel is half the memory and no visible difference.
         options.inPreferredConfig = Bitmap.Config.RGB_565;
-        Bitmap made;
         try {
-            made = BitmapFactory.decodeFile(source.getAbsolutePath(), options);
+            return BitmapFactory.decodeFile(source.getAbsolutePath(), options);
         } catch (OutOfMemoryError tooLarge) {
             return null;
         } catch (RuntimeException damaged) {
             return null;
         }
-        if (made == null) {
-            return null;
-        }
-        write(made, thumb);
-        return made;
     }
 
     private static void write(Bitmap bitmap, File file) {

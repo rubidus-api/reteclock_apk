@@ -62,6 +62,8 @@ public final class LayoutEditorActivity extends Activity {
 
     private int index;
     private boolean landscape;
+    /** The layout being edited: its pictures decide what stands behind the boxes (issue #51). */
+    private LayoutPreset preset;
     private List<LayoutBox> boxes = new ArrayList<LayoutBox>();
     private final List<List<LayoutBox>> undo = new ArrayList<List<LayoutBox>>();
     private int selected = -1;
@@ -84,7 +86,7 @@ public final class LayoutEditorActivity extends Activity {
         index = getIntent() == null ? 1 : getIntent().getIntExtra(EXTRA_INDEX, 1);
         landscape = getIntent() != null && getIntent().getBooleanExtra(EXTRA_LANDSCAPE, false);
 
-        LayoutPreset preset = Settings.layouts(this).get(landscape, index);
+        preset = Settings.layouts(this).get(landscape, index);
         List<LayoutBox> drawn = preset.boxes();
         if (drawn.isEmpty()) {
             // Nothing drawn for this way up yet: start from what the app would draw, which is what
@@ -109,7 +111,7 @@ public final class LayoutEditorActivity extends Activity {
         root.addView(title);
 
         if (Settings.editorBackground(this)) {
-            backdropPicture = Thumbnails.of(this, Settings.firstBackgroundName(this));
+            backdropPicture = backdropThumbnail(backdropName());
         }
 
         canvas = new Canvas2D(this);
@@ -131,10 +133,7 @@ public final class LayoutEditorActivity extends Activity {
                     public void onCheckedChanged(android.widget.CompoundButton button,
                             boolean checked) {
                         Settings.setEditorBackground(LayoutEditorActivity.this, checked);
-                        backdropPicture = checked
-                                ? Thumbnails.of(LayoutEditorActivity.this,
-                                        Settings.firstBackgroundName(LayoutEditorActivity.this))
-                                : null;
+                        backdropPicture = checked ? backdropThumbnail(backdropName()) : null;
                         canvas.invalidate();
                     }
                 });
@@ -150,6 +149,33 @@ public final class LayoutEditorActivity extends Activity {
         refreshComplaints();
     }
 
+    /**
+     * Which picture stands behind the boxes: **this layout's own**, if it carries one.
+     *
+     * The editor asked the shared pool, and the clock asks the layout (RFC-0010, D4) — so a layout
+     * carrying its own background was arranged against somebody else's picture and drawn against
+     * its own, which is issue #51 exactly. One question, asked of the layout being edited.
+     *
+     * A picture the layout names but no longer has falls through to the pool, so the canvas shows
+     * what the clock would show in that case too: whatever is behind it.
+     */
+    private String backdropName() {
+        java.util.List<String> carried =
+                preset.pictures(LayoutPreset.PICTURE_BACKGROUND);
+        for (int i = 0; i < carried.size(); i++) {
+            if (LayoutSkins.file(this, preset, carried.get(i)) != null) {
+                return carried.get(i);
+            }
+        }
+        return Settings.firstBackgroundName(this);
+    }
+
+    /** The thumbnail for one of this layout's own pictures, or the pool's when it carries none. */
+    private android.graphics.Bitmap backdropThumbnail(String name) {
+        java.io.File own = LayoutSkins.file(this, preset, name);
+        return own != null ? Thumbnails.of(this, own) : Thumbnails.of(this, name);
+    }
+
     private LinearLayout buttons() {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
@@ -162,6 +188,15 @@ public final class LayoutEditorActivity extends Activity {
                 intent.putExtra(LayoutFieldsActivity.EXTRA_INDEX, index);
                 intent.putExtra(LayoutFieldsActivity.EXTRA_LANDSCAPE, landscape);
                 startActivity(intent);
+            }
+        }));
+        // Taking a field off, where the field is (issue #50). It could only be done from the
+        // fields list, which is the right place to *choose* what a layout holds and the wrong place
+        // to notice that this box, here, is one too many. Undo covers it, so it asks nothing.
+        row.addView(button(getString(R.string.layout_edit_remove), new Runnable() {
+            @Override
+            public void run() {
+                removeSelected();
             }
         }));
         row.addView(button(getString(R.string.layout_edit_undo), new Runnable() {
@@ -197,7 +232,7 @@ public final class LayoutEditorActivity extends Activity {
     protected void onResume() {
         super.onResume();
         // The fields screen may have hidden a box or changed its alignment while we were away.
-        LayoutPreset preset = Settings.layouts(this).get(landscape, index);
+        preset = Settings.layouts(this).get(landscape, index);
         List<LayoutBox> drawn = preset.boxes();
         if (!drawn.isEmpty()) {
             boxes = new ArrayList<LayoutBox>(drawn);
@@ -457,6 +492,35 @@ public final class LayoutEditorActivity extends Activity {
         return box.at(box.anchor, x, y).sized(rect[2] / screenW(), rect[3] / screenH());
     }
 
+    /**
+     * Takes the selected box off the layout.
+     *
+     * Nothing is asked, because Undo is a button away and the box is in plain sight: a dialog for
+     * something that visible and that reversible is a dialog that trains people to dismiss dialogs.
+     * With nothing selected it says so rather than doing nothing, since a button that looks live and
+     * behaves dead is worse than one that answers.
+     */
+    private void removeSelected() {
+        if (selected < 0 || selected >= boxes.size()) {
+            toast(getString(R.string.layout_edit_remove_none));
+            return;
+        }
+        remember();
+        String gone = label(boxes.get(selected).field);
+        List<LayoutBox> out = new ArrayList<LayoutBox>(boxes);
+        out.remove(selected);
+        boxes = out;
+        selected = -1;
+        save();
+        canvas.invalidate();
+        refreshComplaints();
+        toast(getString(R.string.layout_edit_remove_done, gone));
+    }
+
+    private void toast(String message) {
+        android.widget.Toast.makeText(this, message, android.widget.Toast.LENGTH_SHORT).show();
+    }
+
     private void remember() {
         // One step is one gesture, not one pixel: the list is only added to when a drag begins.
         if (undo.size() > 20) {
@@ -570,9 +634,12 @@ public final class LayoutEditorActivity extends Activity {
         TextView view = new TextView(this);
         view.setText(label);
         view.setTextColor(ACCENT);
-        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f);
+        // Four words have to share a 320dp row, so the padding is narrow and the label is kept on
+        // one line: "Remove" broke across two and read as "Remov e".
+        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f);
         view.setGravity(Gravity.CENTER);
-        view.setPadding(dp(10), dp(12), dp(10), dp(12));
+        view.setSingleLine(true);
+        view.setPadding(dp(4), dp(12), dp(4), dp(12));
         view.setLayoutParams(new LinearLayout.LayoutParams(0,
                 LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
         Focusable.make(view);
