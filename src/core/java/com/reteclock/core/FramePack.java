@@ -17,14 +17,21 @@ package com.reteclock.core;
  *
  * <pre>
  *   0  'R' 'C' 'F' 'P'
- *   4  version (2)
- *   8  pixel format (0 opaque / 1 with alpha)
+ *   4  version (3)
+ *   8  pixel format (0 opaque / 1 with alpha / 2 encoded)
  *  12  width
  *  16  height
  *  20  frameCount
  *  24  frameCount cumulative end times, in milliseconds
- *      frameCount frames of width*height*bytesPerPixel
+ *      frameCount frame lengths, in bytes
+ *      the frames themselves, end to end
  * </pre>
+ *
+ * Version 3 added the lengths. Until then every frame was the same size — width times height times
+ * the bytes a pixel takes — and where a frame began could be multiplied out. An **encoded** pack
+ * stores each frame as a small image file instead of as pixels, and those are not all one size, so
+ * the file has to say. The lengths are written for every pack, encoded or not: four bytes a frame
+ * against one fewer thing that can be true of one pack and not another.
  *
  * All integers are big-endian. This class is the arithmetic only — the reading and writing of
  * bitmaps belongs to the Android layer.
@@ -35,30 +42,54 @@ public final class FramePack {
     public static final int OPAQUE = 0;
     /** Pixels that keep their holes: ARGB_8888, four bytes each. */
     public static final int WITH_ALPHA = 1;
+    /**
+     * Each frame is a small image file — WebP where the platform can write one — rather than
+     * pixels.
+     *
+     * A tenth to a thirtieth of the size, which is what lets a frame be as large as the screen and
+     * an animation keep all of its frames. It is paid for with a decode every time a frame changes,
+     * which is nothing on a modern phone and far too much on the oldest ones this app runs on — so
+     * it is what the user asks for, never what they get by default. See {@code ImageQuality}.
+     */
+    public static final int ENCODED = 2;
 
-    private static final int VERSION = 2;
+    private static final int VERSION = 3;
     private static final int FIXED_HEADER = 24;
 
     private final int format;
     private final int width;
     private final int height;
     private final int[] frameEnds;
+    private final int[] frameLengths;
 
-    private FramePack(int format, int width, int height, int[] frameEnds) {
+    private FramePack(int format, int width, int height, int[] frameEnds, int[] frameLengths) {
         this.format = format;
         this.width = width;
         this.height = height;
         this.frameEnds = frameEnds;
+        this.frameLengths = frameLengths;
     }
 
-    /** How many bytes one pixel takes in this format. */
+    /**
+     * How many bytes one pixel takes in this format.
+     *
+     * Meaningless for {@link #ENCODED}, where a frame is a file rather than pixels; it answers as
+     * for the opaque case so that arithmetic which only wants a rough size does not have to branch,
+     * and every caller that needs the truth asks {@link #frameBytes(int)} instead.
+     */
     public static int bytesPerPixel(int format) {
         return format == WITH_ALPHA ? 4 : 2;
     }
 
+    /** Whether each frame is an image file rather than raw pixels. */
+    public boolean isEncoded() {
+        return format == ENCODED;
+    }
+
     /** The header for a pack of this format and size, with these cumulative frame end times. */
-    public static byte[] header(int width, int height, int format, int[] frameEnds) {
-        byte[] out = new byte[FIXED_HEADER + 4 * frameEnds.length];
+    public static byte[] header(int width, int height, int format, int[] frameEnds,
+            int[] frameLengths) {
+        byte[] out = new byte[FIXED_HEADER + 8 * frameEnds.length];
         out[0] = 'R';
         out[1] = 'C';
         out[2] = 'F';
@@ -70,6 +101,10 @@ public final class FramePack {
         putInt(out, 20, frameEnds.length);
         for (int i = 0; i < frameEnds.length; i++) {
             putInt(out, FIXED_HEADER + 4 * i, frameEnds[i]);
+        }
+        int lengthsAt = FIXED_HEADER + 4 * frameEnds.length;
+        for (int i = 0; i < frameEnds.length; i++) {
+            putInt(out, lengthsAt + 4 * i, frameLengths[i]);
         }
         return out;
     }
@@ -95,10 +130,10 @@ public final class FramePack {
         if (width <= 0 || height <= 0 || count <= 0) {
             return null;
         }
-        if (format != OPAQUE && format != WITH_ALPHA) {
+        if (format != OPAQUE && format != WITH_ALPHA && format != ENCODED) {
             return null;
         }
-        if (bytes.length < FIXED_HEADER + 4 * count) {
+        if (bytes.length < FIXED_HEADER + 8 * count) {
             return null;
         }
         int[] ends = new int[count];
@@ -110,12 +145,20 @@ public final class FramePack {
             }
             previous = ends[i];
         }
-        return new FramePack(format, width, height, ends);
+        int lengthsAt = FIXED_HEADER + 4 * count;
+        int[] lengths = new int[count];
+        for (int i = 0; i < count; i++) {
+            lengths[i] = getInt(bytes, lengthsAt + 4 * i);
+            if (lengths[i] <= 0) {
+                return null;              // a frame of nothing is a damaged pack
+            }
+        }
+        return new FramePack(format, width, height, ends, lengths);
     }
 
-    /** How many bytes to read before the first frame's pixels begin. */
+    /** How many bytes to read before the first frame begins. */
     public static int headerBytes(int frameCount) {
-        return FIXED_HEADER + 4 * frameCount;
+        return FIXED_HEADER + 8 * frameCount;
     }
 
     /** The fixed part of the header — enough to learn how long the whole header is. */
@@ -153,14 +196,52 @@ public final class FramePack {
         return headerBytes(frameEnds.length);
     }
 
-    /** One frame's pixels, in bytes. */
+    /**
+     * One frame's pixels, in bytes — for the raw formats, where every frame is the same size.
+     *
+     * An encoded pack has no such number; ask {@link #frameBytes(int)}.
+     */
     public int frameBytes() {
         return width * height * bytesPerPixel(format);
     }
 
-    /** Where one frame's pixels begin in the file. */
+    /** How long this particular frame is, in bytes. */
+    public int frameBytes(int index) {
+        return frameLengths[index < 0 ? 0 : index >= frameLengths.length
+                ? frameLengths.length - 1 : index];
+    }
+
+    /** The largest frame in the pack: what a reader has to have room for. */
+    public int largestFrameBytes() {
+        int largest = 0;
+        for (int i = 0; i < frameLengths.length; i++) {
+            largest = Math.max(largest, frameLengths[i]);
+        }
+        return largest;
+    }
+
+    /**
+     * Where one frame begins in the file: the header, then every frame before it.
+     *
+     * The count itself is a legal question — it is where the frames end, which is the size of the
+     * file — so only what is outside 0..count is pulled back to the nearest end.
+     */
     public long frameOffset(int index) {
-        return (long) headerBytes() + (long) index * (long) frameBytes();
+        int wanted = index < 0 ? 0 : index > frameLengths.length ? frameLengths.length : index;
+        long at = headerBytes();
+        for (int i = 0; i < wanted; i++) {
+            at += frameLengths[i];
+        }
+        return at;
+    }
+
+    /** What the whole file measures: the header and every frame. */
+    public long totalBytes() {
+        long at = headerBytes();
+        for (int i = 0; i < frameLengths.length; i++) {
+            at += frameLengths[i];
+        }
+        return at;
     }
 
     /**

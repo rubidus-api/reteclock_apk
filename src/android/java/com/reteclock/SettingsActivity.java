@@ -80,6 +80,8 @@ public class SettingsActivity extends Activity {
     private static final int REQUEST_PICK_IMAGE = 2;
     private static final int REQUEST_PICK_SETTINGS = 3;
     private static final int REQUEST_SAVE_SETTINGS = 4;
+    /** The picture quality this screen last saw, so a trial's answer is noticed on the way back. */
+    private int quality = -1;
 
     /** A settings file is a few dozen short lines; anything far larger is not one of ours. */
     private static final int MAX_SETTINGS_BYTES = 256 * 1024;
@@ -1197,6 +1199,8 @@ public class SettingsActivity extends Activity {
             imageSection.addView(fitPreview);
             imageSection.addView(footer(getString(R.string.settings_fit_preview_note)));
 
+            addQualitySteps(imageSection);
+
             CheckBox fade = new CheckBox(this);
             fade.setText(R.string.settings_background_fade);
             fade.setTextColor(TEXT_WHITE);
@@ -1581,6 +1585,76 @@ public class SettingsActivity extends Activity {
                 .show();
     }
 
+    /**
+     * How good animations may look — one setting for the whole app (RFC-0011).
+     *
+     * The higher steps are not switched on here. Choosing one starts a **trial**: the phone bakes
+     * the hardest picture in use and plays it, and the step is written only if that survives. A
+     * step this Android cannot do is shown greyed with the reason, and one that has already failed
+     * on this phone says so rather than inviting the same crash again.
+     */
+    private void addQualitySteps(LinearLayout into) {
+        into.addView(subheading(getString(R.string.quality_step)));
+        final int now = Settings.imageQuality(this);
+        int highest = com.reteclock.core.ImageQuality.highestOn(
+                android.os.Build.VERSION.SDK_INT);
+        int[] steps = {
+            com.reteclock.core.ImageQuality.KIND,
+            com.reteclock.core.ImageQuality.BETTER,
+            com.reteclock.core.ImageQuality.ORIGINAL,
+        };
+        int[] labels = {
+            R.string.quality_step_kind,
+            R.string.quality_step_better,
+            R.string.quality_step_original,
+        };
+        for (int i = 0; i < steps.length; i++) {
+            final int step = steps[i];
+            CheckBox box = new CheckBox(this);
+            box.setText(labels[i]);
+            box.setTextColor(TEXT_WHITE);
+            box.setChecked(step == now);
+            boolean canDo = step <= highest;
+            boolean refused = Settings.refusedImageStep(this, step);
+            box.setEnabled(canDo && !refused && step != now);
+            box.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton button, boolean checked) {
+                    if (!checked) {
+                        return;
+                    }
+                    if (step == com.reteclock.core.ImageQuality.KIND) {
+                        // Down is always allowed and needs no trial: it is where every phone starts.
+                        Settings.setImageQuality(SettingsActivity.this, step);
+                        // Every prepared file was baked for another step and is now the wrong one.
+                        // The bake replaces them and sweeps what no step asks for any more.
+                        prepareImages();
+                        rebuildImageSection();
+                        return;
+                    }
+                    Intent trial = new Intent(SettingsActivity.this, ImageTrialActivity.class);
+                    trial.putExtra(ImageTrialActivity.EXTRA_STEP, step);
+                    startActivity(trial);
+                }
+            });
+            into.addView(box);
+            if (!canDo) {
+                into.addView(footer(getString(R.string.quality_step_unavailable)));
+            } else if (refused) {
+                into.addView(footer(getString(R.string.quality_step_refused)));
+            }
+        }
+        into.addView(footer(getString(R.string.quality_step_note)));
+        into.addView(actionButton(getString(R.string.quality_step_try_again),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Settings.forgetImageRefusals(SettingsActivity.this);
+                        rebuildImageSection();
+                    }
+                }));
+    }
+
     /** The names in the order the screen and the shows all use right now. */
     private List<String> orderedNames() {
         List<String> names = new ArrayList<String>();
@@ -1933,6 +2007,26 @@ public class SettingsActivity extends Activity {
             startActivityForResult(intent, REQUEST_PICK_FONT);
         } catch (ActivityNotFoundException e) {
             toast(getString(R.string.settings_font_no_picker));
+        }
+    }
+
+    /**
+     * A trial may have raised the picture quality while this screen was away.
+     *
+     * Every prepared file is then baked for the step before it, so they are made again — here, on
+     * the screen that can afford to wait, rather than in the trial or on the clock.
+     */
+    @Override
+    protected void onResume() {
+        super.onResume();
+        int now = Settings.imageQuality(this);
+        if (quality != now) {
+            boolean changed = quality >= 0;
+            quality = now;
+            if (changed) {
+                prepareImages();
+                rebuildImageSection();
+            }
         }
     }
 

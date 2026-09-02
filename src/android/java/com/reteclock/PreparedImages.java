@@ -79,7 +79,19 @@ final class PreparedImages {
      * played at the wrong size.
      */
     static File packFor(Context context, String imageName, int screenEdge) {
-        return new File(dir(context), imageName + "." + screenEdge + ".pack");
+        return packFor(context, imageName, screenEdge, Settings.imageQuality(context));
+    }
+
+    /**
+     * The prepared file for one image, at one screen size, baked at one quality step.
+     *
+     * The step is in the name beside the screen. Without it, changing the setting would leave every
+     * pack in place and play the old one — a bug whose only symptom is a picture that quietly
+     * refuses to improve (RFC-0011).
+     */
+    static File packFor(Context context, String imageName, int screenEdge, int step) {
+        return new File(dir(context), imageName + "." + screenEdge + "."
+                + com.reteclock.core.ImageQuality.tag(step) + ".pack");
     }
 
     /** The longer edge of this screen: one pack serves both orientations. */
@@ -162,6 +174,10 @@ final class PreparedImages {
      */
     static int prepareAll(Context context) {
         int edge = screenEdge(context);
+        // The step the user has earned. It decides the size, the budget and the storage, and it is
+        // in the pack's name — so baking at one step and naming at another would be a file that
+        // lies about itself, which is exactly what happened the first time this was written.
+        int step = Settings.imageQuality(context);
         File dir = dir(context);
         dir.mkdirs();
         com.reteclock.core.FontLibrary pool = Settings.images(context);
@@ -180,12 +196,12 @@ final class PreparedImages {
             if (source == null) {
                 continue;
             }
-            File pack = packFor(context, entry.name, edge);
+            File pack = packFor(context, entry.name, edge, step);
             wanted.add(pack.getName());
             if (pack.isFile() && pack.lastModified() >= source.lastModified()) {
                 continue;
             }
-            if (prepare(source, pack, edge)) {
+            if (prepare(source, pack, edge, step)) {
                 baked++;
             }
         }
@@ -206,6 +222,11 @@ final class PreparedImages {
      * half way through never leaves something the clock would try to play.
      */
     static boolean prepare(File source, File pack, int screenEdge) {
+        return prepare(source, pack, screenEdge, com.reteclock.core.ImageQuality.KIND);
+    }
+
+    /** Bakes one image at one quality step: it decides the size, the budget and the storage. */
+    static boolean prepare(File source, File pack, int screenEdge, int step) {
         File temp = new File(pack.getPath() + ".tmp");
         temp.delete();
         boolean made = false;
@@ -214,10 +235,10 @@ final class PreparedImages {
             if (bytes == null) {
                 return false;
             }
-            int edge = Math.min(screenEdge, MAX_FRAME_EDGE);
-            made = BackgroundImage.isGif(bytes) ? bakeAnimation(bytes, temp, edge) : false;
+            int edge = com.reteclock.core.ImageQuality.frameEdge(step, screenEdge);
+            made = BackgroundImage.isGif(bytes) ? bakeAnimation(bytes, temp, edge, step) : false;
             if (!made) {
-                made = bakeStill(bytes, temp, edge);
+                made = bakeStill(bytes, temp, edge, step);
             }
             if (!made) {
                 return false;
@@ -245,7 +266,7 @@ final class PreparedImages {
      * Guessing the count instead, from the duration, costs a great deal of resolution: a two-second
      * GIF sampled every 40 ms looks like fifty frames and is usually twenty.
      */
-    private static boolean bakeAnimation(byte[] bytes, File temp, int screenEdge) {
+    private static boolean bakeAnimation(byte[] bytes, File temp, int screenEdge, int step) {
         Movie movie = decodeMovie(bytes);
         if (movie == null || movie.duration() <= 0
                 || movie.width() <= 0 || movie.height() <= 0) {
@@ -258,15 +279,15 @@ final class PreparedImages {
         // holes", and a hole survives being made smaller.
         int format = composedFormat(movie, bytes);
 
-        Walk walk = walk(movie, temp, toScreen, format);
+        Walk walk = walk(movie, temp, toScreen, format, step);
         if (walk == null) {
             return false;
         }
         if (!walk.wholeThing) {
             float toBudget = FramePack.planScale(Math.round(movie.width() * toScreen),
                     Math.round(movie.height() * toScreen), walk.frames.size(), format,
-                    BUDGET_BYTES);
-            walk = walk(movie, temp, toScreen * toBudget, format);
+                    com.reteclock.core.ImageQuality.budgetBytes(step));
+            walk = walk(movie, temp, toScreen * toBudget, format, step);
             if (walk == null) {
                 return false;
             }
@@ -277,7 +298,7 @@ final class PreparedImages {
         // Whatever the sampling reached, the last frame holds to the end of the animation.
         walk.frames.set(walk.frames.size() - 1,
                 Math.max(movie.duration(), walk.frames.get(walk.frames.size() - 1)));
-        return finish(temp, walk.width, walk.height, format, walk.frames);
+        return finish(temp, walk.width, walk.height, walk.format, walk.frames, walk.lengths);
     }
 
     /**
@@ -343,13 +364,20 @@ final class PreparedImages {
         final int width;
         final int height;
         final java.util.ArrayList<Integer> frames;
+        /** How long each frame is on disc: the same for raw pixels, its own for an encoded one. */
+        final java.util.ArrayList<Integer> lengths;
+        /** What was actually written — encoding may fall back to raw on a platform without it. */
+        final int format;
         /** Whether the whole animation fitted, or the budget cut it short. */
         final boolean wholeThing;
 
-        Walk(int width, int height, java.util.ArrayList<Integer> frames, boolean wholeThing) {
+        Walk(int width, int height, java.util.ArrayList<Integer> frames,
+                java.util.ArrayList<Integer> lengths, int format, boolean wholeThing) {
             this.width = width;
             this.height = height;
             this.frames = frames;
+            this.lengths = lengths;
+            this.format = format;
             this.wholeThing = wholeThing;
         }
     }
@@ -360,17 +388,29 @@ final class PreparedImages {
      * for half a second becomes one frame lasting half a second — smaller on disk, and one read
      * rather than twelve when it plays.
      */
-    private static Walk walk(Movie movie, File temp, float scale, int format) {
+    private static Walk walk(Movie movie, File temp, float scale, int format, int step) {
         int duration = movie.duration();
         int width = Math.max(1, Math.round(movie.width() * scale));
         int height = Math.max(1, Math.round(movie.height() * scale));
-        long frameBytes = (long) width * height * FramePack.bytesPerPixel(format);
-        int room = (int) Math.max(1, Math.min(MAX_FRAMES, BUDGET_BYTES / frameBytes));
         boolean alpha = format == FramePack.WITH_ALPHA;
+        // Encoding is asked for by the step and answered by the platform: `Bitmap.compress(WEBP…)`
+        // is API 14, so below that the higher step still bakes — larger frames, bigger budget —
+        // and simply stores them raw. A step is never refused for want of a codec.
+        boolean encode = com.reteclock.core.ImageQuality.encodesFrames(step)
+                && android.os.Build.VERSION.SDK_INT >= com.reteclock.core.ImageQuality.WEBP_SINCE;
+        int stored = encode ? FramePack.ENCODED : format;
+        long budget = com.reteclock.core.ImageQuality.budgetBytes(step);
+        int sampleMs = com.reteclock.core.ImageQuality.sampleMs(step);
+        long frameBytes = (long) width * height * FramePack.bytesPerPixel(format);
+        // An encoded frame is nothing like a raw one in size, so the room it leaves cannot be
+        // divided out beforehand. The budget is watched as the bytes are written instead.
+        int room = encode ? MAX_FRAMES
+                : (int) Math.max(1, Math.min(MAX_FRAMES, budget / frameBytes));
 
         Bitmap frame = null;
         OutputStream data = null;
         java.util.ArrayList<Integer> ends = new java.util.ArrayList<Integer>();
+        java.util.ArrayList<Integer> lengths = new java.util.ArrayList<Integer>();
         boolean wholeThing = true;
         try {
             frame = Bitmap.createBitmap(width, height,
@@ -381,8 +421,9 @@ final class PreparedImages {
             ByteBuffer buffer = ByteBuffer.allocate((int) frameBytes);
             byte[] previous = null;
             data = new BufferedOutputStream(new FileOutputStream(temp), 32 * 1024);
+            long written = 0L;
 
-            for (int at = 0; at < duration; at += STEP_MS) {
+            for (int at = 0; at < duration; at += sampleMs) {
                 // An opaque pack has nothing behind it, so black is as good a floor as any; one
                 // that keeps its holes must start from nothing at all.
                 frame.eraseColor(alpha ? 0x00000000 : 0xFF000000);
@@ -391,21 +432,28 @@ final class PreparedImages {
                 buffer.rewind();
                 frame.copyPixelsToBuffer(buffer);
                 byte[] pixels = buffer.array();
-                int end = Math.min(duration, at + STEP_MS);
+                int end = Math.min(duration, at + sampleMs);
                 if (previous != null && java.util.Arrays.equals(previous, pixels)) {
                     ends.set(ends.size() - 1, end);
                     continue;
                 }
-                if (ends.size() >= room) {
+                byte[] body = encode ? encodeFrame(frame, alpha) : pixels;
+                if (body == null) {
+                    return null;          // the platform said it could encode and then could not
+                }
+                if (ends.size() >= room || written + body.length > budget) {
                     // Out of budget at this size. Keep walking to learn the true frame count, but
                     // write nothing more; the caller will come back at a size that fits.
                     wholeThing = false;
                     ends.add(end);
+                    lengths.add(Integer.valueOf(body.length));
                     previous = pixels.clone();
                     continue;
                 }
-                data.write(pixels);
+                data.write(body);
+                written += body.length;
                 ends.add(end);
+                lengths.add(Integer.valueOf(body.length));
                 previous = pixels.clone();
             }
             data.flush();
@@ -419,24 +467,77 @@ final class PreparedImages {
                 frame.recycle();
             }
         }
-        return new Walk(width, height, ends, wholeThing);
+        // Only the frames that were written count; the rest were walked to learn how many there
+        // are. The two lists are trimmed together so a length always belongs to a frame.
+        while (!wholeThing && lengths.size() > ends.size()) {
+            lengths.remove(lengths.size() - 1);
+        }
+        return new Walk(width, height, ends, lengths, stored, wholeThing);
+    }
+
+    /**
+     * One frame as a small image file: WebP where the platform writes one, PNG where it does not.
+     *
+     * WebP is a tenth to a thirtieth of the raw pixels and decodes fast enough on the phones that
+     * are offered this step at all. Quality 80 is where a photograph stops improving to the eye and
+     * keeps costing bytes; a GIF's 256 colours have far less than that to lose.
+     */
+    private static byte[] encodeFrame(Bitmap frame, boolean alpha) {
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream(64 * 1024);
+        try {
+            Bitmap.CompressFormat format = android.os.Build.VERSION.SDK_INT
+                    >= com.reteclock.core.ImageQuality.WEBP_SINCE
+                    ? Bitmap.CompressFormat.WEBP : Bitmap.CompressFormat.PNG;
+            // A frame with holes in it may not be flattened: WebP below API 18 keeps no alpha, so
+            // such a frame goes out as PNG, which always has.
+            if (alpha && android.os.Build.VERSION.SDK_INT < 18) {
+                format = Bitmap.CompressFormat.PNG;
+            }
+            if (!frame.compress(format, 80, out)) {
+                return null;
+            }
+        } catch (RuntimeException cannotEncode) {
+            return null;
+        } catch (OutOfMemoryError cannotEncode) {
+            return null;
+        }
+        byte[] bytes = out.toByteArray();
+        return bytes.length == 0 ? null : bytes;
     }
 
     /** A still is a pack of one frame: decoded once, at the size the screen can show, and no more. */
-    private static boolean bakeStill(byte[] bytes, File temp, int screenEdge) {
+    private static boolean bakeStill(byte[] bytes, File temp, int screenEdge, int step) {
         boolean alpha = hasAlpha(bytes);
         Bitmap still = decodeStill(bytes, screenEdge, alpha);
         if (still == null) {
             return false;
         }
         int format = alpha ? FramePack.WITH_ALPHA : FramePack.OPAQUE;
+        // A still is a pack of one frame, and it follows the same rule as an animation's frames:
+        // encoded where the step asks for it. One picture the size of a screen is where the raw
+        // format costs the most and buys the least.
+        boolean encode = com.reteclock.core.ImageQuality.encodesFrames(step)
+                && android.os.Build.VERSION.SDK_INT >= com.reteclock.core.ImageQuality.WEBP_SINCE;
+        int stored = encode ? FramePack.ENCODED : format;
+        int length;
         OutputStream data = null;
         try {
-            ByteBuffer buffer = ByteBuffer.allocate(still.getWidth() * still.getHeight()
-                    * FramePack.bytesPerPixel(format));
-            still.copyPixelsToBuffer(buffer);
+            byte[] body;
+            if (encode) {
+                body = encodeFrame(still, alpha);
+                if (body == null) {
+                    still.recycle();
+                    return false;
+                }
+            } else {
+                ByteBuffer buffer = ByteBuffer.allocate(still.getWidth() * still.getHeight()
+                        * FramePack.bytesPerPixel(format));
+                still.copyPixelsToBuffer(buffer);
+                body = buffer.array();
+            }
+            length = body.length;
             data = new BufferedOutputStream(new FileOutputStream(temp), 32 * 1024);
-            data.write(buffer.array());
+            data.write(body);
             data.flush();
         } catch (IOException e) {
             return false;
@@ -449,7 +550,9 @@ final class PreparedImages {
         }
         java.util.ArrayList<Integer> ends = new java.util.ArrayList<Integer>();
         ends.add(1);
-        boolean ok = finish(temp, still.getWidth(), still.getHeight(), format, ends);
+        java.util.ArrayList<Integer> lengths = new java.util.ArrayList<Integer>();
+        lengths.add(Integer.valueOf(length));
+        boolean ok = finish(temp, still.getWidth(), still.getHeight(), stored, ends, lengths);
         still.recycle();
         return ok;
     }
@@ -460,10 +563,17 @@ final class PreparedImages {
      * is the header followed by that data.
      */
     private static boolean finish(File temp, int width, int height, int format,
-            java.util.List<Integer> ends) {
+            java.util.List<Integer> ends, java.util.List<Integer> lengths) {
+        if (ends.size() != lengths.size()) {
+            return false;                 // a length that belongs to no frame is a damaged pack
+        }
         int[] array = new int[ends.size()];
         for (int i = 0; i < array.length; i++) {
             array[i] = ends.get(i);
+        }
+        int[] sizes = new int[lengths.size()];
+        for (int i = 0; i < sizes.length; i++) {
+            sizes[i] = lengths.get(i);
         }
         File body = new File(temp.getPath() + ".body");
         if (!temp.renameTo(body)) {
@@ -473,7 +583,7 @@ final class PreparedImages {
         java.io.InputStream in = null;
         try {
             out = new BufferedOutputStream(new FileOutputStream(temp), 32 * 1024);
-            out.write(FramePack.header(width, height, format, array));
+            out.write(FramePack.header(width, height, format, array, sizes));
             in = new java.io.BufferedInputStream(new java.io.FileInputStream(body), 32 * 1024);
             byte[] chunk = new byte[32 * 1024];
             int read;

@@ -102,6 +102,12 @@
         </activity>
 
         <activity
+            android:name=".ImageTrialActivity"
+            android:exported="false"
+            android:label="@string/quality_trial_title"
+            android:theme="@android:style/Theme.Black" />
+
+        <activity
             android:name=".LayoutSettingsActivity"
             android:exported="false"
             android:label="@string/layout_title"

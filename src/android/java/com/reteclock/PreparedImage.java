@@ -22,8 +22,10 @@ final class PreparedImage {
 
     private final FramePack pack;
     private final RandomAccessFile file;
-    private final Bitmap frame;
+    private Bitmap frame;
     private final ByteBuffer pixels;
+    /** Room for the largest encoded frame; null for a raw pack, which reads into the pixels. */
+    private final byte[] encoded;
     /** Which frame the bitmap currently holds; -1 until the first read. */
     private int loaded = -1;
 
@@ -31,7 +33,11 @@ final class PreparedImage {
         this.pack = pack;
         this.file = file;
         this.frame = frame;
-        this.pixels = ByteBuffer.allocate(pack.frameBytes());
+        // An encoded pack is decoded frame by frame, so what it needs room for is the largest file
+        // in it rather than a screen's worth of pixels. A raw pack is copied straight into the
+        // bitmap it already has, exactly as before.
+        this.pixels = pack.isEncoded() ? null : ByteBuffer.allocate(pack.frameBytes());
+        this.encoded = pack.isEncoded() ? new byte[pack.largestFrameBytes()] : null;
     }
 
     /** Opens a prepared file, or returns null for one that is missing, stale or not ours. */
@@ -58,10 +64,13 @@ final class PreparedImage {
                 file.close();
                 return null;
             }
-            Bitmap frame = Bitmap.createBitmap(pack.width(), pack.height(),
-                    pack.format() == FramePack.WITH_ALPHA
-                            ? Bitmap.Config.ARGB_8888
-                            : Bitmap.Config.RGB_565);
+            // An encoded pack's bitmap arrives with each decoded frame, so there is nothing to
+            // make here; a raw one is copied into a bitmap that lives as long as the pack does.
+            Bitmap frame = pack.isEncoded() ? null
+                    : Bitmap.createBitmap(pack.width(), pack.height(),
+                            pack.format() == FramePack.WITH_ALPHA
+                                    ? Bitmap.Config.ARGB_8888
+                                    : Bitmap.Config.RGB_565);
             return new PreparedImage(pack, file, frame);
         } catch (IOException e) {
             close(file);
@@ -115,6 +124,24 @@ final class PreparedImage {
         }
         try {
             file.seek(pack.frameOffset(wanted));
+            if (pack.isEncoded()) {
+                int length = pack.frameBytes(wanted);
+                file.readFully(encoded, 0, length);
+                Bitmap decoded = android.graphics.BitmapFactory.decodeByteArray(
+                        encoded, 0, length);
+                if (decoded == null) {
+                    return loaded < 0 ? null : frame;
+                }
+                // The frame before it is let go here rather than at the next allocation: on a phone
+                // with a small heap, holding two screen-sized bitmaps for an instant is the
+                // difference between playing and stopping.
+                if (frame != null) {
+                    frame.recycle();
+                }
+                frame = decoded;
+                loaded = wanted;
+                return frame;
+            }
             file.readFully(pixels.array());
             pixels.rewind();
             frame.copyPixelsFromBuffer(pixels);

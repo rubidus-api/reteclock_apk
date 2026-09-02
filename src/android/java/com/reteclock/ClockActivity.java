@@ -106,6 +106,19 @@ public class ClockActivity extends Activity {
         getWindow().addFlags(flags);
 
         // Read the mark before this run writes its own: it belongs to the run before this one.
+        // A trial of a picture-quality step that never came back is read here, once: the step is
+        // refused and the mark cleared, so the next run is not asked to walk into it again. This is
+        // the far half of RFC-0011 — the near half is that the step was never written, so this run
+        // is already drawing at the step that last worked.
+        Settings.readUnfinishedTrial(this);
+        // A run that did not survive at all also drops the quality one step, for the same reason a
+        // safe start leaves the pictures alone: repeating what killed the last run is not a plan.
+        if (Settings.runUnfinished(this)) {
+            int at = Settings.imageQuality(this);
+            if (at != com.reteclock.core.ImageQuality.FLOOR) {
+                Settings.refuseImageStep(this, at);
+            }
+        }
         safeMode = com.reteclock.core.SafeStart.safeMode(Settings.runUnfinished(this));
         if (safeMode) {
             Settings.setSafeNotice(this, true);

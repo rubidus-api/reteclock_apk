@@ -50,6 +50,10 @@ public final class Settings {
     public static final String KEY_TIMER_ALERT = "timer_alert";
     public static final String KEY_STAY_UNLOCKED = "stay_unlocked";
     public static final String KEY_TIMER_HIDDEN = "timer_hidden";
+    /** How good an animation may look, and what the trial has proved about it. See RFC-0011. */
+    public static final String KEY_IMAGE_QUALITY = "image_quality";
+    public static final String KEY_IMAGE_TRIAL = "image_trial";
+    public static final String KEY_IMAGE_REFUSED = "image_refused";
     /** Whether a margin is kept clear of the screen's edges — for a television. See RFC-0009. */
     public static final String KEY_SAFE_AREA = "safe_area";
     /** Whether the layout editor shows the background behind the boxes. See RFC-0008. */
@@ -713,6 +717,96 @@ public final class Settings {
      * years does not — and nothing inside the app can tell which kind of set it is on, so the
      * person looking at the screen decides. See {@link com.reteclock.core.SafeArea}.
      */
+    /**
+     * How good an animation is allowed to look (RFC-0011).
+     *
+     * Never above what this Android can do — a setting can arrive from a faster phone's package —
+     * and never above what this phone has actually survived, which is what the trial is for.
+     */
+    public static int imageQuality(Context context) {
+        int stored = prefs(context).getInt(KEY_IMAGE_QUALITY,
+                com.reteclock.core.ImageQuality.FLOOR);
+        int allowed = com.reteclock.core.ImageQuality.allowedOn(stored,
+                android.os.Build.VERSION.SDK_INT);
+        return refusedImageStep(context, allowed)
+                ? com.reteclock.core.ImageQuality.demoted(allowed) : allowed;
+    }
+
+    /**
+     * Writes the step. **Only the trial calls this**, and only after the trial has been survived.
+     *
+     * The rule the whole design rests on: a step is not saved when it is chosen. See
+     * {@link com.reteclock.core.ImageTrial} and RFC-0011.
+     */
+    public static void setImageQuality(Context context, int step) {
+        prefs(context).edit().putInt(KEY_IMAGE_QUALITY,
+                com.reteclock.core.ImageQuality.of(step)).commit();
+    }
+
+    /**
+     * Marks that a trial of this step is about to begin — the only thing written until it passes.
+     *
+     * If the app dies or hangs while the trial runs, this mark is all that survives, and the next
+     * start reads it as "that step killed us" (see {@link #trialSurvived}).
+     */
+    public static void beginImageTrial(Context context, int step) {
+        prefs(context).edit().putInt(KEY_IMAGE_TRIAL,
+                com.reteclock.core.ImageQuality.of(step)).commit();
+    }
+
+    /** Clears the mark: the trial finished, one way or the other, and said so. */
+    public static void endImageTrial(Context context) {
+        prefs(context).edit().remove(KEY_IMAGE_TRIAL).commit();
+    }
+
+    /** The step a trial was in the middle of when the app last stopped, or -1 for none. */
+    public static int unfinishedImageTrial(Context context) {
+        return prefs(context).getInt(KEY_IMAGE_TRIAL, -1);
+    }
+
+    /**
+     * Reads a trial that never finished, refuses that step, and clears the mark. Called once, at
+     * the start of a run.
+     *
+     * A mark still on disc means the run that wrote it never got to the end of its trial — it was
+     * killed, or it hung. That is the answer the trial existed to get, and it is remembered here so
+     * the step is refused rather than offered again as though nothing had happened.
+     *
+     * @return the step that did not survive, or -1 when the last trial ended properly
+     */
+    public static int readUnfinishedTrial(Context context) {
+        int step = unfinishedImageTrial(context);
+        if (step < 0) {
+            return -1;
+        }
+        refuseImageStep(context, step);
+        endImageTrial(context);
+        return step;
+    }
+
+    /**
+     * Remembers that this phone did not survive a trial of this step.
+     *
+     * Kept as the lowest step that failed, so refusing one refuses everything above it: a phone that
+     * died on "Better" will not be offered "As it came" as though it were a fresh question.
+     */
+    public static void refuseImageStep(Context context, int step) {
+        int already = prefs(context).getInt(KEY_IMAGE_REFUSED, Integer.MAX_VALUE);
+        prefs(context).edit().putInt(KEY_IMAGE_REFUSED,
+                Math.min(already, com.reteclock.core.ImageQuality.of(step))).commit();
+    }
+
+    /** Whether this step, or one above it, has already failed on this phone. */
+    public static boolean refusedImageStep(Context context, int step) {
+        return com.reteclock.core.ImageQuality.of(step)
+                >= prefs(context).getInt(KEY_IMAGE_REFUSED, Integer.MAX_VALUE);
+    }
+
+    /** Forgets the refusals, for somebody who wants to try again after clearing pictures out. */
+    public static void forgetImageRefusals(Context context) {
+        prefs(context).edit().remove(KEY_IMAGE_REFUSED).commit();
+    }
+
     public static boolean safeArea(Context context) {
         return prefs(context).getBoolean(KEY_SAFE_AREA, false);
     }
