@@ -1,0 +1,19 @@
+Added: a bell can be put off. Give a bell a number of minutes in Sounds and bells, and
+when it rings while the clock is on screen a card comes up with it: ring again in that
+many minutes, or stop. Back is stop, and a card nobody answers closes itself after a
+minute. Bells you already set are untouched — they have no number until you give them
+one. A bell rings while the clock or the screensaver is showing and not otherwise, so
+a bell put off is forgotten if you leave the clock.
+
+Added: how good animations may look is now a setting. Kind to the phone is the default
+and exactly what the app always did; Better makes frames the size of the screen and
+stores them as WebP instead of raw pixels. A step is not saved when it is chosen — the
+phone bakes the hardest picture you use, plays it timing every frame, and the setting
+is written only if that survives.
+
+Added: a field can be taken off in the layout editor. Tap it on the layout, then
+Remove; Undo is beside it.
+
+Fixed: the layout editor drew the shared pool's background while the clock drew the
+picture the layout itself carries, so a layout with its own pictures was arranged
+against one background and shown against another.
