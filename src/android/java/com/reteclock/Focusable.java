@@ -41,10 +41,19 @@ final class Focusable {
         view.setClickable(true);
         view.setFocusable(true);
         final Drawable resting = view.getBackground();
+        // Setting a background takes the new drawable's padding, which for these shapes is none —
+        // so the control's own padding is lost the moment it is focused, and text that filled its
+        // box is then drawn outside it. It showed up as a button reading "ing again in 1 min" on
+        // the 320-pixel floor screen. The padding is taken now and put back after every swap.
+        final int left = view.getPaddingLeft();
+        final int top = view.getPaddingTop();
+        final int right = view.getPaddingRight();
+        final int bottom = view.getPaddingBottom();
         view.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View v, boolean hasFocus) {
                 v.setBackgroundDrawable(hasFocus ? ringOver(resting) : resting);
+                v.setPadding(left, top, right, bottom);
             }
         });
         return view;

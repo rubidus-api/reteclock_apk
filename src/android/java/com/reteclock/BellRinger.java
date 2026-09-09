@@ -4,6 +4,7 @@ import android.content.Context;
 
 import com.reteclock.core.Bell;
 import com.reteclock.core.Bells;
+import com.reteclock.core.Snooze;
 import com.reteclock.core.Tones;
 
 import java.io.File;
@@ -21,6 +22,13 @@ import java.util.List;
  * that is on screen when it matters, and the alternative is a background alarm with a wake lock, a
  * notification, and a set of failure modes that have to be right at four in the morning. That is a
  * different feature, and it is written down as one.
+ *
+ * <p><b>A bell can now be put off</b> ({@link com.reteclock.core.Snooze}), and that promise is kept
+ * the only way this design can keep one: on the same tick, in the same window. It therefore lives
+ * exactly as long as the screen does — {@link #stop()} drops it — which is the honest scope of a
+ * clock that is not running when nobody is looking at it. Only a caller that can show the card sets
+ * a {@link Ringing}; the screensaver sets none and rings as it always did, because Android does not
+ * hand a Daydream its touches and a card there could not be pressed.
  *
  * <p>The first tick after the screen appears sets the mark and rings nothing: what fell while the
  * settings were open was missed, and a chime for a moment that has gone is worse than silence.
@@ -41,6 +49,10 @@ final class BellRinger {
     private boolean on;
     /** Asked, before every ring, whether a timer is counting; a timer has the right of way. */
     private Busy busy;
+    /** The one bell that has been put off, or null. One, because a card answers one bell. */
+    private Snooze snooze;
+    /** Told when a bell that can be put off is sounding, so a card can be shown. May be null. */
+    private Ringing ringing;
 
     /** What the screen knows and the bells do not: whether the timer is running just now. */
     interface Busy {
@@ -49,6 +61,52 @@ final class BellRinger {
 
     void setBusy(Busy busy) {
         this.busy = busy;
+    }
+
+    /** What the screen offers that a sound cannot: the two answers to a bell. */
+    interface Ringing {
+        /** A bell that can be put off is sounding now. */
+        void bellIsRinging(Bell bell);
+    }
+
+    /**
+     * Sets who is told about a ringing bell — the clock screen, and nobody else.
+     *
+     * A caller that sets none gets what this always did: the bell sounds and a touch stops it.
+     */
+    void setRinging(Ringing ringing) {
+        this.ringing = ringing;
+    }
+
+    /**
+     * Rings this bell again in its own number of minutes, counted from now.
+     *
+     * Asking twice does not queue two rings: the one promise moves. It is dropped by {@link #stop()}
+     * and by {@link #reload()}, because a promise the clock cannot keep should not outlive the
+     * screen that made it.
+     */
+    void putOff(Bell bell, long nowMs) {
+        silence();
+        snooze = Snooze.of(bell, stampNow(nowMs));
+    }
+
+    /**
+     * That is the end of this bell: the sound stops, and what it was owed is dropped.
+     *
+     * <p>Only what <em>it</em> was owed. Two bells can be in play at once — one put off at seven,
+     * another ringing at five past — and stopping the second must not quietly cancel the first.
+     * The promise is named after the bell that made it, and only that bell can end it.
+     */
+    void stopRinging(Bell bell) {
+        silence();
+        if (snooze != null && bell != null && snooze.bell == bell) {
+            snooze = null;
+        }
+    }
+
+    /** Whether a bell is waiting to ring again — what the screen shows a mark for. */
+    boolean hasSnooze() {
+        return snooze != null;
     }
 
     BellRinger(Context context) {
@@ -63,12 +121,16 @@ final class BellRinger {
         on = Settings.bellsOn(context);
         // Whatever fell while somebody was editing the bells is not rung at them on the way back.
         lastStamp = Long.MIN_VALUE;
+        // The bell that was put off may not exist any more, and its minutes may have changed. The
+        // promise was made about a bell as it was; it is dropped rather than guessed at.
+        snooze = null;
     }
 
     /** One second of the clock's own tick. */
     void tick(long nowMs) {
         if (!on || bells.size() == 0) {
             lastStamp = Long.MIN_VALUE;
+            snooze = null;
             return;
         }
         long stamp = Bells.stampOf(nowMs, Settings.offsetMinutes(context, nowMs));
@@ -77,6 +139,10 @@ final class BellRinger {
             return;
         }
         List<Bell> due = bells.due(lastStamp, stamp);
+        // A bell that was put off is due in the same window, judged by the same arithmetic. It is
+        // taken first: it is the one the person in the room has already been asked about once.
+        Snooze waiting = snooze;
+        boolean putOffIsDue = waiting != null && waiting.isDue(lastStamp, stamp);
         lastStamp = stamp;
         // A timer counting on the same screen wins. Two sounds at once is a noise, and of the two
         // the timer is the one somebody is waiting on — they started it a minute ago and are
@@ -84,6 +150,16 @@ final class BellRinger {
         // a moment, and the moment passes, the same way one missed while the clock was off screen
         // does.
         if (busy != null && busy.timerIsRunning()) {
+            // A bell that merely fell now is passed over — the moment has gone. A put-off is not:
+            // somebody was asked and answered "ring again", and dropping that silently would be
+            // the app breaking a promise it made on screen a few minutes ago. It is kept, and the
+            // next quiet second rings it — within the catch-up window, which is where every other
+            // late ring in this app also gives up.
+            return;
+        }
+        if (putOffIsDue) {
+            snooze = null;
+            ring(waiting.bell);
             return;
         }
         if (!due.isEmpty()) {
@@ -91,6 +167,11 @@ final class BellRinger {
             // sounds at once is a noise. The first one rings.
             ring(due.get(0));
         }
+    }
+
+    /** Where the bells count time: local, at the app's own offset, summer time folded in. */
+    private long stampNow(long nowMs) {
+        return Bells.stampOf(nowMs, Settings.offsetMinutes(context, nowMs));
     }
 
     /**
@@ -105,6 +186,11 @@ final class BellRinger {
         // feature, set separately — but it does answer to the phone's own ringer switch.
         if (!PhoneQuiet.soundAllowed(context)) {
             return;
+        }
+        // Asked alongside the sound, and only once the phone has been found willing to make one:
+        // the card is an answer to a noise, so it must not appear on a silenced phone.
+        if (ringing != null && bell.canSnooze()) {
+            ringing.bellIsRinging(bell);
         }
         if (bell.sound.isEmpty()) {
             // The chime is repeated as one pattern rather than as several sounds started in turn:
@@ -141,9 +227,16 @@ final class BellRinger {
         return true;
     }
 
-    /** The screen is going away: stop at once rather than fade into a window nobody is at. */
+    /**
+     * The screen is going away: stop at once rather than fade into a window nobody is at.
+     *
+     * The put-off goes too. Nothing outside this tick can deliver it, so keeping it would be
+     * keeping a promise the app has no way to honour — and a bell that rang half an hour later,
+     * once the clock happened to come back, would be worse than one that did not ring at all.
+     */
     void stop() {
         player.stopNow();
         lastStamp = Long.MIN_VALUE;
+        snooze = null;
     }
 }

@@ -134,6 +134,14 @@ public class ClockActivity extends Activity {
                 return timer != null && timer.isRunning();
             }
         });
+        // A bell that can be put off asks a question, and only this screen can be asked it: the
+        // screensaver is not handed its touches, so there it rings and a touch stops it as before.
+        bells.setRinging(new BellRinger.Ringing() {
+            @Override
+            public void bellIsRinging(com.reteclock.core.Bell bell) {
+                showBellCard(bell);
+            }
+        });
         view.setOnSecond(new ClockView.OnSecond() {
             @Override
             public void second(long nowMs) {
@@ -372,6 +380,45 @@ public class ClockActivity extends Activity {
     /** What the strip asks the world for: sounds, speech, a flash, and the preset list. */
     /** Whether the touch in progress belongs to the calendar's arrows or to the saying. */
     private boolean ownGesture;
+
+    /** The card a ringing bell raised, while it is up. One bell is asked about at a time. */
+    private android.app.Dialog bellCard;
+
+    /**
+     * Raises the card for a bell that can be put off.
+     *
+     * A second bell arriving while the first card is up does not stack a second card: the sound is
+     * the notice, and one question on screen is the whole point of asking one.
+     */
+    private void showBellCard(final com.reteclock.core.Bell bell) {
+        if (bellCard != null && bellCard.isShowing()) {
+            return;
+        }
+        if (isFinishing()) {
+            return;
+        }
+        bellCard = BellCard.show(this, bell, new BellCard.Answer() {
+            @Override
+            public void putOff() {
+                bells.putOff(bell, System.currentTimeMillis());
+            }
+
+            @Override
+            public void stop() {
+                bells.stopRinging(bell);
+            }
+        });
+    }
+
+    /** Takes the card away with the screen, so it is not left over a window nobody is at. */
+    private void dismissBellCard() {
+        if (bellCard != null) {
+            if (bellCard.isShowing()) {
+                bellCard.dismiss();
+            }
+            bellCard = null;
+        }
+    }
 
     /**
      * Stops whatever the app is playing, and says whether there was anything to stop.
@@ -697,6 +744,7 @@ public class ClockActivity extends Activity {
     @Override
     protected void onPause() {
         view.stop();
+        dismissBellCard();
         bells.stop();
         cuePlayer.stopNow();
         if (timer != null) {

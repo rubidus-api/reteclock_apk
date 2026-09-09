@@ -210,7 +210,7 @@ public final class Bells {
     /**
      * <pre>
      *   bells := bell ('\n' bell)*
-     *   bell  := on '|' days '|' minuteOfDay '|' sound '|' label '|' repeats
+     *   bell  := on '|' days '|' minuteOfDay '|' sound '|' label '|' repeats '|' snoozeMinutes
      * </pre>
      */
     public String text() {
@@ -225,7 +225,8 @@ public final class Bells {
             out.append(bell.minuteOfDay).append(FIELD);
             out.append(escape(bell.sound)).append(FIELD);
             out.append(escape(bell.label)).append(FIELD);
-            out.append(bell.repeats);
+            out.append(bell.repeats).append(FIELD);
+            out.append(bell.snoozeMinutes);
         }
         return out.toString();
     }
@@ -252,7 +253,11 @@ public final class Bells {
                     TimerPreset.unescape(fields.get(3)),
                     fields.size() > 4 ? TimerPreset.unescape(fields.get(4)) : "",
                     // A bell written before repeating existed rings once, which is what it did.
-                    fields.size() > 5 ? number(fields.get(5), 1) : 1));
+                    fields.size() > 5 ? number(fields.get(5), 1) : 1,
+                    // And one written before it could be put off cannot be: a morning already set
+                    // is not given a new button by an update. Fields past this one belong to a
+                    // newer version and are ignored rather than making the line unreadable.
+                    fields.size() > 6 ? number(fields.get(6), 0) : 0));
         }
         return out.isEmpty() ? NONE : new Bells(out);
     }

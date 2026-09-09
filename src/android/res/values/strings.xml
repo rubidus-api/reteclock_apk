@@ -291,6 +291,10 @@
     <string name="settings_screensaver_no_screen">This phone has no screensaver settings screen.</string>
     <string name="hint_long_press">Press and hold the clock for settings</string>
     <string name="hint_touch">Tap to dim the screen, press and hold for the menu</string>
+    <!-- The card a bell that can be put off raises when it rings. -->
+    <string name="bell_card_untitled">Bell</string>
+    <string name="bell_card_put_off">Ring again in %1$d min</string>
+    <string name="bell_card_stop">Stop</string>
     <string name="menu_title">Main menu</string>
     <string name="menu_settings">General settings</string>
     <string name="menu_timer_settings">Timer settings</string>
@@ -506,6 +510,9 @@
     <string name="sound_bell_repeats">How many times it plays</string>
     <string name="sound_bell_repeats_note">A chime of two or three seconds is easy to miss once and hard to miss three times over. Touching the screen while it is ringing fades it out and cancels the rest of the repeats, not only the pass that is playing.</string>
     <string name="sound_bell_times">%1$d times</string>
+    <string name="sound_bell_snooze">Put off for, in minutes</string>
+    <string name="sound_bell_snooze_note">0 means the bell only rings, as it always did. Any other number and the bell asks: ring again in that many minutes, or stop. It can only ask while the clock is on screen — the app is not running when it is not showing, so a bell put off is forgotten if you leave the clock. A timer counting at the moment it comes back around goes first, and the bell rings as soon as the timer is quiet.</string>
+    <string name="sound_bell_snooze_shown">put off %1$d min</string>
     <string name="sound_bell_label">Name (optional)</string>
     <string name="sound_bell_chime">The built-in chime</string>
     <string name="sound_bell_every_day">Every day</string>
