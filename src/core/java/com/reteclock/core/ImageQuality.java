@@ -50,6 +50,23 @@ public final class ImageQuality {
         return step == BETTER || step == ORIGINAL ? step : FLOOR;
     }
 
+    /**
+     * The highest step this <em>build</em> performs, whatever the phone is capable of.
+     *
+     * The top step means "the platform plays the file itself" — the {@code ImageDecoder} path, which
+     * is written down (RFC-0011, step 4) and not written. A step whose label promises something no
+     * copy of this app does is worse than one a phone is too old for: with the second there is at
+     * least something to wait for on the phone's side. So it is not offered, a setting that names it
+     * is brought down like one the platform cannot do, and it returns by raising this constant when
+     * the path lands.
+     */
+    public static final int IMPLEMENTED_UP_TO = BETTER;
+
+    /** Whether this build performs this step at all. */
+    public static boolean exists(int step) {
+        return of(step) <= IMPLEMENTED_UP_TO;
+    }
+
     /** The highest step this Android can do at all. Above it, a step is not offered. */
     public static int highestOn(int sdk) {
         if (sdk >= NATIVE_ANIMATION_SINCE) {
@@ -63,9 +80,19 @@ public final class ImageQuality {
         return of(step) <= highestOn(sdk);
     }
 
-    /** The step this phone should be left at when one it cannot do is asked for. */
+    /**
+     * The step this phone should be left at when one it cannot do is asked for.
+     *
+     * Two different refusals, deliberately answered in one place: the phone may be too old for a
+     * step ({@link #highestOn}), and this build may not perform it at all ({@link #exists}). The
+     * second is why a setting exported by another version cannot leave the clock pointed at
+     * something nothing here does.
+     */
     public static int allowedOn(int step, int sdk) {
         int wanted = of(step);
+        if (!exists(wanted)) {
+            wanted = IMPLEMENTED_UP_TO;
+        }
         int highest = highestOn(sdk);
         return wanted <= highest ? wanted : highest;
     }

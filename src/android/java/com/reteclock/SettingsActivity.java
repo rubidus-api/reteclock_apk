@@ -1610,6 +1610,11 @@ public class SettingsActivity extends Activity {
         };
         for (int i = 0; i < steps.length; i++) {
             final int step = steps[i];
+            // A step this build does not perform is not listed at all — not even greyed out. A
+            // greyed-out row says "your phone cannot"; there would be nothing wrong with the phone.
+            if (!com.reteclock.core.ImageQuality.exists(step)) {
+                continue;
+            }
             CheckBox box = new CheckBox(this);
             box.setText(labels[i]);
             box.setTextColor(TEXT_WHITE);
