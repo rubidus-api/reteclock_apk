@@ -1,0 +1,14 @@
+Added: the top step for animated backgrounds works and is offered again. Pictures →
+How good animations may look → As it came — the file itself, on Android 9 and up.
+Nothing is prepared at this step: the picture is handed to Android, which plays it
+with the timing its own decoder intends. The step was in the settings of 0.38 and was
+taken out of 0.39 because the code behind it was not written; this is that code.
+
+Added: an animated WebP moves. It could not before — the animation used below this step
+has been in Android since the first release and only ever knew GIF.
+
+Changed: testing a step that prepares nothing now times Android opening the file rather
+than a preparation, and reports nothing on disc, because there is nothing on disc.
+
+Changed: a step refused because a run stopped answering no longer says that the test
+refused it. There are two ways for a step to be refused and only one of them is a test.
