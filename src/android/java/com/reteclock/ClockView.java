@@ -1305,7 +1305,9 @@ public class ClockView extends View {
         // baked from something else. It is one decode, and it is always the right one.
         java.io.File pack = carried(source) ? null
                 : PreparedImages.packFor(getContext(), source.getName(), preparedEdge);
-        return BackgroundImage.open(source, pack);
+        // The step decides whether there is a baked file to look for at all: at the top one the
+        // platform plays the file itself and nothing is baked (RFC-0011, step 4).
+        return BackgroundImage.open(source, pack, Settings.imageQuality(getContext()));
     }
 
     /**

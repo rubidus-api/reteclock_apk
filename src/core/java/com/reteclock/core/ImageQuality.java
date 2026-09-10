@@ -53,14 +53,16 @@ public final class ImageQuality {
     /**
      * The highest step this <em>build</em> performs, whatever the phone is capable of.
      *
-     * The top step means "the platform plays the file itself" — the {@code ImageDecoder} path, which
-     * is written down (RFC-0011, step 4) and not written. A step whose label promises something no
-     * copy of this app does is worse than one a phone is too old for: with the second there is at
-     * least something to wait for on the phone's side. So it is not offered, a setting that names it
-     * is brought down like one the platform cannot do, and it returns by raising this constant when
-     * the path lands.
+     * It exists because a step whose label promises something no copy of this app does is worse than
+     * one a phone is too old for: with the second there is at least something to wait for on the
+     * phone's side. It held the list at {@link #BETTER} through 0.39.0, while the top step's
+     * {@code ImageDecoder} path was written down and not written.
+     *
+     * It is now the top step: the path is in {@code NativeAnimation}, compiled against a modern
+     * Android in a source tree of its own so that the rest of the app keeps its floor. The constant
+     * stays because the next step above will need it again.
      */
-    public static final int IMPLEMENTED_UP_TO = BETTER;
+    public static final int IMPLEMENTED_UP_TO = ORIGINAL;
 
     /** Whether this build performs this step at all. */
     public static boolean exists(int step) {

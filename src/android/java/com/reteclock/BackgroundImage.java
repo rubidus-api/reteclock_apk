@@ -5,6 +5,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Movie;
 import android.graphics.Paint;
+import android.graphics.drawable.Drawable;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -22,6 +23,10 @@ import java.io.InputStream;
  *
  * A GIF with a single frame, and any GIF Movie fails to read, falls through to BitmapFactory,
  * which decodes the first frame; a still image is still a background.
+ *
+ * <p>On Android 9 and up, and only at the top quality step, there is a fourth kind: the platform
+ * plays the file itself ({@link NativeAnimation}). Nothing is baked, the frame timing is the
+ * platform's, and an animated WebP moves — which it cannot on any other path here. See RFC-0011.
  */
 final class BackgroundImage {
 
@@ -38,6 +43,8 @@ final class BackgroundImage {
     private final Bitmap bitmap;
     /** The baked file, when there is one; then neither of the two above is used. */
     private final PreparedImage prepared;
+    /** The platform's own drawable, at the top step on API 28+; then none of the three is used. */
+    private final Drawable live;
     /**
      * Where a live animation's frame is rendered before it goes on screen.
      *
@@ -52,9 +59,14 @@ final class BackgroundImage {
     private float frameScale = 1f;
 
     private BackgroundImage(Movie movie, Bitmap bitmap, PreparedImage prepared) {
+        this(movie, bitmap, prepared, null);
+    }
+
+    private BackgroundImage(Movie movie, Bitmap bitmap, PreparedImage prepared, Drawable live) {
         this.movie = movie;
         this.bitmap = bitmap;
         this.prepared = prepared;
+        this.live = live;
     }
 
     /**
@@ -69,6 +81,34 @@ final class BackgroundImage {
             return new BackgroundImage(null, null, ready);
         }
         return load(source);
+    }
+
+    /**
+     * The picture for one slide, knowing which quality step is in force.
+     *
+     * At the top step there is nothing baked to open and nothing to bake: the file is handed to the
+     * platform. Everything below it is the ordinary path, unchanged — which is what makes this safe
+     * to add, since a phone that never raises the step never comes down this branch.
+     *
+     * The {@code SDK_INT} test is not a nicety. {@link NativeAnimation} is compiled against a modern
+     * Android, and a class is verified when it is first loaded; below API 28 this must not be
+     * touched at all, which is why the check is here and not inside it.
+     */
+    static BackgroundImage open(File source, File pack, int step) {
+        if (com.reteclock.core.ImageQuality.playsOriginal(step, android.os.Build.VERSION.SDK_INT)) {
+            Drawable drawable = NativeAnimation.open(source);
+            if (drawable != null) {
+                // Said out loud, for the same reason the stood-down animation is: from the outside
+                // this path and the one below it look identical until the picture fails to move.
+                android.util.Log.i("reteclock", "native picture: " + source.getName()
+                        + (NativeAnimation.isAnimated(drawable) ? " (moving)" : " (still)"));
+                return new BackgroundImage(null, null, null, drawable);
+            }
+            android.util.Log.i("reteclock", "native picture refused: " + source.getName());
+            // The platform would not have it. Fall through rather than show nothing: the ordinary
+            // path reads more formats badly than this one reads well.
+        }
+        return open(source, pack);
     }
 
     /**
@@ -101,6 +141,9 @@ final class BackgroundImage {
 
     /** Whether the picture moves, which is what decides the frame rate. */
     boolean animated() {
+        if (live != null) {
+            return NativeAnimation.isAnimated(live);
+        }
         return prepared != null ? prepared.animated() : movie != null;
     }
 
@@ -117,6 +160,11 @@ final class BackgroundImage {
      * Null when this is an animation, whose frames the caller asks for one at a time.
      */
     Bitmap still() {
+        if (live != null) {
+            // There is no bitmap to hand out: the platform holds the pixels. A picture played this
+            // way is not offered as a text fill, which is the only thing that asks.
+            return null;
+        }
         if (prepared != null) {
             return prepared.animated() ? null : prepared.frame(0L);
         }
@@ -124,6 +172,9 @@ final class BackgroundImage {
     }
 
     int width() {
+        if (live != null) {
+            return live.getIntrinsicWidth();
+        }
         if (prepared != null) {
             return prepared.width();
         }
@@ -131,6 +182,9 @@ final class BackgroundImage {
     }
 
     int height() {
+        if (live != null) {
+            return live.getIntrinsicHeight();
+        }
         if (prepared != null) {
             return prepared.height();
         }
@@ -139,6 +193,9 @@ final class BackgroundImage {
 
     /** Lets go of whatever the picture was holding open; the slideshow calls this on the way out. */
     void release() {
+        if (live != null) {
+            NativeAnimation.stop(live);
+        }
         if (prepared != null) {
             prepared.release();
         }
@@ -153,6 +210,14 @@ final class BackgroundImage {
      * looping image passes the elapsed time modulo the duration.
      */
     void draw(Canvas canvas, long frameMs, Paint paint) {
+        if (live != null) {
+            // The platform keeps this one's clock: it advances by how long it has been since it was
+            // last drawn, so frameMs is not passed on. Drawing it often enough is the caller's job,
+            // and the caller already redraws an animated background on the pacer's schedule.
+            live.setBounds(0, 0, live.getIntrinsicWidth(), live.getIntrinsicHeight());
+            live.draw(canvas);
+            return;
+        }
         if (prepared != null) {
             Bitmap frame = prepared.frame(frameMs);
             if (frame != null) {
@@ -192,6 +257,11 @@ final class BackgroundImage {
      * be paid for on every frame.
      */
     boolean prepareFrames(int viewWidth, int viewHeight) {
+        // The platform's drawable needs no buffer of ours and draws to a hardware canvas happily,
+        // which is most of the point of it.
+        if (live != null) {
+            return true;
+        }
         if (prepared != null || movie == null) {
             return true;
         }

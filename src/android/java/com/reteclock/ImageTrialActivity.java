@@ -127,6 +127,24 @@ public final class ImageTrialActivity extends Activity {
             finishWith(false, getString(R.string.quality_trial_no_pictures), null);
             return;
         }
+        if (ImageQuality.playsOriginal(step, android.os.Build.VERSION.SDK_INT)) {
+            // Nothing is baked at this step, so what is timed instead is the platform opening the
+            // file — which is the wait a person actually has at this step, and the same question
+            // the bake's seconds answer at the others. The pack stays null, so the disc budget is
+            // measured as nothing, which is the truth: there is nothing on disc.
+            long opened = SystemClock.elapsedRealtime();
+            stage.openLive(source);
+            bakeMs = SystemClock.elapsedRealtime() - opened;
+            if (!stage.ready()) {
+                finishWith(false, getString(R.string.quality_trial_cannot_bake), null);
+                return;
+            }
+            saying.setText(R.string.quality_trial_playing);
+            startedAt = SystemClock.elapsedRealtime();
+            lastFrameAt = startedAt;
+            handler.post(tick);
+            return;
+        }
         pack = new File(getCacheDir(), "trial." + ImageQuality.tag(step) + ".pack");
         pack.delete();
         long began = SystemClock.elapsedRealtime();
@@ -259,6 +277,8 @@ public final class ImageTrialActivity extends Activity {
         private final Rect source = new Rect();
         private final RectF target = new RectF();
         private PreparedImage prepared;
+        /** The platform's own drawable, at the top step; then {@link #prepared} is not used. */
+        private android.graphics.drawable.Drawable live;
         private Bitmap showing;
 
         Stage(Activity activity) {
@@ -270,11 +290,27 @@ public final class ImageTrialActivity extends Activity {
             prepared = PreparedImage.open(path);
         }
 
+        /**
+         * Opens the picture the way the top step plays it: handed to the platform, nothing baked.
+         *
+         * Guarded by the caller's SDK test, like every other road to {@link NativeAnimation}.
+         */
+        void openLive(File source) {
+            live = NativeAnimation.open(source);
+        }
+
         boolean ready() {
-            return prepared != null;
+            return prepared != null || live != null;
         }
 
         void showAt(long elapsedMs) {
+            if (live != null) {
+                // The platform advances this one by how long it has been since it was last drawn,
+                // so there is no frame to fetch — only a redraw to ask for, which is what is being
+                // timed.
+                invalidate();
+                return;
+            }
             if (prepared == null) {
                 return;
             }
@@ -288,12 +324,26 @@ public final class ImageTrialActivity extends Activity {
                 prepared.release();
                 prepared = null;
             }
+            if (live != null) {
+                NativeAnimation.stop(live);
+                live = null;
+            }
             showing = null;
         }
 
         @Override
         protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
+            if (live != null) {
+                float scale = Math.max(getWidth() / (float) live.getIntrinsicWidth(),
+                        getHeight() / (float) live.getIntrinsicHeight());
+                float w = live.getIntrinsicWidth() * scale;
+                float h = live.getIntrinsicHeight() * scale;
+                live.setBounds((int) ((getWidth() - w) / 2f), (int) ((getHeight() - h) / 2f),
+                        (int) ((getWidth() + w) / 2f), (int) ((getHeight() + h) / 2f));
+                live.draw(canvas);
+                return;
+            }
             if (showing == null || showing.isRecycled()) {
                 return;
             }

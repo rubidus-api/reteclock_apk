@@ -90,19 +90,50 @@ echo "==> aapt2 link (against android-$ANDROID_RES_API)"
     -o "$STAGE/resources.apk" \
     "$FLAT"/*.flat
 
+# Two javac passes, against two different Androids, because they answer two different questions.
+#
+# src/android/java-modern holds the few classes that name an API newer than the floor —
+# ImageDecoder is API 28 (RFC-0011, step 4) — and is compiled against android-$ANDROID_RES_API.
+# Everything else is compiled against android-$ANDROID_COMPILE_API exactly as before, and that
+# bootclasspath is still what stops an accidental call to an API a KitKat phone does not have.
+# Losing that guard for the whole tree to reach one class would be paying for the wrong thing.
+#
+# The modern pass runs FIRST so its class files sit on the floor pass's classpath. The floor code
+# can then name those classes directly — no reflection anywhere — because their signatures are
+# written in types the floor has always had. javac reads a signature, not a method body, so
+# android-19 never has to know what ImageDecoder is.
+#
+# A class in java-modern must be reached only behind a Build.VERSION check: below its API the class
+# is never loaded, and a class that is never loaded is never verified.
+MODERN_CLASSES="$OUT/classes-modern"
+rm -rf "$MODERN_CLASSES"
+mkdir -p "$MODERN_CLASSES"
+if find "$ROOT/src/android/java-modern" -name '*.java' 2>/dev/null | grep -q .; then
+    echo "==> javac modern (source/target 8, against android-$ANDROID_RES_API)"
+    find "$ROOT/src/android/java-modern" -name '*.java' > "$OUT/sources-modern.txt"
+    "$JAVAC" \
+        -source 8 -target 8 \
+        -bootclasspath "$ANDROID_RES_JAR" \
+        -classpath "$ANDROID_RES_JAR" \
+        -encoding UTF-8 \
+        -nowarn \
+        -d "$MODERN_CLASSES" \
+        @"$OUT/sources-modern.txt"
+fi
+
 echo "==> javac (source/target 8, against android-$ANDROID_COMPILE_API)"
 find "$ROOT/src/core/java" "$ROOT/src/android/java" "$GEN" -name '*.java' > "$OUT/sources.txt"
 "$JAVAC" \
     -source 8 -target 8 \
     -bootclasspath "$ANDROID_JAR" \
-    -classpath "$ANDROID_JAR" \
+    -classpath "$ANDROID_JAR:$MODERN_CLASSES" \
     -encoding UTF-8 \
     -nowarn \
     -d "$CLASSES" \
     @"$OUT/sources.txt"
 
 echo "==> d8 (min-api $MIN_SDK)"
-find "$CLASSES" -name '*.class' > "$OUT/classes.txt"
+find "$CLASSES" "$MODERN_CLASSES" -name '*.class' > "$OUT/classes.txt"
 "$D8" \
     --release \
     --min-api "$MIN_SDK" \
