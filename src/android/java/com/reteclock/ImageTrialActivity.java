@@ -297,6 +297,12 @@ public final class ImageTrialActivity extends Activity {
          */
         void openLive(File source) {
             live = NativeAnimation.open(source);
+            if (live != null) {
+                // The same rule as on the clock: it advances because it asks to be redrawn, and it
+                // asks through the view. Without this the trial would time a picture standing still
+                // and call the phone quick.
+                live.setCallback(this);
+            }
         }
 
         boolean ready() {
@@ -326,6 +332,7 @@ public final class ImageTrialActivity extends Activity {
             }
             if (live != null) {
                 NativeAnimation.stop(live);
+                live.setCallback(null);
                 live = null;
             }
             showing = null;

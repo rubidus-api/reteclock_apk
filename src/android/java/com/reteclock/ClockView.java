@@ -1347,6 +1347,7 @@ public class ClockView extends View {
         if (decoded.animated() && !heavy) {
             // Settled here, before anything is drawn, because whether the offscreen buffer could
             // be had is what decides whether the view needs a software layer.
+            decoded.attachTo(this);
             decoded.prepareFrames(getWidth(), getHeight());
             slide = decoded;
             return;
@@ -1445,7 +1446,8 @@ public class ClockView extends View {
                 releaseForeground();
                 // Its own buffer, settled before anything is drawn — the same offscreen path the
                 // background takes, so a live Movie in the glyphs costs no more than in the sky.
-                decoded.prepareFrames(getWidth(), getHeight());
+                decoded.attachTo(this);
+            decoded.prepareFrames(getWidth(), getHeight());
                 foreground = decoded;
                 dropForegroundShader();
                 textShow.begin(at,

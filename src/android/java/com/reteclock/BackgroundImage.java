@@ -195,6 +195,9 @@ final class BackgroundImage {
     void release() {
         if (live != null) {
             NativeAnimation.stop(live);
+            // The view outlives the picture; a drawable still pointing at it would keep asking it
+            // to redraw a picture that is no longer on screen.
+            live.setCallback(null);
         }
         if (prepared != null) {
             prepared.release();
@@ -245,6 +248,24 @@ final class BackgroundImage {
         canvas.scale(1f / frameScale, 1f / frameScale);
         canvas.drawBitmap(frameBuffer, 0f, 0f, paint);
         canvas.restore();
+    }
+
+    /**
+     * Tells the platform's drawable which view it is being drawn into, and returns whether there
+     * was one to tell.
+     *
+     * <p>Without this the picture does not move. An {@link android.graphics.drawable
+     * .AnimatedImageDrawable} does not advance because somebody drew it; it advances because it
+     * asked to be redrawn, and it asks through {@link Drawable#setCallback} — a view is a
+     * {@code Drawable.Callback}, so handing it the view is what starts the loop. Left out, the
+     * picture moved on some runs and not others, which is the worst way for this to be wrong.
+     */
+    boolean attachTo(android.view.View view) {
+        if (live == null) {
+            return false;
+        }
+        live.setCallback(view);
+        return true;
     }
 
     /**
