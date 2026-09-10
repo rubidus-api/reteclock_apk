@@ -20,7 +20,7 @@
     <string name="quality_step_original">As it came — the file itself</string>
     <string name="quality_step_note">The higher steps are tested before they are switched on: the phone plays the hardest picture you use, and the step is only saved if it survives. If the test stops the app, the step stays off.</string>
     <string name="quality_step_unavailable">This phone\'s Android cannot do that step.</string>
-    <string name="quality_step_refused">That step did not survive the test on this phone.</string>
+    <string name="quality_step_refused">That step did not survive on this phone — either the test of it, or a run that stopped answering afterwards.</string>
     <string name="quality_step_try_again">Let me test the higher steps again</string>
     <string name="settings_safe_area">Keep a margin clear of the screen edges</string>
     <string name="settings_safe_area_note">For a television that cuts off the edges of the picture. The clock moves in by a twentieth on every side, which is where the saying, the date line and the timer\'s bar live. Leave it off on a phone, and on any set made in the last ten years.</string>
