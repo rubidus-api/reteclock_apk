@@ -267,37 +267,62 @@ public class ClockActivity extends Activity {
             timer.setChrome(
                     com.reteclock.core.ClockColors.resolveText(chosenText, chosenBackground));
 
-            // The clock is laid out at full size *under* the strip, and told how much of itself the
-            // strip covers. Its background — a colour, or a picture, or a GIF playing — therefore
-            // runs the whole width of the screen and the strip sits in it rather than cutting it in
-            // two; only the digits keep clear.
+            // The clock is laid out at full size *under* the strip. Its background — a colour, or
+            // a picture, or a GIF playing — therefore runs the whole width of the screen and the
+            // strip sits in it rather than cutting it in two.
+            //
+            // Whether the *text* keeps clear of the strip depends on who arranged it, and that is
+            // the whole of issue #52. See TimerRoom: the app's own arrangement is moved over,
+            // because the app placed those digits and can place them elsewhere; a layout somebody
+            // drew is not, because they placed every box against the whole screen in the editor
+            // and the editor never showed the timer taking a bite out of it.
             int strip = stripThickness(landscape);
-            // Which side the strip is on. The app's own arrangement puts it down the left when the
-            // phone lies down and across the top when it stands up; a drawn layout may put it on
-            // any of the four, and if it does, that is the layout's business rather than this
-            // method's (RFC-0005, D9).
-            int edge = timerEdge(landscape);
-            boolean vertical = edge == com.reteclock.core.layout.Strips.LEFT
-                    || edge == com.reteclock.core.layout.Strips.RIGHT;
+            int edge = landscape ? com.reteclock.core.layout.Strips.LEFT
+                    : com.reteclock.core.layout.Strips.TOP;
+            java.util.List<com.reteclock.core.layout.LayoutBox> drawnBoxes = drawnBoxes(landscape);
+            android.util.DisplayMetrics screen = getResources().getDisplayMetrics();
+            com.reteclock.core.layout.TimerRoom room = com.reteclock.core.layout.TimerRoom.of(
+                    drawnBoxes != null, drawnBoxes,
+                    screen.widthPixels, screen.heightPixels, edge, strip, true);
+            boolean overlaid = room.insetLeft == 0 && room.insetTop == 0
+                    && room.insetRight == 0 && room.insetBottom == 0;
 
             root.addView(view, new FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
-            view.setContentInset(
-                    safe + (edge == com.reteclock.core.layout.Strips.LEFT ? strip : 0),
-                    safe + (edge == com.reteclock.core.layout.Strips.TOP ? strip : 0),
-                    safe + (edge == com.reteclock.core.layout.Strips.RIGHT ? strip : 0),
-                    safe + (edge == com.reteclock.core.layout.Strips.BOTTOM ? strip : 0));
+            view.setContentInset(safe + room.insetLeft, safe + room.insetTop,
+                    safe + room.insetRight, safe + room.insetBottom);
 
-            FrameLayout.LayoutParams band = vertical
-                    ? new FrameLayout.LayoutParams(strip, FrameLayout.LayoutParams.MATCH_PARENT)
-                    : new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, strip);
-            band.gravity = (edge == com.reteclock.core.layout.Strips.RIGHT
-                            ? Gravity.RIGHT : Gravity.LEFT)
-                    | (edge == com.reteclock.core.layout.Strips.BOTTOM
-                            ? Gravity.BOTTOM : Gravity.TOP);
-            // The strip moves in with everything else: it is at an edge, which is the part of the
-            // screen a television is eating.
-            band.setMargins(safe, safe, safe, safe);
+            FrameLayout.LayoutParams band;
+            if (overlaid) {
+                // Placed at the rectangle the layout's own arithmetic produced, in the screen's own
+                // coordinates. No television margin is added: the layout was drawn against the
+                // whole screen, and moving the strip in from an edge the boxes were placed against
+                // would put it over one of them.
+                band = new FrameLayout.LayoutParams(
+                        Math.round(room.strip[2]), Math.round(room.strip[3]));
+                band.gravity = Gravity.LEFT | Gravity.TOP;
+                band.leftMargin = Math.round(room.strip[0]);
+                band.topMargin = Math.round(room.strip[1]);
+                // A hidden strip over somebody's layout takes nothing at all — not the pixels and
+                // not the touches. Left as it is, it would swallow taps on whatever it lies over
+                // and open the preset list from a part of the screen that shows a clock.
+                if (Settings.timerHidden(this)) {
+                    timer.setVisibility(View.GONE);
+                }
+            } else {
+                boolean vertical = edge == com.reteclock.core.layout.Strips.LEFT
+                        || edge == com.reteclock.core.layout.Strips.RIGHT;
+                band = vertical
+                        ? new FrameLayout.LayoutParams(strip, FrameLayout.LayoutParams.MATCH_PARENT)
+                        : new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, strip);
+                band.gravity = (edge == com.reteclock.core.layout.Strips.RIGHT
+                                ? Gravity.RIGHT : Gravity.LEFT)
+                        | (edge == com.reteclock.core.layout.Strips.BOTTOM
+                                ? Gravity.BOTTOM : Gravity.TOP);
+                // The strip moves in with everything else: it is at an edge, which is the part of
+                // the screen a television is eating.
+                band.setMargins(safe, safe, safe, safe);
+            }
             root.addView(timer, band);
         }
 
@@ -328,31 +353,31 @@ public class ClockActivity extends Activity {
      * top standing up. A drawn layout can say otherwise, and a broken one says nothing: anything
      * unreadable falls back, for the same reason the clock's own drawing does.
      */
-    private int timerEdge(boolean landscape) {
-        int fallback = landscape ? com.reteclock.core.layout.Strips.LEFT
-                : com.reteclock.core.layout.Strips.TOP;
+    /**
+     * The boxes of the layout the user drew for this way up, or null to let the app arrange it.
+     *
+     * The same four cases {@link ClockView} treats as one — automatic, nothing for this
+     * orientation, nothing drawn at all, or something that threw — because the answer here has to
+     * agree with the answer there: whoever arranges the clock decides whether it is moved over for
+     * the timer's strip.
+     */
+    private java.util.List<com.reteclock.core.layout.LayoutBox> drawnBoxes(boolean landscape) {
         if (safeMode) {
-            return fallback;
+            return null;
         }
         try {
             com.reteclock.core.layout.LayoutPreset preset =
                     Settings.layouts(this).chosen(landscape);
-            if (preset.isAutomatic()) {
-                return fallback;
+            if (preset == null || preset.isAutomatic()) {
+                return null;
             }
-            for (com.reteclock.core.layout.LayoutBox box : preset.boxes()) {
-                if (box.isStrip() && com.reteclock.core.layout.BoxPlan.FIELD_TIMER
-                        .equals(box.field)) {
-                    return box.edge;
-                }
-            }
-            return fallback;
+            java.util.List<com.reteclock.core.layout.LayoutBox> boxes = preset.boxes();
+            return boxes == null || boxes.isEmpty() ? null : boxes;
         } catch (RuntimeException broken) {
-            return fallback;
+            return null;
         }
     }
 
-    /** How wide the strip is: enough for the bar and its turned readouts, and no more. */
     private int stripThickness(boolean landscape) {
         android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
         int shorter = Math.min(metrics.widthPixels, metrics.heightPixels);

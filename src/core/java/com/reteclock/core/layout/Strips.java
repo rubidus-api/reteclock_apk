@@ -21,7 +21,13 @@ package com.reteclock.core.layout;
  *    after the timer's thickness rather than under it.
  *
  * The content rectangle is what remains. Boxes are placed against *that* rather than against the
- * screen, so switching the timer on moves the clock over instead of putting the strip on top of it.
+ * screen, so a layout that gives the timer an edge keeps its own digits clear of it.
+ *
+ * <p>That is the room a layout takes out for itself, and it is all this class decides. Whether the
+ * <em>clock</em> makes room for the strip on top of that is a different question with a different
+ * answer for a drawn layout and for the app's own arrangement — see
+ * {@link TimerRoom} and issue #52. The short of it: the app's arrangement is moved over, and
+ * nobody else's is.
  */
 public final class Strips {
 

@@ -188,6 +188,27 @@ public final class BoxPlan {
     }
 
     /** The first box for this field that says it is a strip, or null when there is none. */
+    /**
+     * Where this layout puts the timer's strip, or null when it has not reserved an edge for it.
+     *
+     * The same arithmetic {@link #of} uses, asked on its own: the clock has to place the real strip
+     * — a view with controls on it — in the room the layout left, and that room is worked out here
+     * rather than guessed at by whoever is placing the view. See {@link TimerRoom}.
+     */
+    public static float[] timerStripOn(List<LayoutBox> boxes, int screenW, int screenH) {
+        if (boxes == null) {
+            return null;
+        }
+        LayoutBox timerBox = findStrip(boxes, FIELD_TIMER);
+        if (timerBox == null) {
+            return null;
+        }
+        LayoutBox sayingBox = findStrip(boxes, ClockLayout.ROLE_QUOTE);
+        return Strips.of(screenW, screenH,
+                edgeOf(timerBox), thicknessOf(timerBox, screenW, screenH),
+                edgeOf(sayingBox), thicknessOf(sayingBox, screenW, screenH)).timer();
+    }
+
     private static LayoutBox findStrip(List<LayoutBox> boxes, String field) {
         for (LayoutBox box : boxes) {
             if (box != null && box.shown && box.isStrip() && field.equals(box.field)) {
