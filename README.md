@@ -26,8 +26,8 @@ keep the screen awake, and one to vibrate, which only the timer uses.
 
 **[⬇ Get it on F-Droid](https://f-droid.org/packages/com.reteclock/)** — recommended.
 
-**[⬇ Download reteclock-0.40.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.40.0/reteclock-0.40.0.apk)**
-— 500 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
+**[⬇ Download reteclock-0.40.1.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.40.1/reteclock-0.40.1.apk)**
+— 506 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
 render GitHub's release page can still fetch it.
 
 The newest release is always at
@@ -131,7 +131,7 @@ beyond keeping the screen awake. Copy the APK to the phone, open it, and the pho
 
 ## Which phones it runs on
 
-Published on F-Droid; the latest release is 0.40.0.
+Published on F-Droid; the latest release is 0.40.1.
 
 | | |
 |---|---|

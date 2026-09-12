@@ -1,0 +1,12 @@
+Fixed: switching the timer on no longer moves a layout you drew. The clock used to
+shrink the whole arrangement by the width of the timer's strip while the background
+stayed where it was, so digits slid off the panels drawn for them. A hidden timer did
+it too. The editor never showed any of this, because the editor lays a layout out
+against the whole screen; now the clock does the same and the two agree.
+
+The app's own arrangement still moves over to make room, which is right: the app placed
+those digits and can place them elsewhere.
+
+If the strip now covers something at the edge it sits on, give that layout a timer field
+in the fields list and put it on the edge you want. The layout then keeps that room
+clear, in the editor and on the clock alike.
