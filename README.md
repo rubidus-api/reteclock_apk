@@ -11,8 +11,10 @@ so the numbers never burn into an OLED screen.
 
 There is nothing to sign up for and nothing to configure. It needs no account, no network and no
 Play Store, so it still works on phones that can no longer install anything else. It is small —
-about 500 KB — and asks for two permissions, both granted at install and never at runtime: one to
-keep the screen awake, and one to vibrate, which only the timer uses.
+about 500 KB — and asks for four normal permissions, all granted at install: one to keep the screen
+awake, one to vibrate, which only the timer uses, and two that only *Alarms (experimental)* uses —
+starting after a restart, and a foreground service while an alarm rings. Those two stay unused until
+you turn that page's switch on.
 
 > **If the clock does not answer your touch, it is not the clock.** Android does not pass touches to
 > a screensaver (Daydream) or to anything showing over the lock screen — the first touch wakes the
@@ -26,8 +28,8 @@ keep the screen awake, and one to vibrate, which only the timer uses.
 
 **[⬇ Get it on F-Droid](https://f-droid.org/packages/com.reteclock/)** — recommended.
 
-**[⬇ Download reteclock-0.40.1.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.40.1/reteclock-0.40.1.apk)**
-— 506 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
+**[⬇ Download reteclock-0.41.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.41.0/reteclock-0.41.0.apk)**
+— 526 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
 render GitHub's release page can still fetch it.
 
 The newest release is always at
@@ -127,11 +129,11 @@ apps in the Play Store now require a far newer Android. But a phone that can no 
 anything can still show you the time.
 
 So reteclock asks for nothing: no Play Store, no Google account, no network, and no permission
-beyond keeping the screen awake. Copy the APK to the phone, open it, and the phone has a job again.
+it needs beyond keeping the screen awake. Copy the APK to the phone, open it, and the phone has a job again.
 
 ## Which phones it runs on
 
-Published on F-Droid; the latest release is 0.40.1.
+Published on F-Droid; the latest release is 0.41.0.
 
 | | |
 |---|---|
@@ -303,6 +305,13 @@ Its own screen, reached from the main menu.
 - **Bells** — a sound at a time of day, on the weekdays you choose. A bell only plays: touch the
   screen while one is ringing and it fades out and stops, and that touch does nothing else. Bells
   ring while the clock or the screensaver is showing.
+- **Alarms (experimental)** — main menu → *Alarms (experimental)*, off unless you turn it on. With
+  its switch on, a bell you tick there is handed to Android's alarm scheduler, so it rings with the
+  phone asleep and the app closed, on the alarm volume, with a card over the lock screen: *Ring again
+  in N min* or *Stop*. It is set again after a restart. The page keeps a record of what each alarm
+  did. **No guarantee is given that an alarm rings** — not if the phone is off, the app was
+  force-stopped, or a battery saver stops it. For an alarm you cannot afford to miss, use the phone's
+  own clock app.
 - **The timer can use them too** — in *Timer settings*, each preset has a sound for its start and one
   for its finish, and each interval has one for its beginning and one for its warning. A message you
   set is still spoken: the sound and the words share the moment. A slot with no sound, or one whose
@@ -464,8 +473,9 @@ followed, and the far north and south need further conventions again. The direct
 bearing from where you stand to the Kaaba, and for a phone to point at it the compass has to be
 corrected for magnetic declination.
 
-This app knows none of that and asks for none of it. It requests two permissions — to keep the
-screen awake and to vibrate — and no location, no sensors and no network. Everything it shows, it
+This app knows none of that and asks for none of it. It requests permissions to keep the
+screen awake, to vibrate, and (for the experimental alarms only) to start after a restart and run a
+foreground service — and no location, no sensors and no network. Everything it shows, it
 works out from the date and the offset you set. The old phones it is built for often have no
 satellite fix and no magnetometer worth trusting.
 
@@ -555,8 +565,9 @@ Java and the Android framework, nothing else. Built with the Android SDK command
 (`aapt2`, `javac`, `d8`, `zipalign`, `apksigner`) driven by POSIX shell scripts. No Gradle. No
 AndroidX, no support library, no Kotlin runtime and no third-party dependency — a single
 `classes.dex` and an APK of about 500 KB. It is signed with the v1 (JAR) scheme so old phones
-accept it, plus v2 and v3 for current ones, and it holds two normal permissions (`WAKE_LOCK` and
-`VIBRATE`, the latter for the timer), both granted at install and never requested at runtime.
+accept it, plus v2 and v3 for current ones, and it holds four normal permissions (`WAKE_LOCK`,
+`VIBRATE` for the timer, and `RECEIVE_BOOT_COMPLETED` and `FOREGROUND_SERVICE` for the experimental
+alarms, whose components ship disabled), all granted at install and never requested at runtime.
 
 ### Build
 

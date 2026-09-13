@@ -1,0 +1,7 @@
+New: Alarms (experimental), for issue #27. Main menu → Alarms (experimental). It is off unless you turn it on, and while off the app works exactly as before.
+
+With the switch on, a bell you tick on that page is handed to Android's alarm scheduler: it rings with the phone asleep and the app closed, on the alarm volume, and shows a card over the lock screen with Ring again in N min or Stop. It is set again after a restart. The page keeps a record of what each alarm did.
+
+No guarantee is given that an alarm rings: not if the phone is off, the app was force-stopped, or a battery saver stops it. For an alarm you cannot miss, use the phone's own clock app.
+
+Two more permissions, used only by this page: starting after a restart, and a foreground service while an alarm rings.
