@@ -49,7 +49,8 @@ final class SlideWatch {
     boolean changed(long nowMs) {
         boolean turned = (context.getResources().getConfiguration().orientation
                 == Configuration.ORIENTATION_LANDSCAPE) != sideways;
-        if (!turned && nowMs < nextChangeMs && nowMs > nextChangeMs - 25L * 60 * 60 * 1000) {
+        if (!turned && (nextChangeMs == Long.MAX_VALUE
+                || (nowMs < nextChangeMs && nowMs > nextChangeMs - 25L * 60 * 60 * 1000))) {
             return false;
         }
         int before = row;
