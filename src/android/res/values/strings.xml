@@ -525,4 +525,22 @@
     <string name="sound_slot_pre_alarm">Warning</string>
     <string name="sound_slot_none">beep</string>
     <string name="timer_sounds_note">Each of these can play one of your own sounds instead of the built-in beep. A message is still spoken where one is set — the sound and the message share the moment. Bring sounds in on the Sounds and bells page.</string>
+    <!-- Layouts in turn (issue #53, RFC-0013). -->
+    <string name="menu_slides">Layout slides</string>
+    <string name="slides_title">Layout slides</string>
+    <string name="slides_intro">Show several layouts in turn: each row stays for its own time, then the next, and after the last the first again. Upright and sideways have their own lists, as they have their own layouts. While a list plays, the layout chosen on the Layout page shows only when it is switched off.</string>
+    <string name="slides_switch">Show these layouts in turn</string>
+    <string name="slides_empty">No rows yet. Add a layout below.</string>
+    <string name="slides_nothing_plays">Nothing here can play — no row names a layout on this shelf — so the chosen layout is shown.</string>
+    <string name="slides_add">Add a layout…</string>
+    <string name="slides_background">Show a background</string>
+    <string name="slides_time">Time…</string>
+    <string name="slides_remove">Remove</string>
+    <string name="slides_missing">not on this shelf any more; skipped</string>
+    <string name="slides_now">showing now</string>
+    <string name="slides_minutes">min</string>
+    <string name="slides_seconds">s</string>
+    <string name="slides_time_note">How long this layout stays: at least 10 seconds, at most 24 hours.</string>
+    <string name="slides_open_layouts">Layouts…</string>
+    <string name="layout_slides_playing">Layout slides are playing for this way up; the layout chosen here shows when they are switched off.</string>
 </resources>

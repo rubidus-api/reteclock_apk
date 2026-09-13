@@ -89,6 +89,8 @@ public final class Settings {
      * consistent — a chosen index means nothing without the list it points into.
      */
     public static final String KEY_LAYOUTS = "layouts";
+    /** Layouts in turn (issue #53, RFC-0013). */
+    public static final String KEY_LAYOUT_SLIDES = "layout_slides";
     public static final String KEY_NAMES_MONTHS = "names_months_";
     public static final String KEY_NAMES_WEEKDAYS = "names_weekdays_";
     public static final String KEY_HOUR12 = "clock_hour12";
@@ -221,6 +223,7 @@ public final class Settings {
         out.put(KEY_MARKERS, markers(context).text());
         out.put(KEY_DATE_ORDER, dateOrder(context).text());
         out.put(KEY_LAYOUTS, layouts(context).text());
+        out.put(KEY_LAYOUT_SLIDES, slides(context).text());
         out.put(KEY_PADDING, Integer.valueOf(padding(context).bits()));
 
         out.put(KEY_BACKGROUND_FIT, Integer.valueOf(backgroundFit(context)));
@@ -463,6 +466,13 @@ public final class Settings {
      * A name the layout carries whose file has gone is skipped, exactly as a missing pool file is.
      */
     public static java.util.List<File> backgroundFiles(Context context, boolean landscape) {
+        // A slide that says "no background" draws the plain ground, whatever its layout carries
+        // or the pool holds (RFC-0013 D3).
+        com.reteclock.core.layout.LayoutSlides.Slide slide =
+                slideInForce(context, landscape, System.currentTimeMillis());
+        if (slide != null && !slide.background) {
+            return new java.util.ArrayList<File>();
+        }
         java.util.List<File> own = carried(context, landscape,
                 com.reteclock.core.layout.LayoutPreset.PICTURE_BACKGROUND);
         return own != null ? own : filesFor(context, roles(context).background);
@@ -476,7 +486,7 @@ public final class Settings {
 
     /** What the chosen layout carries in this role, or null when it carries nothing at all. */
     private static java.util.List<File> carried(Context context, boolean landscape, int role) {
-        com.reteclock.core.layout.LayoutPreset chosen = layouts(context).chosen(landscape);
+        com.reteclock.core.layout.LayoutPreset chosen = layoutInForce(context, landscape);
         if (chosen == null || !chosen.hasPictures()) {
             return null;
         }
@@ -1627,6 +1637,64 @@ public final class Settings {
     public static void setLayouts(Context context,
             com.reteclock.core.layout.LayoutBook book) {
         prefs(context).edit().putString(KEY_LAYOUTS, book.text()).commit();
+    }
+
+    /** The layouts played in turn, per way up (issue #53, RFC-0013). */
+    public static com.reteclock.core.layout.LayoutSlides slides(Context context) {
+        return com.reteclock.core.layout.LayoutSlides.parse(
+                prefs(context).getString(KEY_LAYOUT_SLIDES, ""));
+    }
+
+    /**
+     * Stores the list, counted from now: a change starts the show again at its first row, which is
+     * what somebody who has just arranged it expects to see (RFC-0013 D2).
+     */
+    public static void setSlides(Context context, com.reteclock.core.layout.LayoutSlides slides) {
+        prefs(context).edit().putString(KEY_LAYOUT_SLIDES,
+                slides.anchoredAt(System.currentTimeMillis()).text()).commit();
+    }
+
+    /** The names on one shelf, for asking which rows are playable. */
+    public static java.util.Set<String> shelfNames(
+            com.reteclock.core.layout.LayoutBook book, boolean landscape) {
+        java.util.Set<String> names = new java.util.HashSet<String>();
+        for (int i = 0; i < book.size(landscape); i++) {
+            names.add(book.get(landscape, i).name);
+        }
+        return names;
+    }
+
+    /** The slide in force now for this way up, or null when slides are off or nothing plays. */
+    public static com.reteclock.core.layout.LayoutSlides.Slide slideInForce(Context context,
+            boolean landscape, long nowMillis) {
+        com.reteclock.core.layout.LayoutSlides slides = slides(context);
+        if (!slides.isOn(landscape)) {
+            return null;
+        }
+        return slides.current(landscape, nowMillis, shelfNames(layouts(context), landscape));
+    }
+
+    /**
+     * The layout drawn for this way up: the slide in force, or the layout chosen on the *Layout*
+     * page when there is none. The one place the clock, its pictures and the timer's strip all ask,
+     * so a slide cannot change one of them without the others (RFC-0013).
+     */
+    public static com.reteclock.core.layout.LayoutPreset layoutInForce(Context context,
+            boolean landscape) {
+        com.reteclock.core.layout.LayoutBook book = layouts(context);
+        com.reteclock.core.layout.LayoutSlides slides = slides(context);
+        if (slides.isOn(landscape)) {
+            com.reteclock.core.layout.LayoutSlides.Slide slide = slides.current(landscape,
+                    System.currentTimeMillis(), shelfNames(book, landscape));
+            if (slide != null) {
+                for (int i = 0; i < book.size(landscape); i++) {
+                    if (book.get(landscape, i).name.equals(slide.layout)) {
+                        return book.get(landscape, i);
+                    }
+                }
+            }
+        }
+        return book.chosen(landscape);
     }
 
     /** How the date line under a wide clock is arranged (issue #42). */

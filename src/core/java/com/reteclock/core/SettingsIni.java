@@ -77,6 +77,7 @@ public final class SettingsIni {
         {"markers", "s", "clock"},
         {"date_order", "s", "clock"},
         {"layouts", "s", "clock"},
+        {"layout_slides", "s", "clock"},
         {"start_when_charging", "b", "clock"},
         {"stay_unlocked", "b", "clock"},
         {"direct_start", "b", "clock"},

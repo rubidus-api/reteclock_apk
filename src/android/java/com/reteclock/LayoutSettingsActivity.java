@@ -101,6 +101,12 @@ public final class LayoutSettingsActivity extends Activity {
     private void addShelf(final boolean landscape, final LayoutBook book) {
         presetList.addView(subheading(getString(landscape
                 ? R.string.layout_sideways_list : R.string.layout_upright_list)));
+        // While slides play for this way up, the choice below is what comes back when they stop.
+        if (Settings.slides(this).isOn(landscape)) {
+            TextView playing = note(getString(R.string.layout_slides_playing));
+            playing.setTextColor(ACCENT);
+            presetList.addView(playing);
+        }
 
         for (int i = 0; i < book.size(landscape); i++) {
             final int index = i;
@@ -410,6 +416,11 @@ public final class LayoutSettingsActivity extends Activity {
                                 book.get(landscape, index).name,
                                 renamed.get(landscape, index).name, landscape);
                         Settings.setLayouts(LayoutSettingsActivity.this, renamed);
+                        // A slide naming the layout follows the new name (RFC-0013 D5).
+                        Settings.setSlides(LayoutSettingsActivity.this,
+                                Settings.slides(LayoutSettingsActivity.this).renamed(landscape,
+                                        book.get(landscape, index).name,
+                                        renamed.get(landscape, index).name));
                         refresh();
                     }
                 })

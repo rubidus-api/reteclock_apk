@@ -77,6 +77,12 @@
             android:theme="@android:style/Theme.Black" />
 
         <activity
+            android:name=".LayoutSlidesActivity"
+            android:exported="false"
+            android:label="@string/slides_title"
+            android:theme="@android:style/Theme.Black" />
+
+        <activity
             android:name=".SoundSettingsActivity"
             android:exported="false"
             android:label="@string/sound_title"
