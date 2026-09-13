@@ -51,8 +51,14 @@ final class BellCard {
         /** Ring this again in a few minutes. */
         void putOff();
 
-        /** That is the end of it. Also what an unanswered card does when it closes. */
+        /** That is the end of it. */
         void stop();
+
+        /**
+         * Nobody answered before the card closed itself. For a bell on the clock this means stop,
+         * as it always has; a bell that wakes the phone records it as unanswered (RFC-0012, F5).
+         */
+        void unanswered();
     }
 
     private BellCard() {
@@ -116,9 +122,13 @@ final class BellCard {
                         dialog.dismiss();
                     }
                 });
-        card.addView(putOff);
+        // A bell that offers no put-off has only the one answer. Only a bell that wakes the phone
+        // can reach here without one: the clock asks the card for a bell that can be put off.
+        if (bell.canSnooze()) {
+            card.addView(putOff);
+        }
 
-        card.addView(choice(activity, activity.getString(R.string.bell_card_stop),
+        View stop = choice(activity, activity.getString(R.string.bell_card_stop),
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -129,7 +139,8 @@ final class BellCard {
                         answer.stop();
                         dialog.dismiss();
                     }
-                }));
+                });
+        card.addView(stop);
 
         // Back means Stop. It is the answer a person gives when they have already taken in that the
         // bell rang, and leaving the card up after Back would be the app arguing with them.
@@ -151,7 +162,11 @@ final class BellCard {
         dialog.show();
         // The remote lands on the first button rather than nowhere, so the centre key means
         // something the moment the card appears.
-        putOff.requestFocus();
+        if (bell.canSnooze()) {
+            putOff.requestFocus();
+        } else {
+            stop.requestFocus();
+        }
 
         final Handler handler = new Handler();
         handler.postDelayed(new Runnable() {
@@ -161,7 +176,7 @@ final class BellCard {
                     return;
                 }
                 answered[0] = true;
-                answer.stop();
+                answer.unanswered();
                 if (dialog.isShowing()) {
                     dialog.dismiss();
                 }

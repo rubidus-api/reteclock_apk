@@ -7,7 +7,15 @@ import com.reteclock.core.Bells;
 import com.reteclock.core.Snooze;
 import com.reteclock.core.Tones;
 
+import android.media.AudioManager;
+import android.os.SystemClock;
+
+import com.reteclock.core.WakeLog;
+import com.reteclock.core.WakePutOff;
+
 import java.io.File;
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -53,6 +61,113 @@ final class BellRinger {
     private Snooze snooze;
     /** Told when a bell that can be put off is sounding, so a card can be shown. May be null. */
     private Ringing ringing;
+
+    // ---- bells that wake the phone (RFC-0012) -------------------------------------------------
+    //
+    // Everything below is idle unless *Alarms (experimental)* is switched on. It is an extension laid
+    // over the bells above, and it is the side that gives way to them.
+
+    /** Every ringer alive in this process, so a wake ring can ask whether any of them is sounding. */
+    private static final List<WeakReference<BellRinger>> LIVE =
+            new ArrayList<WeakReference<BellRinger>>();
+
+    /** Read with the bells: whether the tick leaves wake bells to the system. */
+    private boolean wakeOn;
+    /** A wake bell handed to this screen, waiting for a bell of its own to finish. */
+    private Bell pendingWake;
+    private long pendingDue;
+    private long pendingSince;
+    /** The wake bell this screen is ringing now, or null. */
+    private Bell wakeBell;
+    private long wakeDue;
+    /** Told when a wake bell starts ringing here, so its card can be shown. */
+    private WakeRinging wakeRinging;
+
+    /** What the clock screen shows for a wake bell: the card, answered through {@link #endWake}. */
+    interface WakeRinging {
+        void wakeIsRinging(Bell bell);
+    }
+
+    void setWakeRinging(WakeRinging wakeRinging) {
+        this.wakeRinging = wakeRinging;
+    }
+
+    /** Whether one of this process's ringers is sounding one of the clock's own bells. */
+    static boolean anySounding() {
+        for (int i = LIVE.size() - 1; i >= 0; i--) {
+            BellRinger ringer = LIVE.get(i).get();
+            if (ringer == null) {
+                LIVE.remove(i);
+            } else if (ringer.wakeBell == null && ringer.player.isPlaying()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * A wake bell has arrived while this screen is showing: this screen rings it.
+     *
+     * If one of the clock's own bells is sounding, the wake bell waits for it to end — for up to a
+     * minute — rather than cutting it off. The tick below asks again every second.
+     */
+    void takeWake(Bell bell, long due) {
+        pendingWake = bell;
+        pendingDue = due;
+        pendingSince = SystemClock.uptimeMillis();
+        serveWake();
+    }
+
+    /** Whether a wake bell is ringing on this screen — what the timer's cues are silent for (F4). */
+    boolean wakeActive() {
+        return wakeBell != null;
+    }
+
+    private void serveWake() {
+        if (pendingWake == null || wakeBell != null) {
+            return;
+        }
+        if (player.isPlaying()
+                && SystemClock.uptimeMillis() - pendingSince < WakeBells.WAIT_FOR_BELL_MS) {
+            return;
+        }
+        Bell bell = pendingWake;
+        pendingWake = null;
+        player.stopNow();
+        wakeBell = bell;
+        wakeDue = pendingDue;
+        WakeBells.record(context, WakeLog.RANG, wakeDue, bell.label);
+        if (bell.sound.isEmpty()) {
+            tones.playAlarm(Tones.repeated(Tones.CHIME, bell.repeats, CHIME_GAP_MS));
+        } else {
+            File file = Settings.sounds(context).file(bell.sound);
+            if (file == null) {
+                tones.playAlarm(Tones.CHIME);
+            } else {
+                player.setStream(AudioManager.STREAM_ALARM);
+                player.play(file, Settings.soundClips(context).of(bell.sound), bell.repeats);
+            }
+        }
+        if (wakeRinging != null) {
+            wakeRinging.wakeIsRinging(bell);
+        }
+    }
+
+    /** The wake bell on this screen has been answered, one way or another. */
+    void endWake(String kind) {
+        if (wakeBell == null) {
+            return;
+        }
+        Bell answered = wakeBell;
+        wakeBell = null;
+        player.stopNow();
+        player.setStream(AudioManager.STREAM_MUSIC);
+        WakeBells.record(context, kind, wakeDue, answered.label);
+        if (WakeLog.PUT_OFF.equals(kind)) {
+            Settings.setWakePutOff(context, WakePutOff.of(answered, System.currentTimeMillis()));
+        }
+        WakeBells.rearm(context);
+    }
 
     /** What the screen knows and the bells do not: whether the timer is running just now. */
     interface Busy {
@@ -112,6 +227,7 @@ final class BellRinger {
     BellRinger(Context context) {
         this.context = context.getApplicationContext();
         this.tones = new TimerSounds(context);
+        LIVE.add(new WeakReference<BellRinger>(this));
         reload();
     }
 
@@ -119,6 +235,7 @@ final class BellRinger {
     void reload() {
         bells = Settings.bells(context);
         on = Settings.bellsOn(context);
+        wakeOn = Settings.wakeOn(context);
         // Whatever fell while somebody was editing the bells is not rung at them on the way back.
         lastStamp = Long.MIN_VALUE;
         // The bell that was put off may not exist any more, and its minutes may have changed. The
@@ -128,6 +245,8 @@ final class BellRinger {
 
     /** One second of the clock's own tick. */
     void tick(long nowMs) {
+        // A wake bell handed to this screen is served first, whatever the bells below are doing.
+        serveWake();
         if (!on || bells.size() == 0) {
             lastStamp = Long.MIN_VALUE;
             snooze = null;
@@ -138,7 +257,8 @@ final class BellRinger {
             lastStamp = stamp;
             return;
         }
-        List<Bell> due = bells.due(lastStamp, stamp);
+        // With the experiment on, a bell that wakes the phone is the system's to ring, not the tick's.
+        List<Bell> due = bells.due(lastStamp, stamp, wakeOn);
         // A bell that was put off is due in the same window, judged by the same arithmetic. It is
         // taken first: it is the one the person in the room has already been asked about once.
         Snooze waiting = snooze;
@@ -149,7 +269,11 @@ final class BellRinger {
         // listening for its end. The bell is not delayed until the timer is done: it is a chime at
         // a moment, and the moment passes, the same way one missed while the clock was off screen
         // does.
-        if (busy != null && busy.timerIsRunning()) {
+        // A wake bell ringing — here or in the service — is the same kind of right of way: the
+        // moment passes for a bell that merely fell now, and a put-off is kept for the next quiet
+        // second, exactly as for a timer.
+        if ((busy != null && busy.timerIsRunning()) || wakeBell != null || pendingWake != null
+                || WakeRingService.isRinging()) {
             // A bell that merely fell now is passed over — the moment has gone. A put-off is not:
             // somebody was asked and answered "ring again", and dropping that silently would be
             // the app breaking a promise it made on screen a few minutes ago. It is kept, and the
@@ -205,6 +329,7 @@ final class BellRinger {
             tones.play(Tones.CHIME, Settings.ALERT_SOUND);
             return;
         }
+        player.setStream(AudioManager.STREAM_MUSIC);
         player.play(file, Settings.soundClips(context).of(bell.sound), bell.repeats);
     }
 
@@ -235,6 +360,16 @@ final class BellRinger {
      * once the clock happened to come back, would be worse than one that did not ring at all.
      */
     void stop() {
+        // A wake bell ringing on a screen that is going away has been left: that is its answer.
+        // One still waiting for a bell to finish goes to the service, which rings it without a
+        // screen.
+        if (wakeBell != null) {
+            endWake(WakeLog.STOPPED);
+        }
+        if (pendingWake != null) {
+            WakeRingService.startWith(context, pendingWake, pendingDue);
+            pendingWake = null;
+        }
         player.stopNow();
         lastStamp = Long.MIN_VALUE;
         snooze = null;

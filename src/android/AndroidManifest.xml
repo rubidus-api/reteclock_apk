@@ -15,6 +15,12 @@
     <!-- The timer's vibrate mode. An install-time permission, so nothing is ever prompted for at
          runtime and R5 still holds; it is here only because the timer offers vibration. -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Alarms (experimental), RFC-0012. Both are ordinary permissions granted at install, so R5
+         holds; the components that use them ship disabled below and are enabled only while the
+         experiment is switched on. RECEIVE_BOOT_COMPLETED re-arms the next alarm after a restart;
+         FOREGROUND_SERVICE keeps a ringing alarm alive, and is required at targetSdk 28. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <!-- A television, when there is one (issue #45, RFC-0009).
 
@@ -75,6 +81,23 @@
             android:exported="false"
             android:label="@string/timer_title"
             android:theme="@android:style/Theme.Black" />
+
+        <activity
+            android:name=".AlarmSettingsActivity"
+            android:exported="false"
+            android:label="@string/alarm_title"
+            android:theme="@android:style/Theme.Black" />
+
+        <!-- The card for an alarm, over the lock screen. Disabled until the experiment is on. -->
+        <activity
+            android:name=".WakeCardActivity"
+            android:enabled="false"
+            android:exported="false"
+            android:directBootAware="true"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:taskAffinity="com.reteclock.wake"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
 
         <activity
             android:name=".SoundSettingsActivity"
@@ -139,6 +162,28 @@
                 android:name="android.service.dream"
                 android:resource="@xml/dream_info" />
         </service>
+
+        <!-- Alarms (experimental), RFC-0012: disabled until the experiment is switched on, so with it
+             off a restart does not start this app at all. -->
+        <receiver
+            android:name=".WakeReceiver"
+            android:enabled="false"
+            android:exported="true"
+            android:directBootAware="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+        <service
+            android:name=".WakeRingService"
+            android:enabled="false"
+            android:exported="false"
+            android:directBootAware="true" />
 
         <receiver
             android:name=".PowerConnectionReceiver"

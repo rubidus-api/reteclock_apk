@@ -142,6 +142,16 @@ public class ClockActivity extends Activity {
                 showBellCard(bell);
             }
         });
+        // A bell that woke the phone, rung here because this screen is showing (RFC-0012).
+        bells.setWakeRinging(new BellRinger.WakeRinging() {
+            @Override
+            public void wakeIsRinging(com.reteclock.core.Bell bell) {
+                showWakeCard(bell);
+            }
+        });
+        // The components and the held wake-up are made to agree with the switch whenever the app
+        // starts: an update, a restore or a crash can each have left them out of step.
+        WakeBells.reconcile(this);
         view.setOnSecond(new ClockView.OnSecond() {
             @Override
             public void second(long nowMs) {
@@ -432,8 +442,46 @@ public class ClockActivity extends Activity {
             public void stop() {
                 bells.stopRinging(bell);
             }
+
+            @Override
+            public void unanswered() {
+                bells.stopRinging(bell);
+            }
         });
     }
+
+    private android.app.Dialog wakeCard;
+
+    /** The same card, for a wake bell; its answers go to the wake bells, not to the tick. */
+    private void showWakeCard(com.reteclock.core.Bell bell) {
+        if (isFinishing()) {
+            bells.endWake(com.reteclock.core.WakeLog.STOPPED);
+            return;
+        }
+        wakeCard = BellCard.show(this, bell, new BellCard.Answer() {
+            @Override
+            public void putOff() {
+                bells.endWake(com.reteclock.core.WakeLog.PUT_OFF);
+            }
+
+            @Override
+            public void stop() {
+                bells.endWake(com.reteclock.core.WakeLog.STOPPED);
+            }
+
+            @Override
+            public void unanswered() {
+                bells.endWake(com.reteclock.core.WakeLog.UNANSWERED);
+            }
+        });
+    }
+
+    private final WakeBells.Host wakeHost = new WakeBells.Host() {
+        @Override
+        public void takeWake(com.reteclock.core.Bell bell, long dueEpochMillis) {
+            bells.takeWake(bell, dueEpochMillis);
+        }
+    };
 
     /** Takes the card away with the screen, so it is not left over a window nobody is at. */
     private void dismissBellCard() {
@@ -488,6 +536,10 @@ public class ClockActivity extends Activity {
 
         @Override
         public void cue(Tones.Note[] pattern) {
+            // A wake bell ringing on this screen has the right of way over the timer (F4).
+            if (bells.wakeActive()) {
+                return;
+            }
             if (sounds == null) {
                 sounds = new TimerSounds(ClockActivity.this);
             }
@@ -496,6 +548,9 @@ public class ClockActivity extends Activity {
 
         @Override
         public void sound(String name, Tones.Note[] fallback) {
+            if (bells.wakeActive()) {
+                return;
+            }
             if (sounds == null) {
                 sounds = new TimerSounds(ClockActivity.this);
             }
@@ -504,7 +559,8 @@ public class ClockActivity extends Activity {
 
         @Override
         public void speak(String message) {
-            if (message == null || message.isEmpty() || !CueSound.canSpeak(ClockActivity.this)) {
+            if (message == null || message.isEmpty() || !CueSound.canSpeak(ClockActivity.this)
+                    || bells.wakeActive()) {
                 return;
             }
             if (voice == null) {
@@ -754,6 +810,7 @@ public class ClockActivity extends Activity {
         // The bells may have been edited in the meantime, and whatever fell while they were being
         // edited is not rung on the way back.
         bells.reload();
+        WakeBells.setHost(wakeHost);
         applyStayUnlocked();
         layOutScreen();
         view.start();
@@ -769,7 +826,12 @@ public class ClockActivity extends Activity {
     @Override
     protected void onPause() {
         view.stop();
+        WakeBells.clearHost(wakeHost);
         dismissBellCard();
+        if (wakeCard != null && wakeCard.isShowing()) {
+            wakeCard.dismiss();
+        }
+        wakeCard = null;
         bells.stop();
         cuePlayer.stopNow();
         if (timer != null) {

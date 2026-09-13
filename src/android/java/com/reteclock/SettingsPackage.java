@@ -561,6 +561,11 @@ final class SettingsPackage {
             if (!sections.contains(entry.section)) {
                 continue;
             }
+            // Alarms (experimental) is switched on on this phone by this phone's owner, never by a
+            // file (RFC-0012). A hand-edited package cannot carry it, or the state behind it, in.
+            if (entry.key.startsWith("wake_")) {
+                continue;
+            }
             String value = entry.value;
             if (Settings.KEY_LAYOUTS.equals(entry.key)) {
                 // The sender's whole book. Its presets join the ones on this phone; the sender's
@@ -672,6 +677,9 @@ final class SettingsPackage {
         editor.putLong(Settings.KEY_RUN_ORIGIN, com.reteclock.core.TimerMemory.NONE);
         editor.putString(Settings.KEY_RUN_PRESET, "");
         editor.commit();
+        // Bells, the time base or the switch itself may have arrived; the held wake-up and the
+        // components are made to agree with whatever is stored now (RFC-0012).
+        WakeBells.reconcile(context);
         return result;
     }
 

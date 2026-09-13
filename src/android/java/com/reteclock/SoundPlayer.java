@@ -108,6 +108,17 @@ final class SoundPlayer {
      * a count cannot mean anything against it. Everything else plays exactly the number of times
      * asked for and then stops itself.
      */
+    /**
+     * The stream the next {@link #play} goes out on. The music stream unless somebody says
+     * otherwise — every existing sound does — and the alarm stream for a bell that wakes the phone
+     * (RFC-0012, F1): its own volume, and audible with the ringer switched to silent.
+     */
+    private int stream = AudioManager.STREAM_MUSIC;
+
+    void setStream(int stream) {
+        this.stream = stream;
+    }
+
     void play(File file, SoundClip clip, int times) {
         // Stopping in order to start again is not falling idle; the screen would rebuild itself
         // out from under the press that asked for this.
@@ -121,7 +132,7 @@ final class SoundPlayer {
         final SoundClip wanted = clip == null ? SoundClip.whole(file.getName()) : clip;
         MediaPlayer created = new MediaPlayer();
         try {
-            created.setAudioStreamType(AudioManager.STREAM_MUSIC);
+            created.setAudioStreamType(stream);
             created.setDataSource(file.getAbsolutePath());
             created.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
                 @Override

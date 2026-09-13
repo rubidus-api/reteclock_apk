@@ -128,6 +128,16 @@ public final class Settings {
     public static final String KEY_BELLS = "bells";
     public static final String KEY_BELLS_ON = "bells_on";
 
+    /**
+     * Bells that wake the phone (RFC-0012). Not exported: the experiment is a decision made on this
+     * phone, with this phone's permissions and battery saver, and a package from another phone must
+     * not switch it on. Bells marked to wake do travel, and are ordinary bells until it is.
+     */
+    public static final String KEY_WAKE_ON = "wake_on";
+    private static final String KEY_WAKE_PUT_OFF = "wake_put_off";
+    private static final String KEY_WAKE_LAST = "wake_last";
+    private static final String KEY_WAKE_ARMED = "wake_armed";
+
     public static final String KEY_POOL_BACKGROUND = "pool_background";
     public static final String KEY_POOL_TEXT = "pool_text";
     public static final String KEY_POOL_MIGRATED = "pool_migrated";
@@ -314,6 +324,7 @@ public final class Settings {
 
     public static void setBells(Context context, com.reteclock.core.Bells bells) {
         prefs(context).edit().putString(KEY_BELLS, bells.text()).commit();
+        WakeBells.changed(context);
     }
 
     /** The one switch that silences every bell without unsetting any of them. */
@@ -323,6 +334,43 @@ public final class Settings {
 
     public static void setBellsOn(Context context, boolean on) {
         prefs(context).edit().putBoolean(KEY_BELLS_ON, on).commit();
+        WakeBells.changed(context);
+    }
+
+    /** Whether *Alarms (experimental)* is switched on. Off unless somebody turned it on. */
+    public static boolean wakeOn(Context context) {
+        return prefs(context).getBoolean(KEY_WAKE_ON, false);
+    }
+
+    /** Stores the switch only; {@link WakeBells#setSwitch} is what makes the rest agree with it. */
+    static void setWakeOn(Context context, boolean on) {
+        prefs(context).edit().putBoolean(KEY_WAKE_ON, on).commit();
+    }
+
+    static com.reteclock.core.WakePutOff wakePutOff(Context context) {
+        return com.reteclock.core.WakePutOff.parse(prefs(context).getString(KEY_WAKE_PUT_OFF, ""));
+    }
+
+    static void setWakePutOff(Context context, com.reteclock.core.WakePutOff off) {
+        prefs(context).edit().putString(KEY_WAKE_PUT_OFF, off == null ? "" : off.text()).commit();
+    }
+
+    /** The due instant of the last wake ring dealt with; nothing at or before it rings again. */
+    static long wakeLast(Context context) {
+        return prefs(context).getLong(KEY_WAKE_LAST, 0L);
+    }
+
+    static void setWakeLast(Context context, long epochMillis) {
+        prefs(context).edit().putLong(KEY_WAKE_LAST, epochMillis).commit();
+    }
+
+    /** The instant of the wake-up held with the system, or 0 — how a missed one is noticed. */
+    static long wakeArmed(Context context) {
+        return prefs(context).getLong(KEY_WAKE_ARMED, 0L);
+    }
+
+    static void setWakeArmed(Context context, long epochMillis) {
+        prefs(context).edit().putLong(KEY_WAKE_ARMED, epochMillis).commit();
     }
 
     /**
@@ -1355,6 +1403,7 @@ public final class Settings {
 
     public static void setTimeSource(Context context, int source) {
         prefs(context).edit().putInt(KEY_TIME_SOURCE, source).commit();
+        WakeBells.changed(context);
     }
 
     /** Minutes east of UTC, when the clock is not following the phone. */
@@ -1364,6 +1413,7 @@ public final class Settings {
 
     public static void setUtcOffsetMinutes(Context context, int minutes) {
         prefs(context).edit().putInt(KEY_UTC_OFFSET, minutes).commit();
+        WakeBells.changed(context);
     }
 
     /** Which summer-time rule applies to that offset. */
@@ -1373,6 +1423,7 @@ public final class Settings {
 
     public static void setSummerTimePreset(Context context, int preset) {
         prefs(context).edit().putInt(KEY_DST_PRESET, preset).commit();
+        WakeBells.changed(context);
     }
 
     /**
@@ -1431,6 +1482,7 @@ public final class Settings {
         prefs(context).edit().putString(KEY_DST_CUSTOM, startMonth + "," + startWeekday + ","
                 + startOrdinal + "," + startMinutes + "," + endMonth + "," + endWeekday + ","
                 + endOrdinal + "," + endMinutes + "," + amount).commit();
+        WakeBells.changed(context);
     }
 
     /** The rule in force: a preset, the user's own, or none. */

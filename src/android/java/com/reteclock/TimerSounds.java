@@ -68,10 +68,28 @@ final class TimerSounds {
         Thread player = new Thread(new Runnable() {
             @Override
             public void run() {
-                sound(notes);
+                sound(notes, AudioManager.STREAM_MUSIC);
             }
         }, "reteclock-tone");
         player.setPriority(Thread.NORM_PRIORITY - 1);
+        player.start();
+    }
+
+    /**
+     * Plays a pattern on the alarm stream, whatever the ringer switch says — for a bell that wakes
+     * the phone and nothing else (RFC-0012, F1). An alarm on a silenced phone is the point of one.
+     */
+    void playAlarm(Tones.Note[] pattern) {
+        if (pattern == null || pattern.length == 0) {
+            return;
+        }
+        final Tones.Note[] notes = pattern;
+        Thread player = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                sound(notes, AudioManager.STREAM_ALARM);
+            }
+        }, "reteclock-alarm-tone");
         player.start();
     }
 
@@ -93,7 +111,7 @@ final class TimerSounds {
     }
 
     /** Builds the whole pattern as one buffer and plays it once. */
-    private void sound(Tones.Note[] pattern) {
+    private void sound(Tones.Note[] pattern, int stream) {
         int frames = 0;
         for (Tones.Note note : pattern) {
             frames += (note.onMs + note.offMs) * RATE / 1000;
@@ -125,7 +143,7 @@ final class TimerSounds {
             int minimum = AudioTrack.getMinBufferSize(RATE, AudioFormat.CHANNEL_OUT_MONO,
                     AudioFormat.ENCODING_PCM_16BIT);
             int size = Math.max(minimum, samples.length * 2);
-            track = new AudioTrack(AudioManager.STREAM_MUSIC, RATE, AudioFormat.CHANNEL_OUT_MONO,
+            track = new AudioTrack(stream, RATE, AudioFormat.CHANNEL_OUT_MONO,
                     AudioFormat.ENCODING_PCM_16BIT, size, AudioTrack.MODE_STATIC);
             track.write(samples, 0, samples.length);
             track.play();

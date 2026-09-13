@@ -134,6 +134,18 @@ final class ClockMenu {
                                 new Intent(activity, SoundSettingsActivity.class));
                     }
                 }));
+        // Beside the sounds, and a page of its own rather than a part of them: an experiment that
+        // adds to the bells and is switched on here, on purpose, by the person reading its warning
+        // (RFC-0012).
+        card.addView(choice(activity, activity.getString(R.string.menu_alarms),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        dialog.dismiss();
+                        activity.startActivity(
+                                new Intent(activity, AlarmSettingsActivity.class));
+                    }
+                }));
         card.addView(choice(activity, activity.getString(R.string.menu_carry),
                 new View.OnClickListener() {
                     @Override
