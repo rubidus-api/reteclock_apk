@@ -58,6 +58,17 @@ public final class Bell {
     /** What a bell offers when the screen makes a new one. */
     public static final int DEFAULT_SNOOZE_MINUTES = 10;
 
+    /**
+     * Whether this bell is handed to the system to wake the phone (RFC-0012), rather than rung by
+     * the clock's own tick.
+     *
+     * It means that only while *Alarms (experimental)* is switched on; with the switch off a bell
+     * marked to wake is an ordinary bell, so switching the experiment off never silences a bell that
+     * used to ring. A bell written before this existed reads back as false, and a bell that does
+     * not wake is stored exactly as it was, byte for byte.
+     */
+    public final boolean wake;
+
     public Bell(boolean on, int days, int minuteOfDay, String sound, String label) {
         this(on, days, minuteOfDay, sound, label, 1);
     }
@@ -68,6 +79,12 @@ public final class Bell {
 
     public Bell(boolean on, int days, int minuteOfDay, String sound, String label, int repeats,
             int snoozeMinutes) {
+        this(on, days, minuteOfDay, sound, label, repeats, snoozeMinutes, false);
+    }
+
+    public Bell(boolean on, int days, int minuteOfDay, String sound, String label, int repeats,
+            int snoozeMinutes, boolean wake) {
+        this.wake = wake;
         this.on = on;
         this.days = days & EVERY_DAY;
         int minute = minuteOfDay % MINUTES_A_DAY;
@@ -117,11 +134,11 @@ public final class Bell {
     }
 
     public Bell withOn(boolean nowOn) {
-        return new Bell(nowOn, days, minuteOfDay, sound, label, repeats, snoozeMinutes);
+        return new Bell(nowOn, days, minuteOfDay, sound, label, repeats, snoozeMinutes, wake);
     }
 
     public Bell withDays(int nowDays) {
-        return new Bell(on, nowDays, minuteOfDay, sound, label, repeats, snoozeMinutes);
+        return new Bell(on, nowDays, minuteOfDay, sound, label, repeats, snoozeMinutes, wake);
     }
 
     /** The same bell with one weekday turned on or off. */
@@ -134,24 +151,29 @@ public final class Bell {
     }
 
     public Bell withTime(int hour, int minute) {
-        return new Bell(on, days, hour * 60 + minute, sound, label, repeats, snoozeMinutes);
+        return new Bell(on, days, hour * 60 + minute, sound, label, repeats, snoozeMinutes, wake);
     }
 
     public Bell withSound(String name) {
-        return new Bell(on, days, minuteOfDay, name, label, repeats, snoozeMinutes);
+        return new Bell(on, days, minuteOfDay, name, label, repeats, snoozeMinutes, wake);
     }
 
     /** The same bell, played a different number of times when it rings. */
     public Bell withRepeats(int times) {
-        return new Bell(on, days, minuteOfDay, sound, label, times, snoozeMinutes);
+        return new Bell(on, days, minuteOfDay, sound, label, times, snoozeMinutes, wake);
     }
 
     /** The same bell, put off for a different number of minutes; 0 takes the choice away. */
     public Bell withSnooze(int minutes) {
-        return new Bell(on, days, minuteOfDay, sound, label, repeats, minutes);
+        return new Bell(on, days, minuteOfDay, sound, label, repeats, minutes, wake);
+    }
+
+    /** The same bell, handed to the system to wake the phone or not. */
+    public Bell withWake(boolean wakes) {
+        return new Bell(on, days, minuteOfDay, sound, label, repeats, snoozeMinutes, wakes);
     }
 
     public Bell withLabel(String text) {
-        return new Bell(on, days, minuteOfDay, sound, text, repeats, snoozeMinutes);
+        return new Bell(on, days, minuteOfDay, sound, text, repeats, snoozeMinutes, wake);
     }
 }

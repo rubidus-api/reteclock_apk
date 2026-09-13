@@ -146,6 +146,18 @@ public final class Bells {
      * that was missed, not delayed.
      */
     public List<Bell> due(long fromStamp, long toStamp) {
+        return due(fromStamp, toStamp, false);
+    }
+
+    /**
+     * The same, for the clock's tick while bells that wake the phone are switched on (RFC-0012).
+     *
+     * A bell has one owner. With {@code skipWake} a bell marked to wake the phone belongs to the
+     * system scheduler and the tick passes it over; otherwise it would ring twice whenever the clock
+     * happens to be on screen. With the switch off it is asked for as false, and every bell is the
+     * tick's again.
+     */
+    public List<Bell> due(long fromStamp, long toStamp, boolean skipWake) {
         List<Bell> out = new ArrayList<Bell>();
         if (toStamp <= fromStamp || bells.isEmpty()) {
             return out;
@@ -157,7 +169,7 @@ public final class Bells {
             int weekday = CivilTime.weekday((int) day);
             for (int i = 0; i < bells.size(); i++) {
                 Bell bell = bells.get(i);
-                if (!bell.isLive() || !bell.ringsOn(weekday)) {
+                if (!bell.isLive() || !bell.ringsOn(weekday) || (skipWake && bell.wake)) {
                     continue;
                 }
                 long at = day * 1440L + bell.minuteOfDay;
@@ -211,6 +223,7 @@ public final class Bells {
      * <pre>
      *   bells := bell ('\n' bell)*
      *   bell  := on '|' days '|' minuteOfDay '|' sound '|' label '|' repeats '|' snoozeMinutes
+     *            ('|' wake)?
      * </pre>
      */
     public String text() {
@@ -227,8 +240,20 @@ public final class Bells {
             out.append(escape(bell.label)).append(FIELD);
             out.append(bell.repeats).append(FIELD);
             out.append(bell.snoozeMinutes);
+            // Written only for a bell that wakes the phone, so a bell that does not is stored
+            // exactly as every earlier version wrote it (RFC-0012, K5).
+            if (bell.wake) {
+                out.append(FIELD).append('1');
+            }
         }
         return out.toString();
+    }
+
+    /** One bell as the line it is stored as — how a promise names the bell it was made about. */
+    public static String lineOf(Bell bell) {
+        List<Bell> one = new ArrayList<Bell>();
+        one.add(bell);
+        return new Bells(one).text();
     }
 
     /** Reads the stored text; one unreadable line costs only itself. */
@@ -257,7 +282,9 @@ public final class Bells {
                     // And one written before it could be put off cannot be: a morning already set
                     // is not given a new button by an update. Fields past this one belong to a
                     // newer version and are ignored rather than making the line unreadable.
-                    fields.size() > 6 ? number(fields.get(6), 0) : 0));
+                    fields.size() > 6 ? number(fields.get(6), 0) : 0,
+                    // A bell from before RFC-0012 does not wake the phone.
+                    fields.size() > 7 && "1".equals(fields.get(7).trim())));
         }
         return out.isEmpty() ? NONE : new Bells(out);
     }
