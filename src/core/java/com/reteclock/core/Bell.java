@@ -69,6 +69,25 @@ public final class Bell {
      */
     public final boolean wake;
 
+    /** A bell at a set time. */
+    public static final int AT_TIME = 0;
+    /** A bell at the day's sunrise (issue #55, RFC-0015). */
+    public static final int AT_SUNRISE = SunTimes.SUNRISE;
+    /** A bell at the day's sunset. */
+    public static final int AT_SUNSET = SunTimes.SUNSET;
+
+    /**
+     * What the bell follows: a set time, or the sun. A bell that follows the sun keeps
+     * {@link #minuteOfDay} as the last time it was given, so turning it back into a set-time bell
+     * does not lose it.
+     */
+    public final int sun;
+    /** Minutes before (negative) or after the sunrise or sunset; ignored for a set time. */
+    public final int sunOffsetMinutes;
+
+    /** A bell rings no further than this from the sunrise or sunset it follows. */
+    public static final int MAX_SUN_OFFSET_MINUTES = 180;
+
     public Bell(boolean on, int days, int minuteOfDay, String sound, String label) {
         this(on, days, minuteOfDay, sound, label, 1);
     }
@@ -84,7 +103,15 @@ public final class Bell {
 
     public Bell(boolean on, int days, int minuteOfDay, String sound, String label, int repeats,
             int snoozeMinutes, boolean wake) {
+        this(on, days, minuteOfDay, sound, label, repeats, snoozeMinutes, wake, AT_TIME, 0);
+    }
+
+    public Bell(boolean on, int days, int minuteOfDay, String sound, String label, int repeats,
+            int snoozeMinutes, boolean wake, int sun, int sunOffsetMinutes) {
         this.wake = wake;
+        this.sun = sun == AT_SUNRISE || sun == AT_SUNSET ? sun : AT_TIME;
+        this.sunOffsetMinutes = this.sun == AT_TIME ? 0
+                : Math.max(-MAX_SUN_OFFSET_MINUTES, Math.min(MAX_SUN_OFFSET_MINUTES, sunOffsetMinutes));
         this.on = on;
         this.days = days & EVERY_DAY;
         int minute = minuteOfDay % MINUTES_A_DAY;
@@ -134,11 +161,13 @@ public final class Bell {
     }
 
     public Bell withOn(boolean nowOn) {
-        return new Bell(nowOn, days, minuteOfDay, sound, label, repeats, snoozeMinutes, wake);
+        return new Bell(nowOn, days, minuteOfDay, sound, label, repeats, snoozeMinutes,
+                wake, sun, sunOffsetMinutes);
     }
 
     public Bell withDays(int nowDays) {
-        return new Bell(on, nowDays, minuteOfDay, sound, label, repeats, snoozeMinutes, wake);
+        return new Bell(on, nowDays, minuteOfDay, sound, label, repeats, snoozeMinutes,
+                wake, sun, sunOffsetMinutes);
     }
 
     /** The same bell with one weekday turned on or off. */
@@ -151,29 +180,65 @@ public final class Bell {
     }
 
     public Bell withTime(int hour, int minute) {
-        return new Bell(on, days, hour * 60 + minute, sound, label, repeats, snoozeMinutes, wake);
+        return new Bell(on, days, hour * 60 + minute, sound, label, repeats, snoozeMinutes,
+                wake, sun, sunOffsetMinutes);
     }
 
     public Bell withSound(String name) {
-        return new Bell(on, days, minuteOfDay, name, label, repeats, snoozeMinutes, wake);
+        return new Bell(on, days, minuteOfDay, name, label, repeats, snoozeMinutes,
+                wake, sun, sunOffsetMinutes);
     }
 
     /** The same bell, played a different number of times when it rings. */
     public Bell withRepeats(int times) {
-        return new Bell(on, days, minuteOfDay, sound, label, times, snoozeMinutes, wake);
+        return new Bell(on, days, minuteOfDay, sound, label, times, snoozeMinutes,
+                wake, sun, sunOffsetMinutes);
     }
 
     /** The same bell, put off for a different number of minutes; 0 takes the choice away. */
     public Bell withSnooze(int minutes) {
-        return new Bell(on, days, minuteOfDay, sound, label, repeats, minutes, wake);
+        return new Bell(on, days, minuteOfDay, sound, label, repeats, minutes,
+                wake, sun, sunOffsetMinutes);
     }
 
     /** The same bell, handed to the system to wake the phone or not. */
     public Bell withWake(boolean wakes) {
-        return new Bell(on, days, minuteOfDay, sound, label, repeats, snoozeMinutes, wakes);
+        return new Bell(on, days, minuteOfDay, sound, label, repeats, snoozeMinutes,
+                wakes, sun, sunOffsetMinutes);
+    }
+
+    /** The same bell following the sun, or back at its set time. */
+    public Bell withSun(int follows, int offsetMinutes) {
+        return new Bell(on, days, minuteOfDay, sound, label, repeats, snoozeMinutes, wake, follows,
+                offsetMinutes);
+    }
+
+    /** Whether it follows the sun rather than a set time. */
+    public boolean followsSun() {
+        return sun != AT_TIME;
+    }
+
+    /**
+     * The minute it rings on a civil day: its set time, or the sunrise or sunset there that day
+     * moved by its offset — or -1 when there is none: no place set, or a polar day the sun does not
+     * rise or set.
+     */
+    public int minuteOn(int jdn, SunClock clock) {
+        if (sun == AT_TIME) {
+            return minuteOfDay;
+        }
+        if (clock == null) {
+            return -1;
+        }
+        int event = clock.localMinute(jdn, sun);
+        if (event == SunTimes.NONE) {
+            return -1;
+        }
+        return SunTimes.fold(event + sunOffsetMinutes);
     }
 
     public Bell withLabel(String text) {
-        return new Bell(on, days, minuteOfDay, sound, text, repeats, snoozeMinutes, wake);
+        return new Bell(on, days, minuteOfDay, sound, text, repeats, snoozeMinutes,
+                wake, sun, sunOffsetMinutes);
     }
 }

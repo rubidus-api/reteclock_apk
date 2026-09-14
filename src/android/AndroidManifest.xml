@@ -83,6 +83,12 @@
             android:theme="@android:style/Theme.Black" />
 
         <activity
+            android:name=".SunSettingsActivity"
+            android:exported="false"
+            android:label="@string/sun_title"
+            android:theme="@android:style/Theme.Black" />
+
+        <activity
             android:name=".AlarmSettingsActivity"
             android:exported="false"
             android:label="@string/alarm_title"

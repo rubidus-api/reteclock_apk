@@ -73,6 +73,8 @@ final class BellRinger {
 
     /** Read with the bells: whether the tick leaves wake bells to the system. */
     private boolean wakeOn;
+    /** Where the sun is reckoned from, for bells that follow it (issue #55). */
+    private com.reteclock.core.SunClock sun = com.reteclock.core.SunClock.NONE;
     /** A wake bell handed to this screen, waiting for a bell of its own to finish. */
     private Bell pendingWake;
     private long pendingDue;
@@ -236,6 +238,7 @@ final class BellRinger {
         bells = Settings.bells(context);
         on = Settings.bellsOn(context);
         wakeOn = Settings.wakeOn(context);
+        sun = Settings.sunClock(context);
         // Whatever fell while somebody was editing the bells is not rung at them on the way back.
         lastStamp = Long.MIN_VALUE;
         // The bell that was put off may not exist any more, and its minutes may have changed. The
@@ -258,7 +261,7 @@ final class BellRinger {
             return;
         }
         // With the experiment on, a bell that wakes the phone is the system's to ring, not the tick's.
-        List<Bell> due = bells.due(lastStamp, stamp, wakeOn);
+        List<Bell> due = bells.due(lastStamp, stamp, wakeOn, sun);
         // A bell that was put off is due in the same window, judged by the same arithmetic. It is
         // taken first: it is the one the person in the room has already been asked about once.
         Snooze waiting = snooze;

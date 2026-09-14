@@ -293,7 +293,7 @@ public class WakeRingService extends Service {
 
     private Notification notification(boolean ringing) {
         String title = bell == null ? getString(R.string.wake_notification_waiting)
-                : String.format("%02d:%02d", bell.hour(), bell.minute());
+                : BellTime.today(this, bell);
         String text = bell == null ? getString(R.string.app_name)
                 : bell.label.isEmpty() ? getString(R.string.bell_card_untitled) : bell.label;
         PendingIntent card = PendingIntent.getActivity(this, 3,

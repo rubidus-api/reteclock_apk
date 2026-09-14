@@ -528,7 +528,8 @@ public class SoundSettingsActivity extends Activity {
         }
         int minutes = Settings.bellsOn(this)
                 ? bells.minutesUntilNext(Bells.stampOf(System.currentTimeMillis(),
-                        Settings.offsetMinutes(this, System.currentTimeMillis())))
+                        Settings.offsetMinutes(this, System.currentTimeMillis())),
+                        Settings.sunClock(this))
                 : -1;
         bellSection.addView(footer(minutes < 0
                 ? getString(R.string.sound_bell_next_none)
@@ -602,8 +603,7 @@ public class SoundSettingsActivity extends Activity {
 
     /** "07:00", in the clock's own reading of the hour. */
     private String clockText(Bell bell) {
-        return (bell.hour() < 10 ? "0" : "") + bell.hour()
-                + ":" + (bell.minute() < 10 ? "0" : "") + bell.minute();
+        return BellTime.today(this, bell);
     }
 
     private String daysText(Bell bell) {
@@ -678,6 +678,23 @@ public class SoundSettingsActivity extends Activity {
                 LinearLayout.LayoutParams.WRAP_CONTENT));
         box.addView(timeRow);
 
+        // At a set time, or following the sun (issue #55): the time fields give way to how far
+        // before or after sunrise or sunset, and the place is on the Sunset/sunrise page.
+        final LinearLayout sunRow = new LinearLayout(this);
+        sunRow.setOrientation(LinearLayout.VERTICAL);
+        final EditText sunOffset = numberField(Integer.toString(bell.sunOffsetMinutes));
+        sunOffset.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_SIGNED);
+        final FlowLayout follows = new FlowLayout(this, dp(4), dp(2));
+        box.addView(follows);
+        rebuildFollows(follows, edited, timeRow, sunRow);
+        sunRow.addView(subheading(getString(R.string.sun_bell_offset)));
+        sunRow.addView(sunOffset, new LinearLayout.LayoutParams(dp(96),
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+        sunRow.addView(footer(getString(Settings.sunClock(this).isSet()
+                ? R.string.sun_bell_offset_note : R.string.sun_bell_needs_place)));
+        box.addView(sunRow);
+        showFollows(edited[0], timeRow, sunRow);
+
         box.addView(subheading(getString(R.string.sound_bell_days)));
         final FlowLayout days = new FlowLayout(this, dp(4), dp(2));
         box.addView(days);
@@ -733,6 +750,8 @@ public class SoundSettingsActivity extends Activity {
                         Bell made = edited[0]
                                 .withTime(number(hour.getText().toString(), 23),
                                         number(minute.getText().toString(), 59))
+                                .withSun(edited[0].sun, signed(sunOffset.getText().toString(),
+                                        Bell.MAX_SUN_OFFSET_MINUTES))
                                 .withRepeats(number(repeats.getText().toString(),
                                         Bell.MAX_REPEATS))
                                 .withSnooze(number(snooze.getText().toString(),
@@ -748,6 +767,52 @@ public class SoundSettingsActivity extends Activity {
                 })
                 .setNegativeButton(android.R.string.cancel, null)
                 .show();
+    }
+
+    /** At a time, at sunrise, at sunset: three chips, the one in force lit. */
+    private void rebuildFollows(final FlowLayout into, final Bell[] edited, final View timeRow,
+            final View sunRow) {
+        into.removeAllViews();
+        int[] kinds = {Bell.AT_TIME, Bell.AT_SUNRISE, Bell.AT_SUNSET};
+        int[] names = {R.string.sun_bell_at_time, R.string.sun_bell_sunrise, R.string.sun_bell_sunset};
+        for (int i = 0; i < kinds.length; i++) {
+            final int kind = kinds[i];
+            boolean chosen = edited[0].sun == kind;
+            TextView chip = new TextView(this);
+            chip.setText(names[i]);
+            chip.setTextColor(chosen ? Color.BLACK : TEXT_DIM);
+            chip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f);
+            chip.setGravity(Gravity.CENTER);
+            chip.setPadding(dp(10), dp(6), dp(10), dp(6));
+            GradientDrawable face = new GradientDrawable();
+            face.setColor(chosen ? ACCENT : BUTTON_FACE);
+            face.setCornerRadius(dp(6));
+            chip.setBackgroundDrawable(face);
+            Focusable.make(chip);
+            chip.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    edited[0] = edited[0].withSun(kind, edited[0].sunOffsetMinutes);
+                    rebuildFollows(into, edited, timeRow, sunRow);
+                    showFollows(edited[0], timeRow, sunRow);
+                }
+            });
+            into.addView(chip);
+        }
+    }
+
+    private static void showFollows(Bell bell, View timeRow, View sunRow) {
+        timeRow.setVisibility(bell.followsSun() ? View.GONE : View.VISIBLE);
+        sunRow.setVisibility(bell.followsSun() ? View.VISIBLE : View.GONE);
+    }
+
+    private static int signed(String text, int most) {
+        try {
+            int value = Integer.parseInt(text.trim());
+            return Math.max(-most, Math.min(most, value));
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     /** The seven days as chips that toggle, rebuilt in place so the state is visible. */

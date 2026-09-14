@@ -92,6 +92,11 @@ public final class Settings {
     /** Layouts in turn (issue #53, RFC-0013). */
     public static final String KEY_LAYOUT_SLIDES = "layout_slides";
     /** Sleep mode (issue #54, RFC-0014): what asleep means, and the window it opens in by itself. */
+    /** The place sunrise and sunset are reckoned from (issue #55, RFC-0015); empty when unset. */
+    public static final String KEY_SUN_LATITUDE = "sun_latitude";
+    public static final String KEY_SUN_LONGITUDE = "sun_longitude";
+    /** What the place is called: a city from the list, or empty for typed coordinates. */
+    public static final String KEY_SUN_PLACE = "sun_place";
     public static final String KEY_SLEEP_BUTTON = "sleep_button";
     public static final String KEY_SLEEP_BRIGHTNESS = "sleep_brightness";
     public static final String KEY_SLEEP_NO_BACKGROUND = "sleep_no_background";
@@ -249,6 +254,9 @@ public final class Settings {
         out.put(KEY_DATE_ORDER, dateOrder(context).text());
         out.put(KEY_LAYOUTS, layouts(context).text());
         out.put(KEY_LAYOUT_SLIDES, slides(context).text());
+        out.put(KEY_SUN_LATITUDE, prefs(context).getString(KEY_SUN_LATITUDE, ""));
+        out.put(KEY_SUN_LONGITUDE, prefs(context).getString(KEY_SUN_LONGITUDE, ""));
+        out.put(KEY_SUN_PLACE, sunPlace(context));
         out.put(KEY_SLEEP_BUTTON, Boolean.valueOf(sleepButton(context)));
         out.put(KEY_SLEEP_BRIGHTNESS, Integer.valueOf(sleepBrightness(context)));
         out.put(KEY_SLEEP_NO_BACKGROUND, Boolean.valueOf(sleepNoBackground(context)));
@@ -781,6 +789,50 @@ public final class Settings {
 
     public static void setTimerHidden(Context context, boolean hidden) {
         prefs(context).edit().putBoolean(KEY_TIMER_HIDDEN, hidden).commit();
+    }
+
+    // ---- sunrise and sunset (issue #55, RFC-0015) -----------------------------------------
+
+    /** Where the sun is reckoned from, in the clock's own time; {@code NONE} while unset. */
+    public static com.reteclock.core.SunClock sunClock(final Context context) {
+        double lat = coordinate(prefs(context).getString(KEY_SUN_LATITUDE, ""));
+        double lon = coordinate(prefs(context).getString(KEY_SUN_LONGITUDE, ""));
+        if (!com.reteclock.core.SunClock.validLatitude(lat)
+                || !com.reteclock.core.SunClock.validLongitude(lon)) {
+            return com.reteclock.core.SunClock.NONE;
+        }
+        return new com.reteclock.core.SunClock(lat, lon, new com.reteclock.core.WakeSchedule.TimeBase() {
+            @Override
+            public int offsetMinutesAt(long epochMillis) {
+                return offsetMinutes(context, epochMillis);
+            }
+        });
+    }
+
+    private static double coordinate(String text) {
+        try {
+            return text == null || text.trim().isEmpty() ? Double.NaN
+                    : Double.parseDouble(text.trim());
+        } catch (NumberFormatException e) {
+            return Double.NaN;
+        }
+    }
+
+    public static String sunPlace(Context context) {
+        return prefs(context).getString(KEY_SUN_PLACE, "");
+    }
+
+    /**
+     * Stores the place. Coordinates are kept as text, so a phone never rounds what was typed. The
+     * wake-up held with the system is worked out again, since a bell at sunrise may have moved.
+     */
+    public static void setSunPlace(Context context, double latitude, double longitude, String name) {
+        prefs(context).edit()
+                .putString(KEY_SUN_LATITUDE, Double.toString(latitude))
+                .putString(KEY_SUN_LONGITUDE, Double.toString(longitude))
+                .putString(KEY_SUN_PLACE, name == null ? "" : name)
+                .commit();
+        WakeBells.rearm(context);
     }
 
     // ---- sleep mode (issue #54, RFC-0014) -------------------------------------------------

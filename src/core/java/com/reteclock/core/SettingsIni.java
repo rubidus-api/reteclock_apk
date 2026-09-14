@@ -104,6 +104,9 @@ public final class SettingsIni {
         {"sound_clips", "s", "sounds"},
         {"bells", "s", "sounds"},
         {"bells_on", "b", "sounds"},
+        {"sun_latitude", "s", "sounds"},
+        {"sun_longitude", "s", "sounds"},
+        {"sun_place", "s", "sounds"},
 
         {"timer_on", "b", "timer"},
         {"timer_presets", "s", "timer"},

@@ -91,7 +91,7 @@ final class BellCard {
         // The time it is, in the bell's own terms, because a person woken by a sound wants to know
         // which one it was before they want anything else.
         TextView heading = new TextView(activity);
-        heading.setText(String.format("%02d:%02d", bell.hour(), bell.minute()));
+        heading.setText(BellTime.today(activity, bell));
         heading.setTextColor(TEXT_WHITE);
         heading.setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f);
         heading.setTypeface(Typeface.DEFAULT_BOLD);

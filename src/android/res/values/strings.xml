@@ -579,6 +579,37 @@
     <string name="slides_time_note">How long this layout stays: at least 10 seconds, at most 24 hours.</string>
     <string name="slides_open_layouts">Layouts…</string>
     <string name="layout_slides_playing">Layout slides are playing for this way up; the layout chosen here shows when they are switched off.</string>
+    <!-- Sunrise and sunset (issue #55, RFC-0015). -->
+    <string name="menu_sun">Sunset/sunrise settings</string>
+    <string name="sun_title">Sunset/sunrise settings</string>
+    <string name="sun_card_place">Place</string>
+    <string name="sun_no_place">No place is set. Bells that follow the sun will not ring until one is.</string>
+    <string name="sun_pick_city">Choose a city…</string>
+    <string name="sun_pick_region">Region</string>
+    <string name="sun_type_coordinates">Enter latitude and longitude…</string>
+    <string name="sun_latitude">Latitude (north positive, south negative), for example 37.57</string>
+    <string name="sun_longitude">Longitude (east positive, west negative), for example 126.98</string>
+    <string name="sun_coordinates_note">Decimal degrees. Any map app shows them for a place you long-press.</string>
+    <string name="sun_coordinates_bad">Latitude must be between −90 and 90, longitude between −180 and 180.</string>
+    <string name="sun_place_note">Nothing is looked up and no location permission is used: the times are worked out on the phone from this place. Choosing a city does not change the clock\'s time zone; that stays as set on Time and date, and the times below are in it.</string>
+    <string name="sun_card_times">Sunrise and sunset</string>
+    <string name="sun_times_need_place">Set a place to see the times.</string>
+    <string name="sun_times_note">In the clock\'s own time. Worked out to within a minute or two; a dash is a day the sun does not rise or set here.</string>
+    <string name="sun_card_bells">Bells that follow the sun</string>
+    <string name="sun_bells_none">None yet.</string>
+    <string name="sun_add_sunrise">Add a bell at sunrise</string>
+    <string name="sun_add_sunset">Add a bell at sunset</string>
+    <string name="sun_bell_added">Added. Change its sound, days or minutes before or after on Sounds and bells.</string>
+    <string name="sun_bells_note">A bell here rings at that day\'s sunrise or sunset, worked out again every day, and can be moved up to three hours before or after it on Sounds and bells. On a day the sun does not rise or set here, it does not ring. To wake the phone with it, tick it on Alarms (experimental).</string>
+    <string name="sun_bell_at_time">At a time</string>
+    <string name="sun_bell_sunrise">Sunrise</string>
+    <string name="sun_bell_sunset">Sunset</string>
+    <string name="sun_bell_min">min</string>
+    <string name="sun_bell_offset">Minutes after (before, with a minus)</string>
+    <string name="sun_bell_offset_note">Up to 180 minutes either way. The time is worked out again every day for the place set on Sunset/sunrise settings.</string>
+    <string name="sun_bell_needs_place">No place is set yet, so this bell will not ring. Set one on Sunset/sunrise settings in the main menu.</string>
+    <string name="sun_bell_no_place">no place set</string>
+    <string name="sun_bell_no_event">not today at this place</string>
     <!-- Sleep mode (issue #54, RFC-0014). -->
     <string name="sleep_card">Sleep mode</string>
     <string name="sleep_intro">For the night: the screen darker, the background and the timer put away. The clock falls asleep when you press the moon, or by itself at the times below. Your own settings are not changed — waking brings back exactly what was there.</string>

@@ -158,6 +158,14 @@ public final class Bells {
      * tick's again.
      */
     public List<Bell> due(long fromStamp, long toStamp, boolean skipWake) {
+        return due(fromStamp, toStamp, skipWake, null);
+    }
+
+    /**
+     * The same, with the place the sun is reckoned from: a bell that follows the sun rings at that
+     * day's sunrise or sunset there, and without a place it does not ring (RFC-0015).
+     */
+    public List<Bell> due(long fromStamp, long toStamp, boolean skipWake, SunClock sun) {
         List<Bell> out = new ArrayList<Bell>();
         if (toStamp <= fromStamp || bells.isEmpty()) {
             return out;
@@ -172,7 +180,11 @@ public final class Bells {
                 if (!bell.isLive() || !bell.ringsOn(weekday) || (skipWake && bell.wake)) {
                     continue;
                 }
-                long at = day * 1440L + bell.minuteOfDay;
+                int minute = bell.minuteOn((int) day, sun);
+                if (minute < 0) {
+                    continue;
+                }
+                long at = day * 1440L + minute;
                 if (at > from && at <= toStamp) {
                     out.add(bell);
                 }
@@ -188,6 +200,11 @@ public final class Bells {
      * look: a bell that rings at all rings within seven days by construction.
      */
     public int minutesUntilNext(long stamp) {
+        return minutesUntilNext(stamp, null);
+    }
+
+    /** The same, with the place the sun is reckoned from. */
+    public int minutesUntilNext(long stamp, SunClock sun) {
         int best = -1;
         for (long day = dayOf(stamp); day <= dayOf(stamp) + 7; day++) {
             int weekday = CivilTime.weekday((int) day);
@@ -196,7 +213,11 @@ public final class Bells {
                 if (!bell.isLive() || !bell.ringsOn(weekday)) {
                     continue;
                 }
-                long at = day * 1440L + bell.minuteOfDay;
+                int minute = bell.minuteOn((int) day, sun);
+                if (minute < 0) {
+                    continue;
+                }
+                long at = day * 1440L + minute;
                 if (at > stamp && (best < 0 || at - stamp < best)) {
                     best = (int) (at - stamp);
                 }
@@ -223,7 +244,7 @@ public final class Bells {
      * <pre>
      *   bells := bell ('\n' bell)*
      *   bell  := on '|' days '|' minuteOfDay '|' sound '|' label '|' repeats '|' snoozeMinutes
-     *            ('|' wake)?
+     *            ('|' wake ('|' sun '|' sunOffsetMinutes)?)?
      * </pre>
      */
     public String text() {
@@ -242,8 +263,12 @@ public final class Bells {
             out.append(bell.snoozeMinutes);
             // Written only for a bell that wakes the phone, so a bell that does not is stored
             // exactly as every earlier version wrote it (RFC-0012, K5).
-            if (bell.wake) {
-                out.append(FIELD).append('1');
+            if (bell.wake || bell.followsSun()) {
+                out.append(FIELD).append(bell.wake ? '1' : '0');
+            }
+            // And the sun only for a bell that follows it (RFC-0015).
+            if (bell.followsSun()) {
+                out.append(FIELD).append(bell.sun).append(FIELD).append(bell.sunOffsetMinutes);
             }
         }
         return out.toString();
@@ -284,7 +309,10 @@ public final class Bells {
                     // newer version and are ignored rather than making the line unreadable.
                     fields.size() > 6 ? number(fields.get(6), 0) : 0,
                     // A bell from before RFC-0012 does not wake the phone.
-                    fields.size() > 7 && "1".equals(fields.get(7).trim())));
+                    fields.size() > 7 && "1".equals(fields.get(7).trim()),
+                    // A bell from before RFC-0015 rings at its set time.
+                    fields.size() > 9 ? number(fields.get(8), Bell.AT_TIME) : Bell.AT_TIME,
+                    fields.size() > 9 ? number(fields.get(9), 0) : 0));
         }
         return out.isEmpty() ? NONE : new Bells(out);
     }

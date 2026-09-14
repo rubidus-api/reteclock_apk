@@ -173,7 +173,7 @@ public class AlarmSettingsActivity extends Activity {
     }
 
     private String describe(Bell bell) {
-        StringBuilder text = new StringBuilder(String.format("%02d:%02d", bell.hour(), bell.minute()));
+        StringBuilder text = new StringBuilder(BellTime.today(this, bell));
         String[] names = new DateFormatSymbols().getShortWeekdays();
         text.append("  ·  ");
         if (bell.days == Bell.EVERY_DAY) {

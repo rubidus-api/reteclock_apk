@@ -114,6 +114,11 @@ public final class WakeSchedule {
      * Two at one instant: the first in the list, which is the rule the clock's tick already follows.
      */
     public static Next nextAt(Bells bells, long afterEpochMillis, TimeBase base) {
+        return nextAt(bells, afterEpochMillis, base, null);
+    }
+
+    /** The same, with the place the sun is reckoned from (RFC-0015). */
+    public static Next nextAt(Bells bells, long afterEpochMillis, TimeBase base, SunClock sun) {
         if (bells == null || bells.size() == 0) {
             return null;
         }
@@ -131,7 +136,11 @@ public final class WakeSchedule {
                 if (!bell.wake || !bell.isLive() || !bell.ringsOn(weekday)) {
                     continue;
                 }
-                long at = epochOf(Bells.stamp((int) day, bell.minuteOfDay), base);
+                int minute = bell.minuteOn((int) day, sun);
+                if (minute < 0) {
+                    continue;
+                }
+                long at = epochOf(Bells.stamp((int) day, minute), base);
                 if (at > afterEpochMillis && at < bestAt) {
                     bestAt = at;
                     best = bell;
@@ -143,10 +152,16 @@ public final class WakeSchedule {
 
     /** The next {@code count} rings in order, each strictly after the one before. */
     public static List<Next> upcoming(Bells bells, long afterEpochMillis, TimeBase base, int count) {
+        return upcoming(bells, afterEpochMillis, base, count, null);
+    }
+
+    /** The same, with the place the sun is reckoned from. */
+    public static List<Next> upcoming(Bells bells, long afterEpochMillis, TimeBase base, int count,
+            SunClock sun) {
         List<Next> out = new ArrayList<Next>();
         long cursor = afterEpochMillis;
         while (out.size() < count) {
-            Next next = nextAt(bells, cursor, base);
+            Next next = nextAt(bells, cursor, base, sun);
             if (next == null) {
                 break;
             }

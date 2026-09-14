@@ -184,7 +184,8 @@ final class WakeBells {
         long last = lastHandled(context);
         Bells bells = Settings.bells(context);
         WakeSchedule.Next next =
-                WakeSchedule.nextAt(bells, WakeSchedule.armFrom(now, last), timeBase(context));
+                WakeSchedule.nextAt(bells, WakeSchedule.armFrom(now, last), timeBase(context),
+                        Settings.sunClock(context));
         WakePutOff off = Settings.wakePutOff(context);
         if (off != null && off.dueEpochMillis > last
                 && (next == null || off.dueEpochMillis <= next.epochMillis)) {
@@ -211,7 +212,8 @@ final class WakeBells {
         arm(context, next.epochMillis, false);
         Settings.setWakeArmed(context, next.epochMillis);
         writeLocked(context, WakeSchedule.upcoming(Settings.bells(context),
-                WakeSchedule.armFrom(now, lastHandled(context)), timeBase(context), MIRROR_COUNT));
+                WakeSchedule.armFrom(now, lastHandled(context)), timeBase(context), MIRROR_COUNT,
+                Settings.sunClock(context)));
     }
 
     /**
@@ -299,7 +301,8 @@ final class WakeBells {
         if (!Settings.bellsOn(context)) {
             return null;
         }
-        WakeSchedule.Next next = WakeSchedule.nextAt(bells, due - 1L, timeBase(context));
+        WakeSchedule.Next next = WakeSchedule.nextAt(bells, due - 1L, timeBase(context),
+                Settings.sunClock(context));
         return next != null && next.epochMillis == due ? next.bell : null;
     }
 

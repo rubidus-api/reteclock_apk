@@ -147,6 +147,16 @@ final class ClockMenu {
         // Beside the sounds, and a page of its own rather than a part of them: an experiment that
         // adds to the bells and is switched on here, on purpose, by the person reading its warning
         // (RFC-0012).
+        // Sunrise and sunset: where the sun is reckoned from, for bells that follow it (issue #55).
+        card.addView(choice(activity, activity.getString(R.string.menu_sun),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        dialog.dismiss();
+                        activity.startActivity(
+                                new Intent(activity, SunSettingsActivity.class));
+                    }
+                }));
         card.addView(choice(activity, activity.getString(R.string.menu_alarms),
                 new View.OnClickListener() {
                     @Override
