@@ -28,8 +28,8 @@ you turn that page's switch on.
 
 **[⬇ Get it on F-Droid](https://f-droid.org/packages/com.reteclock/)** — recommended.
 
-**[⬇ Download reteclock-0.42.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.42.0/reteclock-0.42.0.apk)**
-— 534 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
+**[⬇ Download reteclock-0.43.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.43.0/reteclock-0.43.0.apk)**
+— 542 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
 render GitHub's release page can still fetch it.
 
 The newest release is always at
@@ -133,7 +133,7 @@ it needs beyond keeping the screen awake. Copy the APK to the phone, open it, an
 
 ## Which phones it runs on
 
-Published on F-Droid; the latest release is 0.42.0.
+Published on F-Droid; the latest release is 0.43.0.
 
 | | |
 |---|---|
@@ -163,6 +163,11 @@ mentions them when the charger started the clock, so it stays quiet on a bedside
 7.1 and newer. A full-screen clock has no controls on its face, so if a picture or a font you added
 ever makes it unusable, the next start leaves your images and fonts out, says so, and opens the
 settings by itself — which is the way back in.
+
+**Sleep mode** — *General settings* → *Sleep mode*. For the night: the screen darker (1 % by
+default), the background and the timer put away, without changing your own settings. Press the
+moon — at the end of the timer's strip opposite the hourglass, or in that corner with the timer
+off — or let it fall asleep by itself on chosen days between two times. A tap wakes it.
 
 **Layout slides** — main menu → *Layout slides*, beside *Layout*. Several of your layouts take
 turns, top to bottom and round again, each for its own time (ten seconds to a day), and each row has

@@ -1,0 +1,7 @@
+New: Sleep mode, for issue #54. General settings → Sleep mode.
+
+While asleep, the screen goes darker (1 % by default) and the background and the timer are put away. Your own settings are not changed: waking brings everything back.
+
+Press the moon to fall asleep or wake. It is at the end of the timer's strip, opposite the hourglass, or in that corner when the timer is off. While asleep, a tap anywhere also wakes the clock.
+
+It can also fall asleep by itself on chosen days, from one time until another. Waking it by hand lasts until the schedule next starts or ends.
