@@ -32,6 +32,12 @@ public final class TimerBar {
      * somebody can forget is happening. See RFC-0006.
      */
     public static final int CONTROL_LOG = 4;
+    /**
+     * The sleep button (issue #54, RFC-0014) — at the near end, the other end of the strip from the
+     * hourglass. Not one of the timer's controls either, so it is not counted among them: it takes
+     * one control's length off the start of the bar rather than off its end.
+     */
+    public static final int CONTROL_SLEEP = 5;
     private static final int CONTROLS = 4;
 
     /**
@@ -64,14 +70,17 @@ public final class TimerBar {
     private final float controlSize;
     /** Whether the log's L has a place on the strip: one control more, and one control less bar. */
     private final boolean logShown;
+    /** Whether the sleep button has the near end of the strip. */
+    private final boolean sleepShown;
 
     private TimerBar(float length, float breadth, boolean horizontal, float controlSize,
-            boolean logShown) {
+            boolean logShown, boolean sleepShown) {
         this.length = length;
         this.breadth = breadth;
         this.horizontal = horizontal;
         this.controlSize = controlSize;
         this.logShown = logShown;
+        this.sleepShown = sleepShown;
     }
 
     /**
@@ -90,6 +99,12 @@ public final class TimerBar {
      * stop and nothing else needs to know.
      */
     public static TimerBar of(int width, int height, boolean horizontal, boolean logShown) {
+        return of(width, height, horizontal, logShown, false);
+    }
+
+    /** A strip with the sleep button at its near end, or without. */
+    public static TimerBar of(int width, int height, boolean horizontal, boolean logShown,
+            boolean sleepShown) {
         float length = horizontal ? width : height;
         float breadth = horizontal ? height : width;
         // Square controls, at most as large as the strip is broad — and between them never more
@@ -99,7 +114,7 @@ public final class TimerBar {
         // the L is supposed to cost. It borrows a control's width; it does not squeeze the others.
         float control = Math.min(breadth, length * CONTROLS_SHARE / CONTROLS);
         return new TimerBar(Math.max(length, 1f), Math.max(breadth, 1f), horizontal,
-                Math.max(control, 1f), logShown);
+                Math.max(control, 1f), logShown, sleepShown);
     }
 
     /** Whether this is the portrait arrangement, laid out along x. */
@@ -109,6 +124,11 @@ public final class TimerBar {
 
     public int controlCount() {
         return logShown ? CONTROLS + 1 : CONTROLS;
+    }
+
+    /** Whether the sleep button is on this strip. */
+    public boolean isSleepShown() {
+        return sleepShown;
     }
 
     /** Whether the log's L is on this strip. */
@@ -187,6 +207,9 @@ public final class TimerBar {
 
     /** The middle of one control, along the strip: play nearest the bar, the hourglass furthest. */
     public float controlCenter(int index) {
+        if (index == CONTROL_SLEEP) {
+            return controlSize / 2f;
+        }
         int count = controlCount();
         int wanted = index < 0 ? 0 : index >= count ? count - 1 : index;
         return length - controlSize * (count - slotOf(wanted) - 0.5f);
@@ -194,6 +217,9 @@ public final class TimerBar {
 
     /** Which control a touch at this point along the strip is on, or -1 for none. */
     public int controlAt(float along) {
+        if (sleepShown && along >= 0f && along <= controlSize) {
+            return CONTROL_SLEEP;
+        }
         for (int i = 0; i < controlCount(); i++) {
             if (Math.abs(along - controlCenter(i)) <= controlSize / 2f) {
                 return i;
@@ -204,7 +230,11 @@ public final class TimerBar {
 
     /** Where the bar begins: the near end — the bottom in landscape, the left in portrait. */
     public float barStart() {
-        return 0f;
+        return sleepShown ? Math.min(controlSize, barEndUnclamped()) : 0f;
+    }
+
+    private float barEndUnclamped() {
+        return Math.max(length - controlSize * controlCount(), 0f);
     }
 
     /** Where the bar ends: short of the controls, beside which the remaining time is written. */

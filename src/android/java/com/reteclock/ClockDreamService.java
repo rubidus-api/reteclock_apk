@@ -31,6 +31,8 @@ public class ClockDreamService extends DreamService {
 
     private ClockView view;
     private TimerView timer;
+    /** Whether the clock is asleep by the schedule (issue #54). */
+    private SleepWatch sleepWatch;
     /** The screensaver sounds a cue the same way the clock does; it simply never speaks. */
     private final SoundPlayer cuePlayer = new SoundPlayer();
     private BellRinger bells;
@@ -49,6 +51,7 @@ public class ClockDreamService extends DreamService {
         // dismisses it, which stops the sound with it — there is nothing else for a touch to do.
         final BellRinger bells = new BellRinger(this);
         slideWatch = new SlideWatch(this);
+        sleepWatch = new SleepWatch(this);
         this.bells = bells;
         bells.setBusy(new BellRinger.Busy() {
             @Override
@@ -62,6 +65,12 @@ public class ClockDreamService extends DreamService {
                 bells.tick(nowMs);
                 if (slideWatch.changed(nowMs)) {
                     view.reloadOptions();
+                }
+                // The screensaver has no sleep button, but it follows the schedule: the background
+                // and the brightness (issue #54).
+                if (sleepWatch.changed(nowMs)) {
+                    view.reloadOptions();
+                    applySleepBrightness();
                 }
             }
         });
@@ -174,7 +183,24 @@ public class ClockDreamService extends DreamService {
         @Override
         public void choosePreset() {
         }
+
+        @Override
+        public void toggleSleep() {
+        }
     };
+
+    /** The window's brightness: the sleep setting while asleep, otherwise the phone's own. */
+    private void applySleepBrightness() {
+        if (getWindow() == null || sleepWatch == null) {
+            return;
+        }
+        android.view.WindowManager.LayoutParams params = getWindow().getAttributes();
+        int sleeping = Settings.sleepBrightness(this);
+        params.screenBrightness = sleepWatch.asleep()
+                ? com.reteclock.core.SleepMode.windowBrightness(sleeping)
+                : com.reteclock.core.ScreenDim.FOLLOW_SYSTEM;
+        getWindow().setAttributes(params);
+    }
 
     @Override
     public void onDreamingStarted() {
@@ -184,6 +210,10 @@ public class ClockDreamService extends DreamService {
         }
         if (slideWatch != null) {
             slideWatch.reload();
+        }
+        if (sleepWatch != null) {
+            sleepWatch.reload();
+            applySleepBrightness();
         }
         view.start();
         if (timer != null) {

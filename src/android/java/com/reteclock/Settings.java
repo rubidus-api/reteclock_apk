@@ -91,6 +91,21 @@ public final class Settings {
     public static final String KEY_LAYOUTS = "layouts";
     /** Layouts in turn (issue #53, RFC-0013). */
     public static final String KEY_LAYOUT_SLIDES = "layout_slides";
+    /** Sleep mode (issue #54, RFC-0014): what asleep means, and the window it opens in by itself. */
+    public static final String KEY_SLEEP_BUTTON = "sleep_button";
+    public static final String KEY_SLEEP_BRIGHTNESS = "sleep_brightness";
+    public static final String KEY_SLEEP_NO_BACKGROUND = "sleep_no_background";
+    public static final String KEY_SLEEP_HIDE_TIMER = "sleep_hide_timer";
+    public static final String KEY_SLEEP_SCHEDULED = "sleep_scheduled";
+    public static final String KEY_SLEEP_DAYS = "sleep_days";
+    public static final String KEY_SLEEP_START = "sleep_start";
+    public static final String KEY_SLEEP_END = "sleep_end";
+    /**
+     * The last press of the sleep button and the local stamp it lasts until. Never exported: it is
+     * the state of one phone's clock at one moment, not a setting.
+     */
+    public static final String KEY_SLEEP_PRESS = "sleep_press";
+    public static final String KEY_SLEEP_PRESS_UNTIL = "sleep_press_until";
     public static final String KEY_NAMES_MONTHS = "names_months_";
     public static final String KEY_NAMES_WEEKDAYS = "names_weekdays_";
     public static final String KEY_HOUR12 = "clock_hour12";
@@ -234,6 +249,15 @@ public final class Settings {
         out.put(KEY_DATE_ORDER, dateOrder(context).text());
         out.put(KEY_LAYOUTS, layouts(context).text());
         out.put(KEY_LAYOUT_SLIDES, slides(context).text());
+        out.put(KEY_SLEEP_BUTTON, Boolean.valueOf(sleepButton(context)));
+        out.put(KEY_SLEEP_BRIGHTNESS, Integer.valueOf(sleepBrightness(context)));
+        out.put(KEY_SLEEP_NO_BACKGROUND, Boolean.valueOf(sleepNoBackground(context)));
+        out.put(KEY_SLEEP_HIDE_TIMER, Boolean.valueOf(sleepHidesTimer(context)));
+        com.reteclock.core.SleepMode sleep = sleepMode(context);
+        out.put(KEY_SLEEP_SCHEDULED, Boolean.valueOf(sleep.scheduled));
+        out.put(KEY_SLEEP_DAYS, Integer.valueOf(sleep.days));
+        out.put(KEY_SLEEP_START, Integer.valueOf(sleep.startMinute));
+        out.put(KEY_SLEEP_END, Integer.valueOf(sleep.endMinute));
         out.put(KEY_PADDING, Integer.valueOf(padding(context).bits()));
 
         out.put(KEY_BACKGROUND_FIT, Integer.valueOf(backgroundFit(context)));
@@ -521,6 +545,11 @@ public final class Settings {
         if (slide != null && !slide.background) {
             return new java.util.ArrayList<File>();
         }
+        // Asleep with the background off draws the plain ground too; the pool is untouched and
+        // the pictures come back on waking (RFC-0014).
+        if (sleepNoBackground(context) && sleepInForce(context, System.currentTimeMillis())) {
+            return new java.util.ArrayList<File>();
+        }
         java.util.List<File> own = carried(context, landscape,
                 com.reteclock.core.layout.LayoutPreset.PICTURE_BACKGROUND);
         return own != null ? own : filesFor(context, roles(context).background);
@@ -752,6 +781,108 @@ public final class Settings {
 
     public static void setTimerHidden(Context context, boolean hidden) {
         prefs(context).edit().putBoolean(KEY_TIMER_HIDDEN, hidden).commit();
+    }
+
+    // ---- sleep mode (issue #54, RFC-0014) -------------------------------------------------
+
+    /** Whether the sleep button is on the clock. On unless it is turned off. */
+    public static boolean sleepButton(Context context) {
+        return prefs(context).getBoolean(KEY_SLEEP_BUTTON, true);
+    }
+
+    public static void setSleepButton(Context context, boolean shown) {
+        prefs(context).edit().putBoolean(KEY_SLEEP_BUTTON, shown).commit();
+    }
+
+    /** The screen's brightness while asleep, in per cent, or {@code BRIGHTNESS_UNCHANGED}. */
+    public static int sleepBrightness(Context context) {
+        return com.reteclock.core.SleepMode.brightnessChoice(prefs(context).getInt(
+                KEY_SLEEP_BRIGHTNESS, com.reteclock.core.SleepMode.DEFAULT_BRIGHTNESS));
+    }
+
+    public static void setSleepBrightness(Context context, int percent) {
+        prefs(context).edit().putInt(KEY_SLEEP_BRIGHTNESS,
+                com.reteclock.core.SleepMode.brightnessChoice(percent)).commit();
+    }
+
+    public static boolean sleepNoBackground(Context context) {
+        return prefs(context).getBoolean(KEY_SLEEP_NO_BACKGROUND, true);
+    }
+
+    public static void setSleepNoBackground(Context context, boolean off) {
+        prefs(context).edit().putBoolean(KEY_SLEEP_NO_BACKGROUND, off).commit();
+    }
+
+    public static boolean sleepHidesTimer(Context context) {
+        return prefs(context).getBoolean(KEY_SLEEP_HIDE_TIMER, true);
+    }
+
+    public static void setSleepHidesTimer(Context context, boolean hide) {
+        prefs(context).edit().putBoolean(KEY_SLEEP_HIDE_TIMER, hide).commit();
+    }
+
+    /** The schedule: whether a window opens by itself, on which days, from when to when. */
+    public static com.reteclock.core.SleepMode sleepMode(Context context) {
+        SharedPreferences p = prefs(context);
+        com.reteclock.core.SleepMode d = com.reteclock.core.SleepMode.DEFAULT;
+        return new com.reteclock.core.SleepMode(p.getBoolean(KEY_SLEEP_SCHEDULED, d.scheduled),
+                p.getInt(KEY_SLEEP_DAYS, d.days), p.getInt(KEY_SLEEP_START, d.startMinute),
+                p.getInt(KEY_SLEEP_END, d.endMinute));
+    }
+
+    /**
+     * Stores the schedule. A press in force is dropped with it: it was measured against the old
+     * edges, and whoever has just set the times expects to see them take effect.
+     */
+    public static void setSleepMode(Context context, com.reteclock.core.SleepMode mode) {
+        prefs(context).edit()
+                .putBoolean(KEY_SLEEP_SCHEDULED, mode.scheduled)
+                .putInt(KEY_SLEEP_DAYS, mode.days)
+                .putInt(KEY_SLEEP_START, mode.startMinute)
+                .putInt(KEY_SLEEP_END, mode.endMinute)
+                .putInt(KEY_SLEEP_PRESS, com.reteclock.core.SleepMode.PRESS_NONE)
+                .commit();
+    }
+
+    /** The local stamp the sleep schedule is measured in: the bells' time, at the app's offset. */
+    public static long sleepStamp(Context context, long nowMillis) {
+        return com.reteclock.core.Bells.stampOf(nowMillis, offsetMinutes(context, nowMillis));
+    }
+
+    public static int sleepPress(Context context) {
+        return prefs(context).getInt(KEY_SLEEP_PRESS, com.reteclock.core.SleepMode.PRESS_NONE);
+    }
+
+    public static long sleepPressUntil(Context context) {
+        return prefs(context).getLong(KEY_SLEEP_PRESS_UNTIL, 0L);
+    }
+
+    /**
+     * Whether the clock is asleep now. The one place the background, the timer's strip, the
+     * brightness and the button all ask, so they cannot disagree (RFC-0014).
+     */
+    public static boolean sleepInForce(Context context, long nowMillis) {
+        return sleepMode(context).asleep(sleepStamp(context, nowMillis), sleepPress(context),
+                sleepPressUntil(context));
+    }
+
+    /**
+     * The sleep button, or a tap that wakes: the other state from the one in force, lasting until
+     * the schedule's next edge.
+     */
+    public static void setSleepPressed(Context context, boolean asleep, long nowMillis) {
+        long stamp = sleepStamp(context, nowMillis);
+        prefs(context).edit()
+                .putInt(KEY_SLEEP_PRESS, asleep ? com.reteclock.core.SleepMode.PRESS_ASLEEP
+                        : com.reteclock.core.SleepMode.PRESS_AWAKE)
+                .putLong(KEY_SLEEP_PRESS_UNTIL, sleepMode(context).pressUntil(stamp))
+                .commit();
+    }
+
+    /** Whether the timer's strip is emptied now: hidden by hand, or put away by sleep mode. */
+    public static boolean timerHiddenInForce(Context context, long nowMillis) {
+        return timerHidden(context)
+                || (sleepHidesTimer(context) && sleepInForce(context, nowMillis));
     }
 
     /**

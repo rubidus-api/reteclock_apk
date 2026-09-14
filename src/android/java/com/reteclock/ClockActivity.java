@@ -36,6 +36,8 @@ public class ClockActivity extends Activity {
     private ClockView view;
     /** Which slide is in force, asked once a second (issue #53). */
     private SlideWatch slideWatch;
+    /** Whether the clock is asleep, asked once a second (issue #54). */
+    private SleepWatch sleepWatch;
     /** The bells, riding the clock's own tick. */
     private BellRinger bells;
     /** The player the timer's own cues use; the bells have one of their own. */
@@ -130,6 +132,7 @@ public class ClockActivity extends Activity {
         // A bell is not part of the clock's drawing, but it happens on the clock's second.
         bells = new BellRinger(this);
         slideWatch = new SlideWatch(this);
+        sleepWatch = new SleepWatch(this);
         // A timer counting has the right of way over a bell — see BellRinger.Busy.
         bells.setBusy(new BellRinger.Busy() {
             @Override
@@ -163,6 +166,11 @@ public class ClockActivity extends Activity {
                 if (slideWatch.changed(nowMs)) {
                     view.reloadOptions();
                     layOutScreen();
+                }
+                // Falling asleep or waking by the schedule: the background, the strip and the
+                // brightness all change together (issue #54).
+                if (sleepWatch.changed(nowMs)) {
+                    applySleep();
                 }
             }
         });
@@ -204,7 +212,14 @@ public class ClockActivity extends Activity {
         view.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                toggleDim();
+                // Asleep, a tap wakes the clock whole — the brightness, the background and the
+                // strip together — rather than only brightening a screen that is still in its
+                // night clothes. Awake, it dims as it always has (RFC-0014 D4).
+                if (sleepWatch.asleep()) {
+                    setAsleep(false);
+                } else {
+                    toggleDim();
+                }
             }
         });
         view.setLongClickable(true);
@@ -276,7 +291,8 @@ public class ClockActivity extends Activity {
             // the size it had, so nothing on it moves or reflows, and the hourglass stays on the
             // very pixel it was on. Only switching the timer off entirely gives the space back,
             // and that is the branch above.
-            timer.setHidden(Settings.timerHidden(this));
+            timer.setHidden(Settings.timerHiddenInForce(this, System.currentTimeMillis()));
+            timer.setSleep(Settings.sleepButton(this), sleepWatch.asleep());
             // The strip's controls are drawn in the clock's own text colour, so the two belong to
             // the same clock rather than looking like a panel bolted on.
             int chosenText = Settings.color(this, Settings.KEY_TEXT_COLOR);
@@ -324,8 +340,14 @@ public class ClockActivity extends Activity {
                 // A hidden strip over somebody's layout takes nothing at all — not the pixels and
                 // not the touches. Left as it is, it would swallow taps on whatever it lies over
                 // and open the preset list from a part of the screen that shows a clock.
-                if (Settings.timerHidden(this)) {
+                if (Settings.timerHiddenInForce(this, System.currentTimeMillis())) {
                     timer.setVisibility(View.GONE);
+                    // The moon is the one thing that stays, at the strip's near end.
+                    float[] r = room.strip;
+                    boolean across = r[2] >= r[3];
+                    int size = Math.round(across ? r[3] : r[2]);
+                    addSleepButton(Math.round(r[0]),
+                            Math.round(across ? r[1] : r[1] + r[3] - r[2]), size, false);
                 }
             } else {
                 boolean vertical = edge == com.reteclock.core.layout.Strips.LEFT
@@ -342,6 +364,14 @@ public class ClockActivity extends Activity {
                 band.setMargins(safe, safe, safe, safe);
             }
             root.addView(timer, band);
+        }
+
+        if (timer == null && Settings.sleepButton(this)) {
+            // No strip to carry the moon: it goes where the strip's near end would be — the top
+            // left standing up, the bottom left lying down — so it does not move when the timer
+            // is switched on or off.
+            int size = stripThickness(landscape);
+            addSleepButton(safe, landscape ? -1 : safe, size, landscape);
         }
 
         // The sheet the flash uses, above everything and invisible until it is wanted.
@@ -586,7 +616,66 @@ public class ClockActivity extends Activity {
         public void choosePreset() {
             showPresetList();
         }
+
+        @Override
+        public void toggleSleep() {
+            setAsleep(!sleepWatch.asleep());
+        }
     };
+
+    /**
+     * The sleep button on its own square, laid over the clock.
+     *
+     * @param fromBottom place it {@code left} from the left and {@code safe} from the bottom
+     *                   instead of at {@code top}
+     */
+    private void addSleepButton(int left, int top, int size, boolean fromBottom) {
+        if (!Settings.sleepButton(this)) {
+            return;
+        }
+        int chosenText = Settings.color(this, Settings.KEY_TEXT_COLOR);
+        int chosenBackground = com.reteclock.core.ClockColors.opaque(
+                Settings.color(this, Settings.KEY_BACKGROUND_COLOR));
+        SleepButtonView button = new SleepButtonView(this,
+                com.reteclock.core.ClockColors.resolveText(chosenText, chosenBackground),
+                sleepWatch.asleep(), new SleepButtonView.Pressed() {
+                    @Override
+                    public void pressed() {
+                        setAsleep(!sleepWatch.asleep());
+                    }
+                });
+        FrameLayout.LayoutParams square = new FrameLayout.LayoutParams(size, size);
+        square.leftMargin = left;
+        if (fromBottom) {
+            square.gravity = Gravity.LEFT | Gravity.BOTTOM;
+            square.bottomMargin = left;
+        } else {
+            square.gravity = Gravity.LEFT | Gravity.TOP;
+            square.topMargin = top;
+        }
+        root.addView(button, square);
+    }
+
+    /** Asleep or awake by hand, until the schedule's next edge (RFC-0014 D2). */
+    private void setAsleep(boolean asleep) {
+        Settings.setSleepPressed(this, asleep, System.currentTimeMillis());
+        sleepWatch.reload();
+        applySleep();
+    }
+
+    /**
+     * Makes the screen agree with whether the clock is asleep: the background and the strip are
+     * worked out again from the settings, and the brightness follows. Waking gives the phone its
+     * own brightness back, whether it was sleep or a tap that had darkened it.
+     */
+    private void applySleep() {
+        if (!sleepWatch.asleep()) {
+            dimmed = false;
+        }
+        view.reloadOptions();
+        layOutScreen();
+        applyBrightness();
+    }
 
     /**
      * Writes a run that has ended into the log, if a log is being kept and this ending is new.
@@ -716,8 +805,22 @@ public class ClockActivity extends Activity {
      */
     private void setDim(boolean wanted) {
         dimmed = wanted;
+        applyBrightness();
+    }
+
+    /**
+     * The window's brightness: the sleep setting while asleep (unless it leaves brightness alone),
+     * otherwise dark or the phone's own by the tap.
+     */
+    private void applyBrightness() {
         WindowManager.LayoutParams params = getWindow().getAttributes();
-        params.screenBrightness = com.reteclock.core.ScreenDim.brightness(dimmed);
+        int sleeping = Settings.sleepBrightness(this);
+        if (sleepWatch.asleep() && sleeping != com.reteclock.core.SleepMode.BRIGHTNESS_UNCHANGED
+                && !dimmed) {
+            params.screenBrightness = com.reteclock.core.SleepMode.windowBrightness(sleeping);
+        } else {
+            params.screenBrightness = com.reteclock.core.ScreenDim.brightness(dimmed);
+        }
         getWindow().setAttributes(params);
     }
 
@@ -760,6 +863,11 @@ public class ClockActivity extends Activity {
         }
         if (route == com.reteclock.core.KeyRoute.MENU) {
             ClockMenu.show(this);
+            return true;
+        }
+        if (route == com.reteclock.core.KeyRoute.UNDIM && sleepWatch.asleep()) {
+            // The key that brightens is the tap's twin, and a tap wakes a sleeping clock.
+            setAsleep(false);
             return true;
         }
         if (route == com.reteclock.core.KeyRoute.DIM || route == com.reteclock.core.KeyRoute.UNDIM) {
@@ -820,8 +928,10 @@ public class ClockActivity extends Activity {
         bells.reload();
         WakeBells.setHost(wakeHost);
         slideWatch.reload();
+        sleepWatch.reload();
         applyStayUnlocked();
         layOutScreen();
+        applyBrightness();
         view.start();
         if (timer != null) {
             timer.resumeDrawing();

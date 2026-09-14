@@ -69,6 +69,10 @@ public class TimerView extends View {
     private long startEpochMs;
     /** Whether the log is being kept, which is whether the strip carries an L. */
     private boolean logKept;
+    /** Whether the sleep button has the near end of the strip (issue #54). */
+    private boolean sleepShown;
+    /** Whether the clock is asleep: the moon is drawn lit and the hourglass stops blinking. */
+    private boolean asleep;
 
     private Listener listener;
 
@@ -116,6 +120,9 @@ public class TimerView extends View {
 
         /** Open the list of presets; the hourglass was pressed. */
         void choosePreset();
+
+        /** The sleep button was pressed: asleep if awake, awake if asleep. */
+        void toggleSleep();
     }
 
     public TimerView(Context context) {
@@ -147,6 +154,23 @@ public class TimerView extends View {
 
     void setHidden(boolean hide) {
         hidden = hide;
+        invalidate();
+    }
+
+    /**
+     * Whether the strip carries the sleep button, and whether the clock is asleep.
+     *
+     * Like the L, the button changes how long the bar is, so the strip is measured again.
+     */
+    void setSleep(boolean shown, boolean asleep) {
+        this.asleep = asleep;
+        if (sleepShown != shown) {
+            sleepShown = shown;
+            if (getWidth() > 0 && getHeight() > 0) {
+                bar = TimerBar.of(getWidth(), getHeight(), horizontal, logKept, sleepShown);
+                settleReadouts();
+            }
+        }
         invalidate();
     }
 
@@ -255,7 +279,7 @@ public class TimerView extends View {
         }
         logKept = kept;
         if (getWidth() > 0 && getHeight() > 0) {
-            bar = TimerBar.of(getWidth(), getHeight(), horizontal, logKept);
+            bar = TimerBar.of(getWidth(), getHeight(), horizontal, logKept, sleepShown);
             settleReadouts();
         }
         invalidate();
@@ -431,7 +455,7 @@ public class TimerView extends View {
     protected void onSizeChanged(int w, int h, int oldW, int oldH) {
         super.onSizeChanged(w, h, oldW, oldH);
         horizontal = w >= h;
-        bar = TimerBar.of(w, h, horizontal, logKept);
+        bar = TimerBar.of(w, h, horizontal, logKept, sleepShown);
         settleReadouts();
     }
 
@@ -657,6 +681,24 @@ public class TimerView extends View {
         float cx = horizontal ? along : middle;
         float cy = horizontal ? middle : getHeight() - along;
         drawControl(canvas, TimerBar.CONTROL_HOURGLASS, cx, cy, size * 0.42f);
+        drawSleep(canvas);
+    }
+
+    /**
+     * The moon at the near end, when the strip carries it: lit while the clock is asleep, faint
+     * while it is awake — the same two states as every other control here.
+     */
+    private void drawSleep(Canvas canvas) {
+        if (!sleepShown || bar == null) {
+            return;
+        }
+        float size = Math.min(bar.thickness() * 1.1f, shortEdge() * 0.7f);
+        float along = bar.controlCenter(TimerBar.CONTROL_SLEEP);
+        float middle = (bar.barNear() + bar.barFar()) / 2f;
+        float cx = horizontal ? along : middle;
+        float cy = horizontal ? middle : getHeight() - along;
+        paint.setColor(asleep ? chromeControl : dimmed(chromeControl));
+        SleepGlyph.draw(canvas, paint, path, cx, cy, size * 0.42f);
     }
 
     /**
@@ -668,7 +710,9 @@ public class TimerView extends View {
      * or put away.
      */
     private int hourglassColor() {
-        if (!isRunning()) {
+        // Asleep, nothing on the clock blinks: a light going on and off by the bed is what sleep
+        // mode is there to stop.
+        if (!isRunning() || asleep) {
             return chromeControl;
         }
         return SystemClock.elapsedRealtime() % BLINK_MS < BLINK_LIT_MS
@@ -696,6 +740,7 @@ public class TimerView extends View {
             // pointing up reads as "eject". Sand falls downwards whichever way the phone is held.
             drawControl(canvas, i, cx, cy, size * 0.42f);
         }
+        drawSleep(canvas);
     }
 
     private void drawControl(Canvas canvas, int which, float cx, float cy, float r) {
@@ -746,9 +791,16 @@ public class TimerView extends View {
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (hidden) {
-            // The whole of what is left is the hourglass, so anywhere on it opens the list.
+            // The whole of what is left is the hourglass — and the moon, at the other end, when
+            // the strip carries it — so anywhere else on it opens the list.
             if (event.getAction() == MotionEvent.ACTION_DOWN && listener != null) {
-                listener.choosePreset();
+                float at = horizontal ? event.getX() : getHeight() - event.getY();
+                if (bar != null && bar.isSleepShown()
+                        && bar.controlAt(at) == TimerBar.CONTROL_SLEEP) {
+                    listener.toggleSleep();
+                } else {
+                    listener.choosePreset();
+                }
             }
             return true;
         }
@@ -786,6 +838,11 @@ public class TimerView extends View {
             case TimerBar.CONTROL_LOG:
                 if (listener != null) {
                     listener.openTimerSettings();
+                }
+                break;
+            case TimerBar.CONTROL_SLEEP:
+                if (listener != null) {
+                    listener.toggleSleep();
                 }
                 break;
             default:

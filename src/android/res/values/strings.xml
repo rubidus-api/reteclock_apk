@@ -579,4 +579,21 @@
     <string name="slides_time_note">How long this layout stays: at least 10 seconds, at most 24 hours.</string>
     <string name="slides_open_layouts">Layouts…</string>
     <string name="layout_slides_playing">Layout slides are playing for this way up; the layout chosen here shows when they are switched off.</string>
+    <!-- Sleep mode (issue #54, RFC-0014). -->
+    <string name="sleep_card">Sleep mode</string>
+    <string name="sleep_intro">For the night: the screen darker, the background and the timer put away. The clock falls asleep when you press the moon, or by itself at the times below. Your own settings are not changed — waking brings back exactly what was there.</string>
+    <string name="sleep_show_button">Show the sleep button on the clock</string>
+    <string name="sleep_button_note">A moon at the end of the timer\'s strip, opposite the hourglass; with the timer off, in that corner of the screen. Faint while awake, lit while asleep. Press it to fall asleep or to wake. While asleep, a tap anywhere also wakes the clock.</string>
+    <string name="sleep_button">Sleep</string>
+    <string name="sleep_brightness">Brightness while asleep</string>
+    <string name="sleep_brightness_unchanged">Unchanged</string>
+    <string name="sleep_no_background">Hide the background</string>
+    <string name="sleep_hide_timer">Hide the timer (only the hourglass stays, and it stops blinking)</string>
+    <string name="sleep_schedule">By itself</string>
+    <string name="sleep_scheduled">Fall asleep by itself on these days</string>
+    <string name="sleep_from">From %1$s</string>
+    <string name="sleep_until">Until %1$s</string>
+    <string name="sleep_from_title">Falls asleep at</string>
+    <string name="sleep_until_title">Wakes at</string>
+    <string name="sleep_schedule_note">A night that runs past midnight belongs to the day it starts: Sunday ticked, 22:00 until 07:00, is Sunday night into Monday morning. Pressing the moon, or tapping to wake, lasts until the next time the schedule starts or ends; then the schedule takes over again. The same time for both means no window.</string>
 </resources>

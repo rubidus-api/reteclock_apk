@@ -461,6 +461,9 @@ public class SettingsActivity extends Activity {
         // settings and a second place to answer that question is how issue #44 happened.
         root.addView(clock);
 
+        // ---- Sleep mode (issue #54, RFC-0014) ----
+        root.addView(sleepCard());
+
         // The fonts, the pictures and the settings file are not linked from here. They are
         // categories of their own on the main menu, and a page that lists the other pages is a
         // second menu disagreeing with the first.
@@ -2837,6 +2840,212 @@ public class SettingsActivity extends Activity {
         view.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(28)));
         return view;
+    }
+
+    /** The weekday letters, Sunday first, in the order {@link com.reteclock.core.Bell} numbers them. */
+    private static final String[] SLEEP_DAY_LETTERS = {"S", "M", "T", "W", "T", "F", "S"};
+
+    /**
+     * What asleep means, and when the clock falls asleep by itself.
+     *
+     * On the General page, as the owner asked: sleep mode is about the clock as a whole — its
+     * brightness, its background, its strip — rather than about any one of the pages that own those.
+     */
+    private LinearLayout sleepCard() {
+        LinearLayout sleep = card(getString(R.string.sleep_card));
+        sleep.addView(footer(getString(R.string.sleep_intro)));
+
+        final CheckBox button = new CheckBox(this);
+        button.setText(R.string.sleep_show_button);
+        button.setTextColor(TEXT_WHITE);
+        button.setChecked(Settings.sleepButton(this));
+        button.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton b, boolean checked) {
+                Settings.setSleepButton(SettingsActivity.this, checked);
+            }
+        });
+        sleep.addView(button);
+        sleep.addView(footer(getString(R.string.sleep_button_note)));
+
+        sleep.addView(subheading(getString(R.string.sleep_brightness)));
+        final int[] choices = com.reteclock.core.SleepMode.BRIGHTNESS_CHOICES;
+        String[] labels = new String[choices.length];
+        int chosen = 0;
+        for (int i = 0; i < choices.length; i++) {
+            labels[i] = choices[i] == com.reteclock.core.SleepMode.BRIGHTNESS_UNCHANGED
+                    ? getString(R.string.sleep_brightness_unchanged) : choices[i] + "%";
+            if (choices[i] == Settings.sleepBrightness(this)) {
+                chosen = i;
+            }
+        }
+        sleep.addView(inlineChoice(labels, chosen, new OnChoice() {
+            @Override
+            public void chose(int which) {
+                Settings.setSleepBrightness(SettingsActivity.this, choices[which]);
+            }
+        }));
+
+        final CheckBox background = new CheckBox(this);
+        background.setText(R.string.sleep_no_background);
+        background.setTextColor(TEXT_WHITE);
+        background.setChecked(Settings.sleepNoBackground(this));
+        background.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton b, boolean checked) {
+                Settings.setSleepNoBackground(SettingsActivity.this, checked);
+            }
+        });
+        sleep.addView(background);
+
+        final CheckBox timerAway = new CheckBox(this);
+        timerAway.setText(R.string.sleep_hide_timer);
+        timerAway.setTextColor(TEXT_WHITE);
+        timerAway.setChecked(Settings.sleepHidesTimer(this));
+        timerAway.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton b, boolean checked) {
+                Settings.setSleepHidesTimer(SettingsActivity.this, checked);
+            }
+        });
+        sleep.addView(timerAway);
+
+        sleep.addView(subheading(getString(R.string.sleep_schedule)));
+        final CheckBox scheduled = new CheckBox(this);
+        scheduled.setText(R.string.sleep_scheduled);
+        scheduled.setTextColor(TEXT_WHITE);
+        scheduled.setChecked(Settings.sleepMode(this).scheduled);
+        scheduled.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton b, boolean checked) {
+                com.reteclock.core.SleepMode m = Settings.sleepMode(SettingsActivity.this);
+                Settings.setSleepMode(SettingsActivity.this, new com.reteclock.core.SleepMode(
+                        checked, m.days, m.startMinute, m.endMinute));
+            }
+        });
+        sleep.addView(scheduled);
+
+        final FlowLayout days = new FlowLayout(this, dp(4), dp(2));
+        sleep.addView(days);
+        rebuildSleepDays(days);
+
+        final LinearLayout times = new LinearLayout(this);
+        times.setOrientation(LinearLayout.VERTICAL);
+        sleep.addView(times);
+        rebuildSleepTimes(times);
+
+        sleep.addView(footer(getString(R.string.sleep_schedule_note)));
+        return sleep;
+    }
+
+    private void rebuildSleepDays(final FlowLayout into) {
+        into.removeAllViews();
+        final com.reteclock.core.SleepMode mode = Settings.sleepMode(this);
+        for (int day = 0; day < 7; day++) {
+            final int which = day;
+            final boolean on = mode.startsOn(day);
+            TextView chip = new TextView(this);
+            chip.setText(SLEEP_DAY_LETTERS[day]);
+            chip.setTextColor(on ? Color.BLACK : 0xFF9E9E9E);
+            chip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f);
+            chip.setGravity(Gravity.CENTER);
+            chip.setPadding(dp(10), dp(6), dp(10), dp(6));
+            GradientDrawable face = new GradientDrawable();
+            face.setColor(on ? ACCENT : 0xFF212121);
+            face.setCornerRadius(dp(6));
+            chip.setBackgroundDrawable(face);
+            Focusable.make(chip);
+            chip.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    com.reteclock.core.SleepMode m = Settings.sleepMode(SettingsActivity.this);
+                    int bit = 1 << which;
+                    Settings.setSleepMode(SettingsActivity.this, new com.reteclock.core.SleepMode(
+                            m.scheduled, on ? m.days & ~bit : m.days | bit,
+                            m.startMinute, m.endMinute));
+                    rebuildSleepDays(into);
+                }
+            });
+            into.addView(chip);
+        }
+    }
+
+    private void rebuildSleepTimes(final LinearLayout into) {
+        into.removeAllViews();
+        com.reteclock.core.SleepMode mode = Settings.sleepMode(this);
+        into.addView(actionButton(getString(R.string.sleep_from, clockText(mode.startMinute)),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        askSleepTime(true, into);
+                    }
+                }));
+        into.addView(actionButton(getString(R.string.sleep_until, clockText(mode.endMinute)),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        askSleepTime(false, into);
+                    }
+                }));
+    }
+
+    private static String clockText(int minuteOfDay) {
+        int h = minuteOfDay / 60;
+        int m = minuteOfDay % 60;
+        return (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m;
+    }
+
+    private void askSleepTime(final boolean start, final LinearLayout times) {
+        com.reteclock.core.SleepMode mode = Settings.sleepMode(this);
+        int now = start ? mode.startMinute : mode.endMinute;
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setPadding(dp(16), dp(8), dp(16), 0);
+        final EditText hour = sleepNumber(now / 60);
+        final EditText minute = sleepNumber(now % 60);
+        row.addView(hour, new LinearLayout.LayoutParams(dp(64),
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+        TextView colon = new TextView(this);
+        colon.setText(":");
+        colon.setTextColor(TEXT_WHITE);
+        colon.setPadding(dp(6), dp(8), dp(6), 0);
+        row.addView(colon);
+        row.addView(minute, new LinearLayout.LayoutParams(dp(64),
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+        new AlertDialog.Builder(this)
+                .setTitle(start ? R.string.sleep_from_title : R.string.sleep_until_title)
+                .setView(row)
+                .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        int value = sleepField(hour, 23) * 60 + sleepField(minute, 59);
+                        com.reteclock.core.SleepMode m = Settings.sleepMode(SettingsActivity.this);
+                        Settings.setSleepMode(SettingsActivity.this, new com.reteclock.core.SleepMode(
+                                m.scheduled, m.days, start ? value : m.startMinute,
+                                start ? m.endMinute : value));
+                        rebuildSleepTimes(times);
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private EditText sleepNumber(int value) {
+        EditText field = new EditText(this);
+        field.setSingleLine(true);
+        field.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        field.setText((value < 10 ? "0" : "") + value);
+        field.setSelection(field.getText().length());
+        return field;
+    }
+
+    private static int sleepField(EditText field, int most) {
+        try {
+            int value = Integer.parseInt(field.getText().toString().trim());
+            return value < 0 ? 0 : Math.min(value, most);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     private int dp(int value) {
