@@ -109,6 +109,16 @@ final class ClockMenu {
                                 new Intent(activity, LayoutSettingsActivity.class));
                     }
                 }));
+        // Layouts in turn: beside Layout, and a page of its own (issue #53, RFC-0013).
+        card.addView(choice(activity, activity.getString(R.string.menu_slides),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        dialog.dismiss();
+                        activity.startActivity(
+                                new Intent(activity, LayoutSlidesActivity.class));
+                    }
+                }));
         card.addView(choice(activity, activity.getString(R.string.menu_fonts),
                 new View.OnClickListener() {
                     @Override

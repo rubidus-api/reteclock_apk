@@ -34,6 +34,7 @@ public class ClockDreamService extends DreamService {
     /** The screensaver sounds a cue the same way the clock does; it simply never speaks. */
     private final SoundPlayer cuePlayer = new SoundPlayer();
     private BellRinger bells;
+    private SlideWatch slideWatch;
     private TimerSounds sounds;
 
     @Override
@@ -47,6 +48,7 @@ public class ClockDreamService extends DreamService {
         // The screensaver is the clock, so the bells ring here too. Touching a screensaver
         // dismisses it, which stops the sound with it — there is nothing else for a touch to do.
         final BellRinger bells = new BellRinger(this);
+        slideWatch = new SlideWatch(this);
         this.bells = bells;
         bells.setBusy(new BellRinger.Busy() {
             @Override
@@ -58,6 +60,9 @@ public class ClockDreamService extends DreamService {
             @Override
             public void second(long nowMs) {
                 bells.tick(nowMs);
+                if (slideWatch.changed(nowMs)) {
+                    view.reloadOptions();
+                }
             }
         });
         TimerRun running = restoreRun();
@@ -176,6 +181,9 @@ public class ClockDreamService extends DreamService {
         super.onDreamingStarted();
         if (bells != null) {
             bells.reload();
+        }
+        if (slideWatch != null) {
+            slideWatch.reload();
         }
         view.start();
         if (timer != null) {

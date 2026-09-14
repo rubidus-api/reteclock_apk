@@ -882,7 +882,7 @@ public class ClockView extends View {
         }
         try {
             com.reteclock.core.layout.LayoutPreset preset =
-                    Settings.layouts(getContext()).chosen(w > h);
+                    Settings.layoutInForce(getContext(), w > h);
             if (preset.isAutomatic()) {
                 return null;
             }

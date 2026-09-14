@@ -34,6 +34,8 @@ public class ClockActivity extends Activity {
     public static final String EXTRA_DOCK = "com.reteclock.DOCK";
 
     private ClockView view;
+    /** Which slide is in force, asked once a second (issue #53). */
+    private SlideWatch slideWatch;
     /** The bells, riding the clock's own tick. */
     private BellRinger bells;
     /** The player the timer's own cues use; the bells have one of their own. */
@@ -127,6 +129,7 @@ public class ClockActivity extends Activity {
         view = new ClockView(this, safeMode);
         // A bell is not part of the clock's drawing, but it happens on the clock's second.
         bells = new BellRinger(this);
+        slideWatch = new SlideWatch(this);
         // A timer counting has the right of way over a bell — see BellRinger.Busy.
         bells.setBusy(new BellRinger.Busy() {
             @Override
@@ -156,6 +159,11 @@ public class ClockActivity extends Activity {
             @Override
             public void second(long nowMs) {
                 bells.tick(nowMs);
+                // A slide ending is a different layout, pictures and strip (issue #53).
+                if (slideWatch.changed(nowMs)) {
+                    view.reloadOptions();
+                    layOutScreen();
+                }
             }
         });
         // A tap dims the screen and the next one gives it back (issue #41); the menu is behind a
@@ -377,7 +385,7 @@ public class ClockActivity extends Activity {
         }
         try {
             com.reteclock.core.layout.LayoutPreset preset =
-                    Settings.layouts(this).chosen(landscape);
+                    Settings.layoutInForce(this, landscape);
             if (preset == null || preset.isAutomatic()) {
                 return null;
             }
@@ -811,6 +819,7 @@ public class ClockActivity extends Activity {
         // edited is not rung on the way back.
         bells.reload();
         WakeBells.setHost(wakeHost);
+        slideWatch.reload();
         applyStayUnlocked();
         layOutScreen();
         view.start();
