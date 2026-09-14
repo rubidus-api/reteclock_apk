@@ -1,0 +1,7 @@
+New: bells at sunrise and sunset, for issue #55. Main menu → Sunset/sunrise settings.
+
+Set the place once: choose a city by region, country and city, or type a latitude and longitude. The page shows the next seven days' sunrise and sunset. No network and no location permission are used.
+
+In the bell editor, any bell can now be At a time, Sunrise or Sunset, up to 180 minutes before or after. The time is worked out again every day, so the bell follows the seasons. It works for bells on screen and for the experimental alarms.
+
+Without a place, or on a day the sun does not rise or set there, such a bell does not ring.

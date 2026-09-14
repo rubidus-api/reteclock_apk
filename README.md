@@ -28,8 +28,8 @@ you turn that page's switch on.
 
 **[⬇ Get it on F-Droid](https://f-droid.org/packages/com.reteclock/)** — recommended.
 
-**[⬇ Download reteclock-0.43.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.43.0/reteclock-0.43.0.apk)**
-— 542 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
+**[⬇ Download reteclock-0.44.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.44.0/reteclock-0.44.0.apk)**
+— 558 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
 render GitHub's release page can still fetch it.
 
 The newest release is always at
@@ -133,7 +133,7 @@ it needs beyond keeping the screen awake. Copy the APK to the phone, open it, an
 
 ## Which phones it runs on
 
-Published on F-Droid; the latest release is 0.43.0.
+Published on F-Droid; the latest release is 0.44.0.
 
 | | |
 |---|---|
@@ -163,6 +163,11 @@ mentions them when the charger started the clock, so it stays quiet on a bedside
 7.1 and newer. A full-screen clock has no controls on its face, so if a picture or a font you added
 ever makes it unusable, the next start leaves your images and fonts out, says so, and opens the
 settings by itself — which is the way back in.
+
+**Sunrise and sunset** — main menu → *Sunset/sunrise settings*. Set a place once — a city picked
+by region, country and city, or a latitude and longitude — and any bell can ring at that day's
+sunrise or sunset, up to three hours before or after, worked out again every day. No network and no
+location permission.
 
 **Sleep mode** — *General settings* → *Sleep mode*. For the night: the screen darker (1 % by
 default), the background and the timer put away, without changing your own settings. Press the
