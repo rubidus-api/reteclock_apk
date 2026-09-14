@@ -28,8 +28,8 @@ you turn that page's switch on.
 
 **[⬇ Get it on F-Droid](https://f-droid.org/packages/com.reteclock/)** — recommended.
 
-**[⬇ Download reteclock-0.41.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.41.0/reteclock-0.41.0.apk)**
-— 526 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
+**[⬇ Download reteclock-0.42.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.42.0/reteclock-0.42.0.apk)**
+— 534 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
 render GitHub's release page can still fetch it.
 
 The newest release is always at
@@ -133,7 +133,7 @@ it needs beyond keeping the screen awake. Copy the APK to the phone, open it, an
 
 ## Which phones it runs on
 
-Published on F-Droid; the latest release is 0.41.0.
+Published on F-Droid; the latest release is 0.42.0.
 
 | | |
 |---|---|
@@ -163,6 +163,12 @@ mentions them when the charger started the clock, so it stays quiet on a bedside
 7.1 and newer. A full-screen clock has no controls on its face, so if a picture or a font you added
 ever makes it unusable, the next start leaves your images and fonts out, says so, and opens the
 settings by itself — which is the way back in.
+
+**Layout slides** — main menu → *Layout slides*, beside *Layout*. Several of your layouts take
+turns, top to bottom and round again, each for its own time (ten seconds to a day), and each row has
+its own *Show a background* switch — a monthly calendar on a plain ground, then a photo, for
+instance. Upright and sideways have their own lists. The show keeps time with the clock, so opening
+the menu does not start it over.
 
 <img src="docs/screenshots/settings.png" alt="Settings: the screensaver row at the top, then show seconds, the twelve-hour option, the date format side by side, and the switch that lets the clock wander" width="240"> <img src="docs/screenshots/fields.png" alt="The Fonts page: the font library with each font's size and the total, then each field on two lines — its name with bold, italic, underline and outline, and its font — including AM / PM and the calendar's three parts" width="240">
 

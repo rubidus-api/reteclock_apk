@@ -1,0 +1,7 @@
+New: Layout slides, for issue #53. Main menu → Layout slides, beside Layout.
+
+Make a list of your layouts that take turns: each row is a layout and how long it stays, from ten seconds to a day. The rows play top to bottom and then start again. You can add, move and remove rows, and use the same layout twice.
+
+Each row has its own "Show a background" switch, so for example a monthly calendar can show on a plain ground and a photo layout with its picture.
+
+Upright and sideways have separate lists. While a list plays, the layout chosen on the Layout page is kept and comes back when you switch the list off.
