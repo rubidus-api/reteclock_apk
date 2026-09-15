@@ -1,5 +1,7 @@
 # reteclock
 
+**reteclock v0.45.0** (latest release) download — [apk (Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.45.0/reteclock-0.45.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)
+
 **English** · [한국어](README.ko.md)
 
 **Turn an old Android phone into a bedside or desk clock.**
@@ -28,7 +30,7 @@ you turn that page's switch on.
 
 **[⬇ Get it on F-Droid](https://f-droid.org/packages/com.reteclock/)** — recommended.
 
-**[⬇ Download reteclock-0.44.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.44.0/reteclock-0.44.0.apk)**
+**[⬇ Download reteclock-0.45.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.45.0/reteclock-0.45.0.apk)**
 — 558 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
 render GitHub's release page can still fetch it.
 
@@ -133,7 +135,7 @@ it needs beyond keeping the screen awake. Copy the APK to the phone, open it, an
 
 ## Which phones it runs on
 
-Published on F-Droid; the latest release is 0.44.0.
+Published on F-Droid; the latest release is 0.45.0.
 
 | | |
 |---|---|

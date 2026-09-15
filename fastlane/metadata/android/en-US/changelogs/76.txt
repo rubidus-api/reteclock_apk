@@ -1,0 +1,5 @@
+Changed: a tap on the clock now only stops what is ringing — a bell, an alarm rung on the clock's screen, or a timer's sound — and otherwise does nothing. It no longer dims the screen and no longer wakes sleep mode; the moon button does that.
+
+Sleep mode's brightness can now be typed as any whole per cent from 1 to 100, besides the quick choices.
+
+"Show a saying along the bottom" moved from General settings to the Layout page, with the automatic layout's other settings, since it only ever affected that layout.
