@@ -2869,22 +2869,10 @@ public class SettingsActivity extends Activity {
         sleep.addView(footer(getString(R.string.sleep_button_note)));
 
         sleep.addView(subheading(getString(R.string.sleep_brightness)));
-        final int[] choices = com.reteclock.core.SleepMode.BRIGHTNESS_CHOICES;
-        String[] labels = new String[choices.length];
-        int chosen = 0;
-        for (int i = 0; i < choices.length; i++) {
-            labels[i] = choices[i] == com.reteclock.core.SleepMode.BRIGHTNESS_UNCHANGED
-                    ? getString(R.string.sleep_brightness_unchanged) : choices[i] + "%";
-            if (choices[i] == Settings.sleepBrightness(this)) {
-                chosen = i;
-            }
-        }
-        sleep.addView(inlineChoice(labels, chosen, new OnChoice() {
-            @Override
-            public void chose(int which) {
-                Settings.setSleepBrightness(SettingsActivity.this, choices[which]);
-            }
-        }));
+        final LinearLayout brightness = new LinearLayout(this);
+        brightness.setOrientation(LinearLayout.VERTICAL);
+        sleep.addView(brightness);
+        rebuildSleepBrightness(brightness);
 
         final CheckBox background = new CheckBox(this);
         background.setText(R.string.sleep_no_background);
@@ -2936,6 +2924,67 @@ public class SettingsActivity extends Activity {
 
         sleep.addView(footer(getString(R.string.sleep_schedule_note)));
         return sleep;
+    }
+
+    /**
+     * The quick choices as buttons, and a field for any whole per cent. A typed value that is not
+     * one of the buttons leaves none of them lit, so the page never claims a value that is not set.
+     */
+    private void rebuildSleepBrightness(final LinearLayout into) {
+        into.removeAllViews();
+        final int[] choices = com.reteclock.core.SleepMode.BRIGHTNESS_CHOICES;
+        final int now = Settings.sleepBrightness(this);
+        String[] labels = new String[choices.length];
+        int chosen = -1;
+        for (int i = 0; i < choices.length; i++) {
+            labels[i] = choices[i] == com.reteclock.core.SleepMode.BRIGHTNESS_UNCHANGED
+                    ? getString(R.string.sleep_brightness_unchanged) : choices[i] + "%";
+            if (choices[i] == now) {
+                chosen = i;
+            }
+        }
+        into.addView(inlineChoice(labels, chosen, new OnChoice() {
+            @Override
+            public void chose(int which) {
+                Settings.setSleepBrightness(SettingsActivity.this, choices[which]);
+                rebuildSleepBrightness(into);
+            }
+        }));
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        final EditText typed = new EditText(this);
+        typed.setSingleLine(true);
+        typed.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        typed.setText(now == com.reteclock.core.SleepMode.BRIGHTNESS_UNCHANGED
+                ? "" : Integer.toString(now));
+        row.addView(typed, new LinearLayout.LayoutParams(dp(72),
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+        TextView percent = new TextView(this);
+        percent.setText("%");
+        percent.setTextColor(TEXT_WHITE);
+        percent.setPadding(dp(4), 0, dp(12), 0);
+        row.addView(percent);
+        TextView set = actionButton(getString(R.string.sleep_brightness_set),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        int value = sleepField(typed, 1000);
+                        if (value < 1) {
+                            Toast.makeText(SettingsActivity.this, R.string.sleep_brightness_bad,
+                                    Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        Settings.setSleepBrightness(SettingsActivity.this, value);
+                        rebuildSleepBrightness(into);
+                    }
+                });
+        LinearLayout.LayoutParams setSize = new LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        setSize.topMargin = 0;
+        row.addView(set, setSize);
+        into.addView(row);
+        into.addView(footer(getString(R.string.sleep_brightness_note)));
     }
 
     private void rebuildSleepDays(final FlowLayout into) {

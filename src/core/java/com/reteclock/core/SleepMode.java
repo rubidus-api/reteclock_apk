@@ -36,7 +36,7 @@ public final class SleepMode {
 
     /** Brightness left to the phone while asleep. */
     public static final int BRIGHTNESS_UNCHANGED = -1;
-    /** The brightness choices, in per cent; {@link #BRIGHTNESS_UNCHANGED} first. */
+    /** The quick choices offered as buttons, in per cent; any whole per cent 1..100 may be typed. */
     public static final int[] BRIGHTNESS_CHOICES = {BRIGHTNESS_UNCHANGED, 1, 5, 10, 25, 50};
     public static final int DEFAULT_BRIGHTNESS = 1;
 
@@ -152,16 +152,18 @@ public final class SleepMode {
     }
 
     /**
-     * A brightness choice made safe: one of {@link #BRIGHTNESS_CHOICES}, or the default for
-     * anything else a hand-edited package might carry.
+     * A brightness made safe: {@link #BRIGHTNESS_UNCHANGED}, or a whole per cent from 1 to 100 —
+     * a number above is kept to 100, and zero or anything else below is the default, because a
+     * screen at nothing is a clock nobody can find in the dark.
      */
     public static int brightnessChoice(int percent) {
-        for (int choice : BRIGHTNESS_CHOICES) {
-            if (choice == percent) {
-                return percent;
-            }
+        if (percent == BRIGHTNESS_UNCHANGED) {
+            return percent;
         }
-        return DEFAULT_BRIGHTNESS;
+        if (percent < 1) {
+            return DEFAULT_BRIGHTNESS;
+        }
+        return Math.min(percent, 100);
     }
 
     /** The window's {@code screenBrightness} for a choice: 0..1, or -1 for the phone's own. */

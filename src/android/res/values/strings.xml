@@ -290,7 +290,7 @@
     <string name="settings_screensaver_note">Opens Android\'s own screensaver settings — it hides in a different place on every version. Pick ReteClock there, and choose when it should come on (while charging, or in a dock).</string>
     <string name="settings_screensaver_no_screen">This phone has no screensaver settings screen.</string>
     <string name="hint_long_press">Press and hold the clock for settings</string>
-    <string name="hint_touch">Tap to dim the screen, press and hold for the menu</string>
+    <string name="hint_touch">Tap to stop a ringing bell, press and hold for the menu</string>
     <!-- The card a bell that can be put off raises when it rings. -->
     <string name="bell_card_untitled">Bell</string>
     <string name="bell_card_put_off">Ring again in %1$d min</string>
@@ -447,7 +447,7 @@
     <string name="shortcut_settings_short">Settings</string>
     <string name="shortcut_settings_long">Open ReteClock settings</string>
     <string name="settings_direct_start">Home-screen button opens the clock directly</string>
-    <string name="settings_direct_start_note">On, tapping the icon shows the clock, and these settings are a tap on the clock away — or a long press on the app icon, on Android 7.1 and newer. Off, the button opens this screen instead, with the clock one press away. Either way, a run that stopped answering opens this screen: that is how the app lets you undo a picture or a font that made the clock unusable.</string>
+    <string name="settings_direct_start_note">On, tapping the icon shows the clock, and these settings are a long press on the clock away — or a long press on the app icon, on Android 7.1 and newer. Off, the button opens this screen instead, with the clock one press away. Either way, a run that stopped answering opens this screen: that is how the app lets you undo a picture or a font that made the clock unusable.</string>
     <string name="settings_safe_notice">The last run stopped answering, so the clock started without images, imported fonts, or a layout of your own — the app arranged it instead. A large animated GIF is the usual reason: remove it below, or untick BG, and start the clock again. Nothing was thrown away; the next healthy run has it all back.</string>
     <string name="settings_about">ReteClock %1$s\nRuns on Android 2.3 (API 9) and newer. Built for Android 4.4.\nThis device: Android %2$s</string>
     <!-- Sounds: the pool, how each one plays, and the bells that ring one at a time of day. -->
@@ -614,10 +614,13 @@
     <string name="sleep_card">Sleep mode</string>
     <string name="sleep_intro">For the night: the screen darker, the background and the timer put away. The clock falls asleep when you press the moon, or by itself at the times below. Your own settings are not changed — waking brings back exactly what was there.</string>
     <string name="sleep_show_button">Show the sleep button on the clock</string>
-    <string name="sleep_button_note">A moon at the end of the timer\'s strip, opposite the hourglass; with the timer off, in that corner of the screen. Faint while awake, lit while asleep. Press it to fall asleep or to wake. While asleep, a tap anywhere also wakes the clock.</string>
+    <string name="sleep_button_note">A moon at the end of the timer\'s strip, opposite the hourglass; with the timer off, in that corner of the screen. Faint while awake, lit while asleep. Press it to fall asleep or to wake. A tap elsewhere on the clock only stops a bell that is ringing.</string>
     <string name="sleep_button">Sleep</string>
     <string name="sleep_brightness">Brightness while asleep</string>
     <string name="sleep_brightness_unchanged">Unchanged</string>
+    <string name="sleep_brightness_set">Set</string>
+    <string name="sleep_brightness_bad">Type a whole number from 1 to 100.</string>
+    <string name="sleep_brightness_note">Or type any whole per cent from 1 to 100 and press Set; above 100 is kept to 100.</string>
     <string name="sleep_no_background">Hide the background</string>
     <string name="sleep_hide_timer">Hide the timer (only the hourglass stays, and it stops blinking)</string>
     <string name="sleep_schedule">By itself</string>
@@ -626,5 +629,5 @@
     <string name="sleep_until">Until %1$s</string>
     <string name="sleep_from_title">Falls asleep at</string>
     <string name="sleep_until_title">Wakes at</string>
-    <string name="sleep_schedule_note">A night that runs past midnight belongs to the day it starts: Sunday ticked, 22:00 until 07:00, is Sunday night into Monday morning. Pressing the moon, or tapping to wake, lasts until the next time the schedule starts or ends; then the schedule takes over again. The same time for both means no window.</string>
+    <string name="sleep_schedule_note">A night that runs past midnight belongs to the day it starts: Sunday ticked, 22:00 until 07:00, is Sunday night into Monday morning. Pressing the moon lasts until the next time the schedule starts or ends; then the schedule takes over again. The same time for both means no window.</string>
 </resources>

@@ -174,10 +174,11 @@ public class ClockActivity extends Activity {
                 }
             }
         });
-        // A tap dims the screen and the next one gives it back (issue #41); the menu is behind a
-        // long press. The tap used to open the menu, which cost the clock the one gesture a bedside
-        // clock actually wants and, on a phone driven by gestures rather than buttons, put a dialog
-        // in the way of every attempt to swipe the app away.
+        // A tap on the clock face stops whatever is sounding — a bell, an alarm rung on this screen,
+        // a timer cue — and otherwise does nothing; the menu is behind a long press. It used to dim
+        // the screen (issue #41) and, asleep, to wake the clock; the owner took both away once sleep
+        // mode had its own button and brightness (RFC-0014 D4, revised 2026-09-15), so a hand
+        // reaching for a ringing clock in the dark cannot also change what the clock looks like.
         // Clickable, but deliberately *not* focusable: this is the whole screen. A focus ring
         // around the clock face would be a teal rectangle on somebody's bedside table, and the
         // keys it would catch are already answered by onKeyDown. See KeyRoute and Focusable.
@@ -207,19 +208,6 @@ public class ClockActivity extends Activity {
                     ownGesture = false;
                 }
                 return true;
-            }
-        });
-        view.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // Asleep, a tap wakes the clock whole — the brightness, the background and the
-                // strip together — rather than only brightening a screen that is still in its
-                // night clothes. Awake, it dims as it always has (RFC-0014 D4).
-                if (sleepWatch.asleep()) {
-                    setAsleep(false);
-                } else {
-                    toggleDim();
-                }
             }
         });
         view.setLongClickable(true);
@@ -786,16 +774,6 @@ public class ClockActivity extends Activity {
 
     /** Whether the screen is being held at {@link com.reteclock.core.ScreenDim#DIM}. */
     private boolean dimmed;
-
-    /**
-     * Dims the screen, or gives it back to the phone's own setting (issue #41, R86).
-     *
-     * Only this window is touched — the system brightness is left exactly as the user set it, no
-     * permission is asked for, and the dark ends with the clock however it ends.
-     */
-    private void toggleDim() {
-        setDim(com.reteclock.core.ScreenDim.next(dimmed));
-    }
 
     /**
      * Dark, or the phone's own level again.

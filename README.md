@@ -152,9 +152,9 @@ settings*, *Timer settings*, *Time and date settings*, *Fonts*, *Pictures*, *Sou
 where a full-screen app is otherwise awkward to leave. The general settings do not link to the
 others — one list of where things are is enough, and it is the main menu.
 
-**A tap dims the screen**, and the next tap gives it back — for the clock left running beside the
-bed. Only the clock's own window is dimmed; the phone's brightness setting is untouched, and giving
-it back hands the screen to whatever the phone itself is set to. On a phone that still has a
+**A tap stops a ringing bell** — a bell, an alarm rung on the clock's screen, or a timer's sound —
+and otherwise does nothing, so a hand reaching for the clock in the dark changes nothing else. To
+darken the screen for the night, use *Sleep mode* below. On a phone that still has a
 physical **Menu key**, that key opens the general settings directly. The clock names both gestures
 once when you first open it, and stops mentioning them after you have been there — and it never
 mentions them when the charger started the clock, so it stays quiet on a bedside stand.
@@ -172,7 +172,8 @@ location permission.
 **Sleep mode** — *General settings* → *Sleep mode*. For the night: the screen darker (1 % by
 default), the background and the timer put away, without changing your own settings. Press the
 moon — at the end of the timer's strip opposite the hourglass, or in that corner with the timer
-off — or let it fall asleep by itself on chosen days between two times. A tap wakes it.
+off — or let it fall asleep by itself on chosen days between two times. The moon wakes it again. The
+brightness while asleep is one of the quick choices or any whole per cent you type.
 
 **Layout slides** — main menu → *Layout slides*, beside *Layout*. Several of your layouts take
 turns, top to bottom and round again, each for its own time (ten seconds to a day), and each row has
