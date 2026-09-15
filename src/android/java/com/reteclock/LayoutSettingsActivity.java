@@ -464,6 +464,7 @@ public final class LayoutSettingsActivity extends Activity {
         if (!book.chosen(false).isAutomatic() && !book.chosen(true).isAutomatic()) {
             automaticCard.addView(subheading(getString(R.string.layout_drawn)));
             automaticCard.addView(note(getString(R.string.layout_drawn_note)));
+            addSayingSources();
             return;
         }
         automaticCard.addView(subheading(getString(R.string.layout_automatic)));
@@ -494,6 +495,36 @@ public final class LayoutSettingsActivity extends Activity {
         automaticCard.addView(dateOrderList);
         rebuildDateOrder();
         automaticCard.addView(note(getString(R.string.settings_date_order_note)));
+
+        // The saying along the bottom is the automatic arrangement's to place: a drawn layout shows
+        // one wherever it has a saying box, whatever this says. It lived on General settings until
+        // 2026-09-15, where it looked as though it switched the saying off everywhere.
+        final CheckBox saying = new CheckBox(this);
+        saying.setText(R.string.settings_quote);
+        saying.setTextColor(TEXT_WHITE);
+        saying.setChecked(Settings.quoteOn(this));
+        saying.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                Settings.setQuoteOn(LayoutSettingsActivity.this, checked);
+            }
+        });
+        automaticCard.addView(saying);
+        automaticCard.addView(note(getString(R.string.settings_quote_note)));
+        addSayingSources();
+    }
+
+    /**
+     * Where the sayings come from. They are somebody else's work, even if nobody's copyright, so
+     * they are cited in full on the page where a saying is placed — for the automatic arrangement
+     * and for a drawn layout's saying box alike.
+     */
+    private void addSayingSources() {
+        automaticCard.addView(subheading(getString(R.string.settings_quote_sources)));
+        automaticCard.addView(note(getString(R.string.settings_quote_source1)));
+        automaticCard.addView(note(getString(R.string.settings_quote_source2)));
+        automaticCard.addView(note(getString(R.string.settings_quote_source3)));
+        automaticCard.addView(note(getString(R.string.settings_quote_rights)));
     }
 
     /** A labelled slider for one orientation's share, 20 to 90 per cent. */

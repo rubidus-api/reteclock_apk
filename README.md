@@ -528,7 +528,8 @@ the calculation part company. My thanks for your understanding.
 
 **A saying**
 
-- **Show a saying along the bottom** — a thin strip under the clock, about as deep as the timer's,
+- **Show a saying along the bottom** — on the *Layout* page, with the automatic arrangement's other
+  settings (a layout you draw shows one wherever you put a saying box). A thin strip under the clock, about as deep as the timer's,
   carrying one saying and who said it. One a day, the same one all day, since a clock that changed
   what it said while you looked at it would be a thing that moves. Touch it for another. It wraps
   to one, two or three lines depending on how long it is and how much room the strip has, and it
@@ -552,7 +553,7 @@ the calculation part company. My thanks for your understanding.
   51090) with that project's header, footer and licence removed and its trademark unused, so
   nothing here carries any licence but this app's. They are all in
   `src/android/res/raw/quotes.txt`, one saying to a line, should you want to read them or replace
-  them. The same citations are in `LICENSE`, and in the settings under the switch that turns them
+  them. The same citations are in `LICENSE`, and on the *Layout* page under the switch that turns them
   on.
 
 **Starting**

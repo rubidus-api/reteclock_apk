@@ -429,26 +429,6 @@ public class SettingsActivity extends Activity {
         clock.addView(wander);
         clock.addView(footer(getString(R.string.settings_burn_in_note)));
 
-        final CheckBox saying = new CheckBox(this);
-        saying.setText(R.string.settings_quote);
-        saying.setTextColor(TEXT_WHITE);
-        saying.setChecked(Settings.quoteOn(this));
-        saying.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton button, boolean checked) {
-                Settings.setQuoteOn(SettingsActivity.this, checked);
-            }
-        });
-        clock.addView(saying);
-        clock.addView(footer(getString(R.string.settings_quote_note)));
-        // The sayings are somebody else's work, even if nobody's copyright. Cited in full, where
-        // the person switching them on can actually see it.
-        clock.addView(subheading(getString(R.string.settings_quote_sources)));
-        clock.addView(footer(getString(R.string.settings_quote_source1)));
-        clock.addView(footer(getString(R.string.settings_quote_source2)));
-        clock.addView(footer(getString(R.string.settings_quote_source3)));
-        clock.addView(footer(getString(R.string.settings_quote_rights)));
-
         clock.addView(subheading(getString(R.string.settings_colors)));
         colorSection = new LinearLayout(this);
         colorSection.setOrientation(LinearLayout.VERTICAL);
@@ -456,7 +436,7 @@ public class SettingsActivity extends Activity {
         clock.addView(footer(getString(R.string.settings_color_note)));
 
         // Where things go — the time alone, the two proportions, the order of the landscape date
-        // line — is not here any more. It is the Layout screen on the main menu (RFC-0005, D7),
+        // line, and since 2026-09-15 the saying along the bottom — is not here any more. It is the Layout screen on the main menu (RFC-0005, D7),
         // beside the layouts the user draws, because those options are the automatic layout's
         // settings and a second place to answer that question is how issue #44 happened.
         root.addView(clock);
