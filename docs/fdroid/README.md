@@ -90,7 +90,7 @@ and generates the next build block. So a release is:
 4. Build with `scripts/build.sh --release` and publish a GitHub release for that tag with the APK
    named `reteclock-<versionName>.apk`. This is **not** optional any more: `Binaries:` points at
    that URL and the F-Droid build fails without it.
-5. Update the download link in the README, which names the file explicitly.
+5. Update the download links in both READMEs — the line at the very top and the one under Download — which name the file explicitly.
 
 No merge request is needed for an ordinary release.
 

@@ -67,6 +67,32 @@ public final class Slideshow {
         return index;
     }
 
+    /** When the slide on screen began, in the same clock {@link #begin} was given. */
+    public long startedAtMs() {
+        return startMs;
+    }
+
+    /** How long the slide on screen is up for. */
+    public long durationMs() {
+        return durationMs;
+    }
+
+    /**
+     * Puts a slide back where it was, keeping the time it has already been up (issue #53).
+     *
+     * The clock re-reads its settings whenever the screen is rebuilt — returning from a settings
+     * page, and, with layout slides playing, every time one layout gives way to the next. Starting
+     * the show again from its first picture each time meant a picture chosen to hold for an hour
+     * never reached the second one. What survives is the picture and the moment it began; if that
+     * moment is already past, the next draw moves the show on, which is what it would have done
+     * had nothing been rebuilt.
+     */
+    public void resume(int index, long durationMs, long startedAtMs) {
+        this.index = index;
+        this.durationMs = Math.max(durationMs, MIN_SLIDE_MS);
+        this.startMs = startedAtMs;
+    }
+
     /** Whether the current slide's time is up. */
     public boolean due(long nowMs) {
         return nowMs - startMs >= durationMs;

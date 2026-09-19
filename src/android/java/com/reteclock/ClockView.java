@@ -94,6 +94,19 @@ public class ClockView extends View {
     /** The glyphs of one string, reused: one path object rather than one per draw. */
     private final android.graphics.Path glyphPath = new android.graphics.Path();
 
+    /**
+     * The picture the background show was on when the settings were last re-read, and the moment
+     * it began — so a rebuilt screen carries the show on instead of starting it again (issue #53).
+     * Null when there is nothing to carry.
+     */
+    private String keptSlideName;
+    private long keptSlideStartMs;
+    private long keptSlideDurationMs;
+    /** The same for the show that fills the writing. */
+    private String keptTextName;
+    private long keptTextStartMs;
+    private long keptTextDurationMs;
+
     /** The background slideshow's files, in name order; empty for the plain black clock. */
     private final java.util.List<java.io.File> slides = new java.util.ArrayList<java.io.File>();
     /** The timing of the show, or null until the first draw begins it. */
@@ -332,6 +345,7 @@ public class ClockView extends View {
      * draw, which is the first moment there is a frame time to start it at.
      */
     private void loadImages(Context context) {
+        rememberWhereTheShowsAre();
         preparedEdge = PreparedImages.screenEdge(context);
         releaseSlide();
         releaseForeground();
@@ -359,6 +373,39 @@ public class ClockView extends View {
         foreground = null;
         dropForegroundShader();
         updateLayerType();
+    }
+
+    /**
+     * Keeps the picture each show is on, and when it began, across a reload (issue #53).
+     *
+     * A show that is not running yet keeps whatever was remembered before: with layout slides
+     * playing, a slide that shows no background empties the list for a while, and the picture the
+     * clock was on should still be waiting when a slide with a background comes round again.
+     */
+    private void rememberWhereTheShowsAre() {
+        if (slideshow != null && slideshow.index() < slides.size()) {
+            keptSlideName = slides.get(slideshow.index()).getName();
+            keptSlideStartMs = slideshow.startedAtMs();
+            keptSlideDurationMs = slideshow.durationMs();
+        }
+        if (textShow != null && textShow.index() < textSlides.size()) {
+            keptTextName = textSlides.get(textShow.index()).getName();
+            keptTextStartMs = textShow.startedAtMs();
+            keptTextDurationMs = textShow.durationMs();
+        }
+    }
+
+    /** Where a remembered picture sits in a list of files now, or -1 when it is not among them. */
+    private static int indexOf(java.util.List<java.io.File> files, String name) {
+        if (name == null) {
+            return -1;
+        }
+        for (int i = 0; i < files.size(); i++) {
+            if (name.equals(files.get(i).getName())) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     /** Lets go of the text-fill image, closing whatever file it had open. */
@@ -935,7 +982,15 @@ public class ClockView extends View {
         if (imagesReady && !slides.isEmpty()) {
             if (slideshow == null) {
                 slideshow = new Slideshow(slides.size());
-                advanceTo(0, elapsed);
+                int kept = indexOf(slides, keptSlideName);
+                advanceTo(kept < 0 ? 0 : kept, elapsed);
+                if (kept >= 0 && slideshow.index() == kept) {
+                    // The same picture it was on, with the time it has already been up: a show
+                    // rebuilt every few minutes by layout slides still reaches its second picture.
+                    slideshow.resume(kept, keptSlideDurationMs, keptSlideStartMs);
+                    slideDurationMs = slideshow.durationMs();
+                }
+                keptSlideName = null;
             } else if (slideshow.due(elapsed)) {
                 advanceTo(slideshow.next(), elapsed);
             }
@@ -958,7 +1013,12 @@ public class ClockView extends View {
         if (imagesReady && !textSlides.isEmpty()) {
             if (textShow == null) {
                 textShow = new Slideshow(textSlides.size());
-                advanceText(0, elapsed);
+                int kept = indexOf(textSlides, keptTextName);
+                advanceText(kept < 0 ? 0 : kept, elapsed);
+                if (kept >= 0 && textShow.index() == kept) {
+                    textShow.resume(kept, keptTextDurationMs, keptTextStartMs);
+                }
+                keptTextName = null;
             } else if (textShow.due(elapsed)) {
                 advanceText(textShow.next(), elapsed);
             }
