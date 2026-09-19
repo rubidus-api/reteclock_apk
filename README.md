@@ -1,6 +1,6 @@
 # reteclock
 
-**reteclock v0.46.0** (latest release) download — [apk (Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.46.0/reteclock-0.46.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)
+**reteclock v0.47.0** (latest release) download — [apk (Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.47.0/reteclock-0.47.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)
 
 **English** · [한국어](README.ko.md)
 
@@ -30,8 +30,8 @@ you turn that page's switch on.
 
 **[⬇ Get it on F-Droid](https://f-droid.org/packages/com.reteclock/)** — recommended.
 
-**[⬇ Download reteclock-0.46.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.46.0/reteclock-0.46.0.apk)**
-— 566 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
+**[⬇ Download reteclock-0.47.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.47.0/reteclock-0.47.0.apk)**
+— 570 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
 render GitHub's release page can still fetch it.
 
 The newest release is always at
@@ -135,7 +135,7 @@ it needs beyond keeping the screen awake. Copy the APK to the phone, open it, an
 
 ## Which phones it runs on
 
-Published on F-Droid; the latest release is 0.46.0.
+Published on F-Droid; the latest release is 0.47.0.
 
 | | |
 |---|---|
@@ -175,7 +175,10 @@ location permission.
 **Religious settings** — main menu. Several traditions read the day from the sun and each takes a
 few conventions: how far below the horizon dawn and dusk are taken to be, whether the afternoon
 shadow is once or twice a thing's height, and what to do in the far north where the sun never sinks
-that far. They are chosen here; the app keeps the astronomical names and publishes no timetable.
+that far. They are chosen here, as numbers or as one of the sets recognised bodies publish (Muslim World
+League, ISNA, Egypt, Umm al-Qura, Karachi, Tehran, Shia Ithna-Ashari), whose numbers are shown and
+can be changed. With a set chosen, the name it uses for each moment is shown beside the app's own —
+*Dusk · Isha* — and that can be switched off.
 
 **Sleep mode** — *General settings* → *Sleep mode*. For the night: the screen darker (1 % by
 default), the background and the timer put away, without changing your own settings. Press the

@@ -33,6 +33,11 @@ public final class SunTimes {
      * height beyond the shadow it cast at noon.
      */
     public static final int AFTERNOON_SHADOW = 7;
+    /**
+     * The evening event: sunset itself in most reckonings, and the sun a few degrees down in some
+     * (issue #56). Dusk can be counted from it as a fixed interval rather than an angle.
+     */
+    public static final int EVENING = 8;
 
     /** How far below the horizon dawn and dusk are taken to be, unless the user says otherwise. */
     public static final int DEFAULT_TWILIGHT_DEGREES = 18;
@@ -84,7 +89,7 @@ public final class SunTimes {
 
     /** Whether this is an event this version knows. */
     public static boolean isEvent(int event) {
-        return event >= SUNRISE && event <= AFTERNOON_SHADOW;
+        return event >= SUNRISE && event <= EVENING;
     }
 
     /** An angle made safe: one of {@link #TWILIGHT_CHOICES}, or the default. */
@@ -143,12 +148,22 @@ public final class SunTimes {
      */
     public static int utcMinute(int jdn, double latitude, double longitude, int event,
             int twilightDegrees, int shadowMultiple, int highRule) {
-        int plain = plainUtcMinute(jdn, latitude, longitude, event, twilightDegrees, shadowMultiple);
+        return utcMinute(jdn, latitude, longitude, event,
+                SunRules.of(twilightDegrees, shadowMultiple, highRule));
+    }
+
+    /**
+     * The event, by a set of rules (issue #56): the angles dawn, dusk and the evening are read at,
+     * the shadow the afternoon is measured by, where the night ends, and what to do on a day the
+     * sun never reaches the angle.
+     */
+    public static int utcMinute(int jdn, double latitude, double longitude, int event,
+            SunRules rules) {
+        int plain = plainUtcMinute(jdn, latitude, longitude, event, rules);
         if (plain != NONE || (event != DAWN && event != DUSK)) {
             return plain;
         }
-        return substitute(jdn, latitude, longitude, event, twilightDegrees, shadowMultiple,
-                highChoice(highRule));
+        return substitute(jdn, latitude, longitude, event, rules);
     }
 
     /**
@@ -159,14 +174,14 @@ public final class SunTimes {
      * only the nearest-day rule has anything left to offer.
      */
     private static int substitute(int jdn, double latitude, double longitude, int event,
-            int twilightDegrees, int shadowMultiple, int rule) {
+            SunRules rules) {
+        int rule = rules.highRule;
         if (rule == HIGH_NOTHING) {
             return NONE;
         }
         if (rule == HIGH_NEAREST_DAY) {
             for (int back = 1; back <= NEAREST_DAY_LIMIT; back++) {
-                int had = plainUtcMinute(jdn - back, latitude, longitude, event, twilightDegrees,
-                        shadowMultiple);
+                int had = plainUtcMinute(jdn - back, latitude, longitude, event, rules);
                 if (had != NONE) {
                     // The clock time it had then, brought forward to this day.
                     return had;
@@ -174,12 +189,9 @@ public final class SunTimes {
             }
             return NONE;
         }
-        int sunset = plainUtcMinute(jdn, latitude, longitude, SUNSET, twilightDegrees,
-                shadowMultiple);
-        int sunriseNext = plainUtcMinute(jdn + 1, latitude, longitude, SUNRISE, twilightDegrees,
-                shadowMultiple);
-        int sunriseToday = plainUtcMinute(jdn, latitude, longitude, SUNRISE, twilightDegrees,
-                shadowMultiple);
+        int sunset = plainUtcMinute(jdn, latitude, longitude, SUNSET, rules);
+        int sunriseNext = plainUtcMinute(jdn + 1, latitude, longitude, SUNRISE, rules);
+        int sunriseToday = plainUtcMinute(jdn, latitude, longitude, SUNRISE, rules);
         if (sunset == NONE || sunriseNext == NONE || sunriseToday == NONE) {
             return NONE;
         }
@@ -191,22 +203,38 @@ public final class SunTimes {
             share = night / 7;
         } else {
             // One sixtieth of the night for each degree, which is the share convention in use.
-            share = night * twilightChoice(twilightDegrees) / 60.0;
+            int tenths = event == DAWN ? rules.dawnTenths
+                    : (rules.duskTenths > 0 ? rules.duskTenths : rules.dawnTenths);
+            share = night * (tenths / 10.0) / 60.0;
         }
         // Dawn is that much before the sunrise the night ends at; dusk that much after sunset.
         return (int) Math.round(event == DAWN ? sunriseToday - share : sunset + share);
     }
 
     private static int plainUtcMinute(int jdn, double latitude, double longitude, int event,
-            int twilightDegrees, int shadowMultiple) {
+            SunRules rules) {
         if (Double.isNaN(latitude) || Double.isNaN(longitude) || !isEvent(event)) {
             return NONE;
         }
+        if (event == EVENING) {
+            // Sunset itself, or the sun a few degrees down where the reckoning says so.
+            return rules.eveningIsSunset()
+                    ? plainUtcMinute(jdn, latitude, longitude, SUNSET, rules)
+                    : angledUtcMinute(jdn, latitude, longitude, 90 + rules.eveningTenths / 10.0,
+                            true);
+        }
+        if (event == DUSK && rules.duskByInterval()) {
+            // The one reckoning that fixes dusk by the clock rather than by the sun: so many
+            // minutes after the evening event, whatever the sky is doing.
+            int evening = plainUtcMinute(jdn, latitude, longitude, EVENING, rules);
+            return evening == NONE ? NONE : evening + rules.duskMinutesAfterEvening;
+        }
         if (event == NIGHT_MIDDLE) {
-            int sunset = plainUtcMinute(jdn, latitude, longitude, SUNSET, twilightDegrees,
-                    shadowMultiple);
-            int sunrise = plainUtcMinute(jdn + 1, latitude, longitude, SUNRISE, twilightDegrees,
-                    shadowMultiple);
+            int sunset = plainUtcMinute(jdn, latitude, longitude, EVENING, rules);
+            // The night runs to the next sunrise, or to the next dawn where the reckoning says so.
+            int sunrise = rules.nightEndsAtDawn
+                    ? utcMinute(jdn + 1, latitude, longitude, DAWN, rules)
+                    : plainUtcMinute(jdn + 1, latitude, longitude, SUNRISE, rules);
             if (sunset == NONE || sunrise == NONE) {
                 return NONE;
             }
@@ -227,7 +255,7 @@ public final class SunTimes {
             return (int) Math.round(noon);
         }
         double lat = Math.toRadians(latitude);
-        double zenith = zenithFor(event, twilightDegrees, shadowMultiple, lat, declination);
+        double zenith = zenithFor(event, rules, lat, declination);
         double cosHour = Math.cos(Math.toRadians(zenith)) / (Math.cos(lat) * Math.cos(declination))
                 - Math.tan(lat) * Math.tan(declination);
         if (cosHour > 1 || cosHour < -1 || Double.isNaN(cosHour)) {
@@ -239,19 +267,46 @@ public final class SunTimes {
     }
 
     /** How far the sun's centre is from straight overhead at the moment the event happens. */
-    private static double zenithFor(int event, int twilightDegrees, int shadowMultiple, double lat,
-            double declination) {
-        if (event == DAWN || event == DUSK) {
-            return 90 + twilightChoice(twilightDegrees);
+    private static double zenithFor(int event, SunRules rules, double lat, double declination) {
+        if (event == DAWN) {
+            return 90 + rules.dawnTenths / 10.0;
+        }
+        if (event == DUSK) {
+            return 90 + rules.duskTenths / 10.0;
         }
         if (event == AFTERNOON_SHADOW) {
             // A stick of height 1 casts tan(zenith at noon) at noon; the event is when the shadow
             // has grown by the multiple, so its altitude is atan(1 / (multiple + noon shadow)).
             double noonShadow = Math.abs(Math.tan(lat - declination));
-            double altitude = Math.atan(1.0 / (shadowChoice(shadowMultiple) + noonShadow));
+            double altitude = Math.atan(1.0 / (rules.shadowMultiple + noonShadow));
             return 90 - Math.toDegrees(altitude);
         }
         return HORIZON_ZENITH;
+    }
+
+    /**
+     * The moment the sun's centre passes a zenith, before noon or after it. Used where an event is
+     * an angle of its own rather than one of the named ones.
+     */
+    private static int angledUtcMinute(int jdn, double latitude, double longitude, double zenith,
+            boolean afternoon) {
+        int dayOfYear = dayOfYear(jdn);
+        double gamma = 2 * Math.PI / 365.0 * (dayOfYear - 1);
+        double equation = 229.18 * (0.000075 + 0.001868 * Math.cos(gamma)
+                - 0.032077 * Math.sin(gamma) - 0.014615 * Math.cos(2 * gamma)
+                - 0.040849 * Math.sin(2 * gamma));
+        double declination = 0.006918 - 0.399912 * Math.cos(gamma) + 0.070257 * Math.sin(gamma)
+                - 0.006758 * Math.cos(2 * gamma) + 0.000907 * Math.sin(2 * gamma)
+                - 0.002697 * Math.cos(3 * gamma) + 0.00148 * Math.sin(3 * gamma);
+        double lat = Math.toRadians(latitude);
+        double cosHour = Math.cos(Math.toRadians(zenith)) / (Math.cos(lat) * Math.cos(declination))
+                - Math.tan(lat) * Math.tan(declination);
+        if (cosHour > 1 || cosHour < -1 || Double.isNaN(cosHour)) {
+            return NONE;
+        }
+        double hour = Math.toDegrees(Math.acos(cosHour));
+        double noon = 720 - 4 * longitude - equation;
+        return (int) Math.round(afternoon ? noon + 4 * hour : noon - 4 * hour);
     }
 
     /**
@@ -275,8 +330,14 @@ public final class SunTimes {
     /** The same, with the rule for a day the sun never reaches the angle. */
     public static int localMinute(int jdn, double latitude, double longitude, int event,
             int offsetMinutes, int twilightDegrees, int shadowMultiple, int highRule) {
-        int utc = utcMinute(jdn, latitude, longitude, event, twilightDegrees, shadowMultiple,
-                highRule);
+        return localMinute(jdn, latitude, longitude, event, offsetMinutes,
+                SunRules.of(twilightDegrees, shadowMultiple, highRule));
+    }
+
+    /** The same, by a set of rules (issue #56). */
+    public static int localMinute(int jdn, double latitude, double longitude, int event,
+            int offsetMinutes, SunRules rules) {
+        int utc = utcMinute(jdn, latitude, longitude, event, rules);
         if (utc == NONE) {
             return NONE;
         }

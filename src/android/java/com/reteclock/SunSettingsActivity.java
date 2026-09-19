@@ -243,12 +243,16 @@ public class SunSettingsActivity extends Activity {
         long now = System.currentTimeMillis();
         int today = CivilTime.jdnOf(now, Settings.offsetMinutes(this, now));
         int[] events = {SunTimes.DAWN, SunTimes.SUNRISE, SunTimes.NOON, SunTimes.AFTERNOON_SHADOW,
-            SunTimes.SUNSET, SunTimes.DUSK, SunTimes.NIGHT_MIDDLE};
+            SunTimes.SUNSET, SunTimes.EVENING, SunTimes.DUSK, SunTimes.NIGHT_MIDDLE};
         for (int event : events) {
             TextView row = new TextView(this);
             row.setTextColor(TEXT_WHITE);
             row.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f);
-            row.setText(getString(BellTime.eventName(event)) + "    "
+            if (event == SunTimes.EVENING && Settings.sunRules(this).eveningIsSunset()) {
+                // Nothing to say twice: for most reckonings the evening is sunset itself.
+                continue;
+            }
+            row.setText(BellTime.named(this, event) + "    "
                     + time(sun.localMinute(today, event)));
             row.setPadding(0, dp(3), 0, dp(3));
             card.addView(row);

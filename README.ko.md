@@ -1,6 +1,6 @@
 # reteclock
 
-**reteclock v0.46.0** (최신 릴리즈) 다운로드 — [apk (안드로이드 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.46.0/reteclock-0.46.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)
+**reteclock v0.47.0** (최신 릴리즈) 다운로드 — [apk (안드로이드 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.47.0/reteclock-0.47.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)
 
 [English](README.md) · **한국어**
 
@@ -29,8 +29,8 @@
 
 **[⬇ F-Droid에서 받기](https://f-droid.org/packages/com.reteclock/)** — 권장합니다.
 
-**[⬇ reteclock-0.46.0.apk 내려받기](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.46.0/reteclock-0.46.0.apk)**
-— 566 KB이고 안드로이드 2.3 이상에 설치됩니다. 파일로 곧장 이어지는 링크라, 깃허브의 릴리즈
+**[⬇ reteclock-0.47.0.apk 내려받기](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.47.0/reteclock-0.47.0.apk)**
+— 570 KB이고 안드로이드 2.3 이상에 설치됩니다. 파일로 곧장 이어지는 링크라, 깃허브의 릴리즈
 페이지를 제대로 그리지 못하는 오래된 브라우저에서도 내려받으실 수 있습니다.
 
 가장 최근 릴리즈는 언제나
@@ -134,7 +134,7 @@ F-Droid 앱은 업데이트할 때마다 서명도 검사합니다.
 
 ## 어떤 폰에서 돌아가나
 
-F-Droid에 게시되어 있고, 최신 릴리즈는 0.46.0입니다.
+F-Droid에 게시되어 있고, 최신 릴리즈는 0.47.0입니다.
 
 | | |
 |---|---|
@@ -171,8 +171,10 @@ F-Droid에 게시되어 있고, 최신 릴리즈는 0.46.0입니다.
 
 **종교 설정(Religious settings)** — 메인 메뉴. 해를 기준으로 하루를 읽는 전통들은 각자 관례가
 필요합니다. 새벽·저녁 박명을 지평선 아래 몇 도로 볼지, 오후 그림자를 제 키의 한 배로 볼지 두
-배로 볼지, 그리고 해가 그만큼 내려가지 않는 고위도에서는 어떻게 할지를 여기서 고릅니다. 앱은
-천문학적 이름을 그대로 쓰고 어떤 종교의 시간표도 내놓지 않습니다.
+배로 볼지, 그리고 해가 그만큼 내려가지 않는 고위도에서는 어떻게 할지를 여기서 고릅니다. 숫자로 직접 정할 수도 있고, 여러 기관이 공표한 값 묶음(무슬림 월드 리그, ISNA, 이집트,
+움무 알-쿠라, 카라치, 테헤란, 시아 이스나 아샤리) 중에서 고를 수도 있습니다. 묶음을 고르면 그
+숫자가 화면에 그대로 보이고 고칠 수 있습니다. 묶음을 고르면 각 시각에 그 전통이 쓰는 이름이 앱의
+이름 옆에 함께 표시되며(예: *Dusk · Isha*), 원하면 끌 수 있습니다.
 
 **수면 모드(Sleep mode)** — *General settings* → *Sleep mode*. 밤을 위한 모드입니다. 화면을
 어둡게(기본 1 %) 하고 배경과 타이머를 치우며, 사용자 설정은 바꾸지 않습니다. 달 버튼(타이머 띠에서

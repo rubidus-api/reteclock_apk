@@ -102,6 +102,15 @@ public final class Settings {
     public static final String KEY_SUN_SHADOW = "sun_shadow";
     /** What to do on a day the sun never reaches the twilight angle (issue #56). */
     public static final String KEY_SUN_HIGH_RULE = "sun_high_rule";
+    /** The published set of numbers in force, and the numbers themselves (issue #56). */
+    public static final String KEY_SUN_METHOD = "sun_method";
+    public static final String KEY_SUN_DAWN_TENTHS = "sun_dawn_tenths";
+    public static final String KEY_SUN_DUSK_TENTHS = "sun_dusk_tenths";
+    public static final String KEY_SUN_DUSK_MINUTES = "sun_dusk_minutes";
+    public static final String KEY_SUN_EVENING_TENTHS = "sun_evening_tenths";
+    public static final String KEY_SUN_NIGHT_TO_DAWN = "sun_night_to_dawn";
+    /** Whether the page and the bells show the names the chosen set uses, beside our own. */
+    public static final String KEY_SUN_SHOW_NAMES = "sun_show_names";
     public static final String KEY_SLEEP_BUTTON = "sleep_button";
     public static final String KEY_SLEEP_BRIGHTNESS = "sleep_brightness";
     public static final String KEY_SLEEP_NO_BACKGROUND = "sleep_no_background";
@@ -265,6 +274,13 @@ public final class Settings {
         out.put(KEY_SUN_TWILIGHT, Integer.valueOf(sunTwilight(context)));
         out.put(KEY_SUN_SHADOW, Integer.valueOf(sunShadow(context)));
         out.put(KEY_SUN_HIGH_RULE, Integer.valueOf(sunHighRule(context)));
+        com.reteclock.core.SunRules rules = sunRules(context);
+        out.put(KEY_SUN_DAWN_TENTHS, Integer.valueOf(rules.dawnTenths));
+        out.put(KEY_SUN_DUSK_TENTHS, Integer.valueOf(rules.duskTenths));
+        out.put(KEY_SUN_DUSK_MINUTES, Integer.valueOf(rules.duskMinutesAfterEvening));
+        out.put(KEY_SUN_EVENING_TENTHS, Integer.valueOf(rules.eveningTenths));
+        out.put(KEY_SUN_NIGHT_TO_DAWN, Boolean.valueOf(rules.nightEndsAtDawn));
+        out.put(KEY_SUN_SHOW_NAMES, Boolean.valueOf(sunShowNames(context)));
         out.put(KEY_SLEEP_BUTTON, Boolean.valueOf(sleepButton(context)));
         out.put(KEY_SLEEP_BRIGHTNESS, Integer.valueOf(sleepBrightness(context)));
         out.put(KEY_SLEEP_NO_BACKGROUND, Boolean.valueOf(sleepNoBackground(context)));
@@ -816,7 +832,7 @@ public final class Settings {
                         return offsetMinutes(context, epochMillis);
                     }
                 },
-                sunTwilight(context), sunShadow(context), sunHighRule(context));
+                sunRules(context));
     }
 
     private static double coordinate(String text) {
@@ -826,6 +842,53 @@ public final class Settings {
         } catch (NumberFormatException e) {
             return Double.NaN;
         }
+    }
+
+    /**
+     * The whole set of conventions the sun's day is read by: the set chosen from the published
+     * ones, or the numbers the user has changed since (issue #56).
+     */
+    public static com.reteclock.core.SunRules sunRules(Context context) {
+        SharedPreferences p = prefs(context);
+        com.reteclock.core.SunRules fallback = com.reteclock.core.SunRules.of(
+                sunTwilight(context), sunShadow(context), sunHighRule(context));
+        return new com.reteclock.core.SunRules(
+                p.getInt(KEY_SUN_DAWN_TENTHS, fallback.dawnTenths),
+                p.getInt(KEY_SUN_DUSK_TENTHS, fallback.duskTenths),
+                p.getInt(KEY_SUN_DUSK_MINUTES, 0),
+                p.getInt(KEY_SUN_EVENING_TENTHS, 0),
+                sunShadow(context),
+                p.getBoolean(KEY_SUN_NIGHT_TO_DAWN, false),
+                sunHighRule(context));
+    }
+
+    /** Stores a set of conventions, and which published set it is (or none, when it is the user's). */
+    public static void setSunRules(Context context, com.reteclock.core.SunRules rules) {
+        prefs(context).edit()
+                .putInt(KEY_SUN_DAWN_TENTHS, rules.dawnTenths)
+                .putInt(KEY_SUN_DUSK_TENTHS, rules.duskTenths)
+                .putInt(KEY_SUN_DUSK_MINUTES, rules.duskMinutesAfterEvening)
+                .putInt(KEY_SUN_EVENING_TENTHS, rules.eveningTenths)
+                .putBoolean(KEY_SUN_NIGHT_TO_DAWN, rules.nightEndsAtDawn)
+                .putInt(KEY_SUN_SHADOW, rules.shadowMultiple)
+                .putInt(KEY_SUN_HIGH_RULE, rules.highRule)
+                .putInt(KEY_SUN_METHOD, com.reteclock.core.SunMethods.idOf(rules))
+                .commit();
+        WakeBells.rearm(context);
+    }
+
+    /** Which published set the times are being read by, or {@code CUSTOM}. */
+    public static int sunMethod(Context context) {
+        return com.reteclock.core.SunMethods.idOf(sunRules(context));
+    }
+
+    /** Whether the names the chosen set uses are shown beside the app's own. */
+    public static boolean sunShowNames(Context context) {
+        return prefs(context).getBoolean(KEY_SUN_SHOW_NAMES, true);
+    }
+
+    public static void setSunShowNames(Context context, boolean shown) {
+        prefs(context).edit().putBoolean(KEY_SUN_SHOW_NAMES, shown).commit();
     }
 
     /** The angle dawn and dusk are read at, in degrees below the horizon (issue #56). */

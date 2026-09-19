@@ -23,7 +23,7 @@ final class BellTime {
         if (!bell.followsSun()) {
             return clock(bell.minuteOfDay);
         }
-        String event = context.getString(eventName(bell.sun));
+        String event = named(context, bell.sun);
         if (bell.sunOffsetMinutes == 0) {
             return event;
         }
@@ -56,8 +56,22 @@ final class BellTime {
             case Bell.AT_SUNSET: return R.string.sun_bell_sunset;
             case Bell.AT_DUSK: return R.string.sun_bell_dusk;
             case Bell.AT_NIGHT_MIDDLE: return R.string.sun_bell_night_middle;
+            case com.reteclock.core.SunTimes.EVENING: return R.string.sun_bell_evening;
             default: return R.string.sun_bell_sunrise;
         }
+    }
+
+    /**
+     * The event's name, and the name the chosen set gives it beside it when the user asked for
+     * that (issue #56) — "Dusk · Isha".
+     */
+    static String named(Context context, int event) {
+        String own = context.getString(eventName(event));
+        if (!Settings.sunShowNames(context)) {
+            return own;
+        }
+        String theirs = com.reteclock.core.SunNames.of(Settings.sunMethod(context), event);
+        return theirs.isEmpty() ? own : own + " \u00B7 " + theirs;
     }
 
     static String clock(int minuteOfDay) {

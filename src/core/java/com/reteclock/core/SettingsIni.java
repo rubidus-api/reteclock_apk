@@ -110,6 +110,12 @@ public final class SettingsIni {
         {"sun_twilight", "i", "sounds"},
         {"sun_shadow", "i", "sounds"},
         {"sun_high_rule", "i", "sounds"},
+        {"sun_dawn_tenths", "i", "sounds"},
+        {"sun_dusk_tenths", "i", "sounds"},
+        {"sun_dusk_minutes", "i", "sounds"},
+        {"sun_evening_tenths", "i", "sounds"},
+        {"sun_night_to_dawn", "b", "sounds"},
+        {"sun_show_names", "b", "sounds"},
 
         {"timer_on", "b", "timer"},
         {"timer_presets", "s", "timer"},

@@ -82,6 +82,8 @@ public final class Bell {
     public static final int AT_DUSK = SunTimes.DUSK;
     public static final int AT_NIGHT_MIDDLE = SunTimes.NIGHT_MIDDLE;
     public static final int AT_AFTERNOON_SHADOW = SunTimes.AFTERNOON_SHADOW;
+    /** The evening: sunset itself, or a few degrees below it where the reckoning says so. */
+    public static final int AT_EVENING = SunTimes.EVENING;
 
     /**
      * What the bell follows: a set time, or the sun. A bell that follows the sun keeps

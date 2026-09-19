@@ -20,6 +20,8 @@ public final class SunClock {
     public final int shadowMultiple;
     /** What to do on a day the sun never reaches the twilight angle (issue #56). */
     public final int highRule;
+    /** The whole set of conventions these times are read by. */
+    public final SunRules rules;
     private final WakeSchedule.TimeBase base;
 
     public SunClock(double latitude, double longitude, WakeSchedule.TimeBase base) {
@@ -34,11 +36,16 @@ public final class SunClock {
 
     public SunClock(double latitude, double longitude, WakeSchedule.TimeBase base,
             int twilightDegrees, int shadowMultiple, int highRule) {
+        this(latitude, longitude, base, SunRules.of(twilightDegrees, shadowMultiple, highRule));
+    }
+
+    public SunClock(double latitude, double longitude, WakeSchedule.TimeBase base, SunRules rules) {
         this.latitude = latitude;
         this.longitude = longitude;
-        this.twilightDegrees = SunTimes.twilightChoice(twilightDegrees);
-        this.shadowMultiple = SunTimes.shadowChoice(shadowMultiple);
-        this.highRule = SunTimes.highChoice(highRule);
+        this.rules = rules;
+        this.twilightDegrees = rules.dawnTenths / 10;
+        this.shadowMultiple = rules.shadowMultiple;
+        this.highRule = rules.highRule;
         this.base = base;
     }
 
@@ -68,7 +75,6 @@ public final class SunClock {
         if (!isSet()) {
             return SunTimes.NONE;
         }
-        return SunTimes.localMinute(jdn, latitude, longitude, event, offsetOn(jdn),
-                twilightDegrees, shadowMultiple, highRule);
+        return SunTimes.localMinute(jdn, latitude, longitude, event, offsetOn(jdn), rules);
     }
 }

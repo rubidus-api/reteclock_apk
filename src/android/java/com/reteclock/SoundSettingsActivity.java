@@ -775,15 +775,17 @@ public class SoundSettingsActivity extends Activity {
         into.removeAllViews();
         // In the order they happen, so the list reads as a day (issue #56).
         int[] kinds = {Bell.AT_TIME, Bell.AT_DAWN, Bell.AT_SUNRISE, Bell.AT_NOON,
-            Bell.AT_AFTERNOON_SHADOW, Bell.AT_SUNSET, Bell.AT_DUSK, Bell.AT_NIGHT_MIDDLE};
+            Bell.AT_AFTERNOON_SHADOW, Bell.AT_SUNSET, Bell.AT_EVENING, Bell.AT_DUSK,
+            Bell.AT_NIGHT_MIDDLE};
         int[] names = {R.string.sun_bell_at_time, R.string.sun_bell_dawn, R.string.sun_bell_sunrise,
             R.string.sun_bell_noon, R.string.sun_bell_afternoon, R.string.sun_bell_sunset,
-            R.string.sun_bell_dusk, R.string.sun_bell_night_middle};
+            R.string.sun_bell_evening, R.string.sun_bell_dusk, R.string.sun_bell_night_middle};
         for (int i = 0; i < kinds.length; i++) {
             final int kind = kinds[i];
             boolean chosen = edited[0].sun == kind;
             TextView chip = new TextView(this);
-            chip.setText(names[i]);
+            chip.setText(kind == Bell.AT_TIME ? getString(names[i])
+                    : BellTime.named(this, kind));
             chip.setTextColor(chosen ? Color.BLACK : TEXT_DIM);
             chip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f);
             chip.setGravity(Gravity.CENTER);
