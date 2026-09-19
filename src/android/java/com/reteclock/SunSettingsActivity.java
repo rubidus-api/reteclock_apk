@@ -81,6 +81,7 @@ public class SunSettingsActivity extends Activity {
         body.removeAllViews();
         body.addView(title(getString(R.string.sun_title)));
         body.addView(placeCard());
+        body.addView(todayCard());
         body.addView(timesCard());
         body.addView(bellsCard());
     }
@@ -220,6 +221,54 @@ public class SunSettingsActivity extends Activity {
         } catch (NumberFormatException e) {
             return Double.NaN;
         }
+    }
+
+    // ---- today, event by event (issue #56) ------------------------------------------------------
+
+    /**
+     * Every moment of the sun's day for the place, today, in the clock's own time.
+     *
+     * The app names them for what they are — dawn, sunrise, solar noon, the afternoon the shadow
+     * measures, sunset, dusk, the night's middle. What any of them is called elsewhere, and which
+     * angle or shadow a given timetable uses, is the user's to decide: the two settings below say
+     * which reckoning this page is showing.
+     */
+    private LinearLayout todayCard() {
+        LinearLayout card = card(getString(R.string.sun_today));
+        SunClock sun = Settings.sunClock(this);
+        if (!sun.isSet()) {
+            card.addView(footer(getString(R.string.sun_times_need_place)));
+            return card;
+        }
+        long now = System.currentTimeMillis();
+        int today = CivilTime.jdnOf(now, Settings.offsetMinutes(this, now));
+        int[] events = {SunTimes.DAWN, SunTimes.SUNRISE, SunTimes.NOON, SunTimes.AFTERNOON_SHADOW,
+            SunTimes.SUNSET, SunTimes.DUSK, SunTimes.NIGHT_MIDDLE};
+        for (int event : events) {
+            TextView row = new TextView(this);
+            row.setTextColor(TEXT_WHITE);
+            row.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f);
+            row.setText(getString(BellTime.eventName(event)) + "    "
+                    + time(sun.localMinute(today, event)));
+            row.setPadding(0, dp(3), 0, dp(3));
+            card.addView(row);
+        }
+        // Which reckoning these were worked out by, and where it is chosen (issue #56).
+        card.addView(footer(getString(R.string.sun_reckoning_line), Settings.sunTwilight(this),
+                getString(Settings.sunShadow(this) == 2
+                        ? R.string.sun_shadow_two : R.string.sun_shadow_one)));
+        card.addView(actionButton(getString(R.string.menu_religious), new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(SunSettingsActivity.this,
+                        ReligiousSettingsActivity.class));
+            }
+        }));
+        return card;
+    }
+
+    private TextView footer(String format, Object... args) {
+        return footer(String.format(format, args));
     }
 
     // ---- the week's times -----------------------------------------------------------------------

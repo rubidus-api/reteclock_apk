@@ -1,6 +1,6 @@
 # reteclock
 
-**reteclock v0.45.1** (최신 릴리즈) 다운로드 — [apk (안드로이드 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.45.1/reteclock-0.45.1.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)
+**reteclock v0.46.0** (최신 릴리즈) 다운로드 — [apk (안드로이드 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.46.0/reteclock-0.46.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)
 
 [English](README.md) · **한국어**
 
@@ -29,8 +29,8 @@
 
 **[⬇ F-Droid에서 받기](https://f-droid.org/packages/com.reteclock/)** — 권장합니다.
 
-**[⬇ reteclock-0.45.1.apk 내려받기](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.45.1/reteclock-0.45.1.apk)**
-— 558 KB이고 안드로이드 2.3 이상에 설치됩니다. 파일로 곧장 이어지는 링크라, 깃허브의 릴리즈
+**[⬇ reteclock-0.46.0.apk 내려받기](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.46.0/reteclock-0.46.0.apk)**
+— 566 KB이고 안드로이드 2.3 이상에 설치됩니다. 파일로 곧장 이어지는 링크라, 깃허브의 릴리즈
 페이지를 제대로 그리지 못하는 오래된 브라우저에서도 내려받으실 수 있습니다.
 
 가장 최근 릴리즈는 언제나
@@ -134,7 +134,7 @@ F-Droid 앱은 업데이트할 때마다 서명도 검사합니다.
 
 ## 어떤 폰에서 돌아가나
 
-F-Droid에 게시되어 있고, 최신 릴리즈는 0.45.1입니다.
+F-Droid에 게시되어 있고, 최신 릴리즈는 0.46.0입니다.
 
 | | |
 |---|---|
@@ -165,8 +165,14 @@ F-Droid에 게시되어 있고, 최신 릴리즈는 0.45.1입니다.
 시계가 응답을 멈춘 적이 있다면, 다음 실행은 그림과 글꼴을 빼고 시작하며 그 사실을 알려 드립니다.
 
 **일출과 일몰(Sunset/sunrise settings)** — 메인 메뉴 → *Sunset/sunrise settings*. 장소를 한 번
-정해 두면(지역·국가·도시 순으로 고르거나 위도·경도 입력) 어떤 종이든 그날의 일출이나 일몰에, 최대
-세 시간 앞뒤로 울릴 수 있고 시각은 날마다 다시 계산됩니다. 네트워크도 위치 권한도 쓰지 않습니다.
+정해 두면(지역·국가·도시 순으로 고르거나 위도·경도 입력) 어떤 종이든 그날의 태양 사건 일곱 가지
+— 새벽 박명, 해뜸, 남중, 오후 그림자, 해짐, 저녁 박명, 밤의 한가운데 — 중 하나에 최대 세 시간
+앞뒤로 울릴 수 있고, 시각은 날마다 다시 계산됩니다. 네트워크도 위치 권한도 쓰지 않습니다.
+
+**종교 설정(Religious settings)** — 메인 메뉴. 해를 기준으로 하루를 읽는 전통들은 각자 관례가
+필요합니다. 새벽·저녁 박명을 지평선 아래 몇 도로 볼지, 오후 그림자를 제 키의 한 배로 볼지 두
+배로 볼지, 그리고 해가 그만큼 내려가지 않는 고위도에서는 어떻게 할지를 여기서 고릅니다. 앱은
+천문학적 이름을 그대로 쓰고 어떤 종교의 시간표도 내놓지 않습니다.
 
 **수면 모드(Sleep mode)** — *General settings* → *Sleep mode*. 밤을 위한 모드입니다. 화면을
 어둡게(기본 1 %) 하고 배경과 타이머를 치우며, 사용자 설정은 바꾸지 않습니다. 달 버튼(타이머 띠에서

@@ -1,0 +1,7 @@
+New: the rest of the sun's day, for issue #56. A bell can now follow dawn, solar noon, the afternoon shadow, dusk or the night's middle, as well as sunrise and sunset, each movable by up to three hours.
+
+Sunset/sunrise settings lists all seven for today, and is where the two reckonings that need a convention are chosen: how far below the horizon dawn and dusk are taken to be (6 to 19 degrees), and whether the afternoon shadow has grown by once or twice its own height. What each means is written beside it.
+
+On a day when the sun does not cross that angle — the far north in summer or winter — the event does not exist, and a bell following it does not ring that day.
+
+Religious settings, a new page in the main menu, holds those conventions and what to do in the far north, where dawn and dusk may not happen at all: no time that day, the middle of the night, a seventh of it, the angle as a share of it, or the time it had on the nearest earlier day.

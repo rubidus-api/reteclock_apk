@@ -97,6 +97,11 @@ public final class Settings {
     public static final String KEY_SUN_LONGITUDE = "sun_longitude";
     /** What the place is called: a city from the list, or empty for typed coordinates. */
     public static final String KEY_SUN_PLACE = "sun_place";
+    /** How far below the horizon dawn and dusk are read at, and the afternoon shadow's multiple. */
+    public static final String KEY_SUN_TWILIGHT = "sun_twilight";
+    public static final String KEY_SUN_SHADOW = "sun_shadow";
+    /** What to do on a day the sun never reaches the twilight angle (issue #56). */
+    public static final String KEY_SUN_HIGH_RULE = "sun_high_rule";
     public static final String KEY_SLEEP_BUTTON = "sleep_button";
     public static final String KEY_SLEEP_BRIGHTNESS = "sleep_brightness";
     public static final String KEY_SLEEP_NO_BACKGROUND = "sleep_no_background";
@@ -257,6 +262,9 @@ public final class Settings {
         out.put(KEY_SUN_LATITUDE, prefs(context).getString(KEY_SUN_LATITUDE, ""));
         out.put(KEY_SUN_LONGITUDE, prefs(context).getString(KEY_SUN_LONGITUDE, ""));
         out.put(KEY_SUN_PLACE, sunPlace(context));
+        out.put(KEY_SUN_TWILIGHT, Integer.valueOf(sunTwilight(context)));
+        out.put(KEY_SUN_SHADOW, Integer.valueOf(sunShadow(context)));
+        out.put(KEY_SUN_HIGH_RULE, Integer.valueOf(sunHighRule(context)));
         out.put(KEY_SLEEP_BUTTON, Boolean.valueOf(sleepButton(context)));
         out.put(KEY_SLEEP_BRIGHTNESS, Integer.valueOf(sleepBrightness(context)));
         out.put(KEY_SLEEP_NO_BACKGROUND, Boolean.valueOf(sleepNoBackground(context)));
@@ -801,12 +809,14 @@ public final class Settings {
                 || !com.reteclock.core.SunClock.validLongitude(lon)) {
             return com.reteclock.core.SunClock.NONE;
         }
-        return new com.reteclock.core.SunClock(lat, lon, new com.reteclock.core.WakeSchedule.TimeBase() {
-            @Override
-            public int offsetMinutesAt(long epochMillis) {
-                return offsetMinutes(context, epochMillis);
-            }
-        });
+        return new com.reteclock.core.SunClock(lat, lon,
+                new com.reteclock.core.WakeSchedule.TimeBase() {
+                    @Override
+                    public int offsetMinutesAt(long epochMillis) {
+                        return offsetMinutes(context, epochMillis);
+                    }
+                },
+                sunTwilight(context), sunShadow(context), sunHighRule(context));
     }
 
     private static double coordinate(String text) {
@@ -816,6 +826,42 @@ public final class Settings {
         } catch (NumberFormatException e) {
             return Double.NaN;
         }
+    }
+
+    /** The angle dawn and dusk are read at, in degrees below the horizon (issue #56). */
+    public static int sunTwilight(Context context) {
+        return com.reteclock.core.SunTimes.twilightChoice(prefs(context).getInt(
+                KEY_SUN_TWILIGHT, com.reteclock.core.SunTimes.DEFAULT_TWILIGHT_DEGREES));
+    }
+
+    public static void setSunTwilight(Context context, int degrees) {
+        prefs(context).edit().putInt(KEY_SUN_TWILIGHT,
+                com.reteclock.core.SunTimes.twilightChoice(degrees)).commit();
+        WakeBells.rearm(context);
+    }
+
+    /** How many times its own height a shadow grows by for the afternoon event. */
+    public static int sunShadow(Context context) {
+        return com.reteclock.core.SunTimes.shadowChoice(prefs(context).getInt(
+                KEY_SUN_SHADOW, com.reteclock.core.SunTimes.DEFAULT_SHADOW_MULTIPLE));
+    }
+
+    public static void setSunShadow(Context context, int multiple) {
+        prefs(context).edit().putInt(KEY_SUN_SHADOW,
+                com.reteclock.core.SunTimes.shadowChoice(multiple)).commit();
+        WakeBells.rearm(context);
+    }
+
+    /** The convention for a day the sun never reaches the angle; none by default. */
+    public static int sunHighRule(Context context) {
+        return com.reteclock.core.SunTimes.highChoice(prefs(context).getInt(
+                KEY_SUN_HIGH_RULE, com.reteclock.core.SunTimes.DEFAULT_HIGH_RULE));
+    }
+
+    public static void setSunHighRule(Context context, int rule) {
+        prefs(context).edit().putInt(KEY_SUN_HIGH_RULE,
+                com.reteclock.core.SunTimes.highChoice(rule)).commit();
+        WakeBells.rearm(context);
     }
 
     public static String sunPlace(Context context) {

@@ -15,11 +15,30 @@ public final class SunClock {
 
     public final double latitude;
     public final double longitude;
+    /** How far below the horizon dawn and dusk are read at, and the afternoon shadow's multiple. */
+    public final int twilightDegrees;
+    public final int shadowMultiple;
+    /** What to do on a day the sun never reaches the twilight angle (issue #56). */
+    public final int highRule;
     private final WakeSchedule.TimeBase base;
 
     public SunClock(double latitude, double longitude, WakeSchedule.TimeBase base) {
+        this(latitude, longitude, base, SunTimes.DEFAULT_TWILIGHT_DEGREES,
+                SunTimes.DEFAULT_SHADOW_MULTIPLE, SunTimes.DEFAULT_HIGH_RULE);
+    }
+
+    public SunClock(double latitude, double longitude, WakeSchedule.TimeBase base,
+            int twilightDegrees, int shadowMultiple) {
+        this(latitude, longitude, base, twilightDegrees, shadowMultiple, SunTimes.DEFAULT_HIGH_RULE);
+    }
+
+    public SunClock(double latitude, double longitude, WakeSchedule.TimeBase base,
+            int twilightDegrees, int shadowMultiple, int highRule) {
         this.latitude = latitude;
         this.longitude = longitude;
+        this.twilightDegrees = SunTimes.twilightChoice(twilightDegrees);
+        this.shadowMultiple = SunTimes.shadowChoice(shadowMultiple);
+        this.highRule = SunTimes.highChoice(highRule);
         this.base = base;
     }
 
@@ -49,6 +68,7 @@ public final class SunClock {
         if (!isSet()) {
             return SunTimes.NONE;
         }
-        return SunTimes.localMinute(jdn, latitude, longitude, event, offsetOn(jdn));
+        return SunTimes.localMinute(jdn, latitude, longitude, event, offsetOn(jdn),
+                twilightDegrees, shadowMultiple, highRule);
     }
 }

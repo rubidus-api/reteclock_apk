@@ -157,6 +157,16 @@ final class ClockMenu {
                                 new Intent(activity, SunSettingsActivity.class));
                     }
                 }));
+        // The conventions a religious timetable is read by, gathered in one place (issue #56).
+        card.addView(choice(activity, activity.getString(R.string.menu_religious),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        dialog.dismiss();
+                        activity.startActivity(
+                                new Intent(activity, ReligiousSettingsActivity.class));
+                    }
+                }));
         card.addView(choice(activity, activity.getString(R.string.menu_alarms),
                 new View.OnClickListener() {
                     @Override

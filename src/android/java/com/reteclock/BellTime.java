@@ -23,8 +23,7 @@ final class BellTime {
         if (!bell.followsSun()) {
             return clock(bell.minuteOfDay);
         }
-        String event = context.getString(bell.sun == Bell.AT_SUNRISE
-                ? R.string.sun_bell_sunrise : R.string.sun_bell_sunset);
+        String event = context.getString(eventName(bell.sun));
         if (bell.sunOffsetMinutes == 0) {
             return event;
         }
@@ -46,6 +45,19 @@ final class BellTime {
                     ? R.string.sun_bell_no_event : R.string.sun_bell_no_place);
         }
         return clock(minute) + " · " + rule;
+    }
+
+    /** What each of the sun's events is called on screen (issue #56). */
+    static int eventName(int event) {
+        switch (event) {
+            case Bell.AT_DAWN: return R.string.sun_bell_dawn;
+            case Bell.AT_NOON: return R.string.sun_bell_noon;
+            case Bell.AT_AFTERNOON_SHADOW: return R.string.sun_bell_afternoon;
+            case Bell.AT_SUNSET: return R.string.sun_bell_sunset;
+            case Bell.AT_DUSK: return R.string.sun_bell_dusk;
+            case Bell.AT_NIGHT_MIDDLE: return R.string.sun_bell_night_middle;
+            default: return R.string.sun_bell_sunrise;
+        }
     }
 
     static String clock(int minuteOfDay) {

@@ -75,6 +75,13 @@ public final class Bell {
     public static final int AT_SUNRISE = SunTimes.SUNRISE;
     /** A bell at the day's sunset. */
     public static final int AT_SUNSET = SunTimes.SUNSET;
+    /** The other events of the sun's day (issue #56): noon, dawn, dusk, night's middle, and the
+     * afternoon the shadow measures. */
+    public static final int AT_NOON = SunTimes.NOON;
+    public static final int AT_DAWN = SunTimes.DAWN;
+    public static final int AT_DUSK = SunTimes.DUSK;
+    public static final int AT_NIGHT_MIDDLE = SunTimes.NIGHT_MIDDLE;
+    public static final int AT_AFTERNOON_SHADOW = SunTimes.AFTERNOON_SHADOW;
 
     /**
      * What the bell follows: a set time, or the sun. A bell that follows the sun keeps
@@ -109,7 +116,7 @@ public final class Bell {
     public Bell(boolean on, int days, int minuteOfDay, String sound, String label, int repeats,
             int snoozeMinutes, boolean wake, int sun, int sunOffsetMinutes) {
         this.wake = wake;
-        this.sun = sun == AT_SUNRISE || sun == AT_SUNSET ? sun : AT_TIME;
+        this.sun = SunTimes.isEvent(sun) ? sun : AT_TIME;
         this.sunOffsetMinutes = this.sun == AT_TIME ? 0
                 : Math.max(-MAX_SUN_OFFSET_MINUTES, Math.min(MAX_SUN_OFFSET_MINUTES, sunOffsetMinutes));
         this.on = on;

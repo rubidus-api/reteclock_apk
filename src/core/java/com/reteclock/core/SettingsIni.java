@@ -107,6 +107,9 @@ public final class SettingsIni {
         {"sun_latitude", "s", "sounds"},
         {"sun_longitude", "s", "sounds"},
         {"sun_place", "s", "sounds"},
+        {"sun_twilight", "i", "sounds"},
+        {"sun_shadow", "i", "sounds"},
+        {"sun_high_rule", "i", "sounds"},
 
         {"timer_on", "b", "timer"},
         {"timer_presets", "s", "timer"},
