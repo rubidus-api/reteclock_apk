@@ -656,8 +656,14 @@
     <!-- Sleep mode (issue #54, RFC-0014). -->
     <string name="sleep_card">Sleep mode</string>
     <string name="sleep_intro">For the night: the screen darker, the background and the timer put away. The clock falls asleep when you press the moon, or by itself at the times below. Your own settings are not changed — waking brings back exactly what was there.</string>
+    <!-- The spoken time (issue #57). -->
+    <string name="speak_card">Tapping the clock</string>
+    <string name="speak_intro">A tap on the clock face stops whatever is ringing — a bell, an alarm, the timer\'s cue. The menu is behind a long press, so a tap can safely be given something else to do.</string>
+    <string name="speak_time">Say the time when the clock is tapped</string>
+    <string name="speak_time_note">Spoken through the phone\'s own speech engine, the one the timer\'s messages use: "It\'s 6:21 AM." It follows this app\'s own clock — its time offset and its 12- or 24-hour setting — rather than the phone\'s, and it is silent on a tap that stopped a sound. It reads midnight as 12 on a twelve-hour clock whatever the face is set to write. If the phone has no speech engine or no voice for its language, nothing is said.</string>
+    <string name="speak_time_sentence">It\'s %1$s.</string>
     <string name="sleep_show_button">Show the sleep button on the clock</string>
-    <string name="sleep_button_note">A moon at the end of the timer\'s strip, opposite the hourglass; with the timer off, in that corner of the screen. Faint while awake, lit while asleep. Press it to fall asleep or to wake. A tap elsewhere on the clock only stops a bell that is ringing.</string>
+    <string name="sleep_button_note">A moon at the end of the timer\'s strip, opposite the hourglass; with the timer off, in that corner of the screen. Faint while awake, lit while asleep. Press it to fall asleep or to wake. A tap elsewhere on the clock stops a bell that is ringing, and otherwise does only what <i>Tapping the clock</i> above says.</string>
     <string name="sleep_button">Sleep</string>
     <string name="sleep_brightness">Brightness while asleep</string>
     <string name="sleep_brightness_unchanged">Unchanged</string>

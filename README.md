@@ -156,7 +156,10 @@ others — one list of where things are is enough, and it is the main menu.
 
 **A tap stops a ringing bell** — a bell, an alarm rung on the clock's screen, or a timer's sound —
 and otherwise does nothing, so a hand reaching for the clock in the dark changes nothing else. To
-darken the screen for the night, use *Sleep mode* below. On a phone that still has a
+darken the screen for the night, use *Sleep mode* below. A tap can also **say what time it is**:
+turn on *Say the time when the clock is tapped* in the general settings and the phone speaks the
+reading aloud — "It's 6:21 AM" — through the same speech engine the timer's messages use. It stays
+silent on the tap that stopped a sound. On a phone that still has a
 physical **Menu key**, that key opens the general settings directly. The clock names both gestures
 once when you first open it, and stops mentioning them after you have been there — and it never
 mentions them when the charger started the clock, so it stays quiet on a bedside stand.

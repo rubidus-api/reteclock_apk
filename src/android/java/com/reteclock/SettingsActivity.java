@@ -441,6 +441,9 @@ public class SettingsActivity extends Activity {
         // settings and a second place to answer that question is how issue #44 happened.
         root.addView(clock);
 
+        // ---- What a tap does (issue #57) ----
+        root.addView(speakCard());
+
         // ---- Sleep mode (issue #54, RFC-0014) ----
         root.addView(sleepCard());
 
@@ -2824,6 +2827,32 @@ public class SettingsActivity extends Activity {
 
     /** The weekday letters, Sunday first, in the order {@link com.reteclock.core.Bell} numbers them. */
     private static final String[] SLEEP_DAY_LETTERS = {"S", "M", "T", "W", "T", "F", "S"};
+
+    /**
+     * The one thing a tap on the clock face can be given to do (issue #57).
+     *
+     * On the General page rather than on Sound: the tap belongs to the clock as a whole, and Sound
+     * is about what the bells and the timer play. The card says what a tap already does, because
+     * the answer to "why did nothing happen when I tapped?" is usually that a bell was ringing.
+     */
+    private LinearLayout speakCard() {
+        LinearLayout speak = card(getString(R.string.speak_card));
+        speak.addView(footer(getString(R.string.speak_intro)));
+
+        final CheckBox say = new CheckBox(this);
+        say.setText(R.string.speak_time);
+        say.setTextColor(TEXT_WHITE);
+        say.setChecked(Settings.speakTime(this));
+        say.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                Settings.setSpeakTime(SettingsActivity.this, checked);
+            }
+        });
+        speak.addView(say);
+        speak.addView(footer(getString(R.string.speak_time_note)));
+        return speak;
+    }
 
     /**
      * What asleep means, and when the clock falls asleep by itself.
