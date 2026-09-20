@@ -32,24 +32,40 @@ public final class SunMethods {
 
     public static final int CUSTOM = 0;
 
-    /** The sets, in the order the page lists them. {@code CUSTOM} is first: it is the user's own. */
+    /**
+     * The sets, in the order the page lists them. {@code CUSTOM} is first: it is the user's own.
+     *
+     * <p>Each name begins with the short form people actually say — MWL, ISNA, Karachi — because
+     * that is what a printed timetable is labelled with, and the body's full name follows it.
+     *
+     * <p>The parameters are the ones tabulated at https://praytimes.org/docs/methods, which is
+     * where the reporter of issue #58 pointed; they are the same numbers every calculator carries.
+     * This app has not checked them against each body's own current publication, and the page says
+     * to compare the times once against a timetable the reader trusts.
+     */
     private static final Method[] ALL = {
         new Method(CUSTOM, "Custom", SunRules.of(SunTimes.DEFAULT_TWILIGHT_DEGREES, 1,
                 SunTimes.DEFAULT_HIGH_RULE)),
-        new Method(1, "Muslim World League",
+        new Method(1, "MWL: Muslim World League",
                 new SunRules(180, 170, 0, 0, 1, false, SunTimes.HIGH_ANGLE_SHARE)),
-        new Method(2, "Islamic Society of North America",
+        new Method(2, "ISNA: Islamic Society of North America",
                 new SunRules(150, 150, 0, 0, 1, false, SunTimes.HIGH_ANGLE_SHARE)),
-        new Method(3, "Egyptian General Authority of Survey",
+        new Method(3, "Egypt: Egyptian General Authority of Survey",
                 new SunRules(195, 175, 0, 0, 1, false, SunTimes.HIGH_ANGLE_SHARE)),
-        new Method(4, "Umm al-Qura, Makkah",
+        new Method(4, "Makkah: Umm al-Qura University, Makkah",
                 new SunRules(185, 0, 90, 0, 1, false, SunTimes.HIGH_ANGLE_SHARE)),
-        new Method(5, "University of Islamic Sciences, Karachi",
+        new Method(5, "Karachi: University of Islamic Sciences, Karachi",
                 new SunRules(180, 180, 0, 0, 1, false, SunTimes.HIGH_ANGLE_SHARE)),
-        new Method(6, "Institute of Geophysics, University of Tehran",
+        new Method(6, "Tehran: Institute of Geophysics, University of Tehran",
                 new SunRules(177, 140, 0, 45, 1, true, SunTimes.HIGH_ANGLE_SHARE)),
-        new Method(7, "Shia Ithna-Ashari (Jafari)",
+        new Method(7, "Jafari: Shia Ithna-Ashari, Leva Institute, Qom",
                 new SunRules(160, 140, 0, 40, 1, true, SunTimes.HIGH_ANGLE_SHARE)),
+        new Method(8, "France: Muslims of France",
+                new SunRules(120, 120, 0, 0, 1, false, SunTimes.HIGH_ANGLE_SHARE)),
+        new Method(9, "Russia: Spiritual Administration of Muslims of Russia",
+                new SunRules(160, 150, 0, 0, 1, false, SunTimes.HIGH_ANGLE_SHARE)),
+        new Method(10, "Singapore: Islamic Religious Council of Singapore",
+                new SunRules(200, 180, 0, 0, 1, false, SunTimes.HIGH_ANGLE_SHARE)),
     };
 
     private SunMethods() {

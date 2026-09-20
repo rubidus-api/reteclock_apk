@@ -175,7 +175,8 @@ public class ClockActivity extends Activity {
             }
         });
         // A tap on the clock face stops whatever is sounding — a bell, an alarm rung on this screen,
-        // a timer cue — and otherwise does nothing; the menu is behind a long press. It used to dim
+        // a timer cue — and otherwise says the time if that was asked for (issue #57) and nothing
+        // if it was not; the menu is behind a long press. It used to dim
         // the screen (issue #41) and, asleep, to wake the clock; the owner took both away once sleep
         // mode had its own button and brightness (RFC-0014 D4, revised 2026-09-15), so a hand
         // reaching for a ringing clock in the dark cannot also change what the clock looks like.
@@ -208,6 +209,15 @@ public class ClockActivity extends Activity {
                     ownGesture = false;
                 }
                 return true;
+            }
+        });
+        // And, if the user asked for it, says what time it is (issue #57). The click only
+        // arrives when the touch above let it through — so a tap that stopped a bell, or turned a
+        // calendar page, does not also talk over what it just silenced.
+        view.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                speakTheTime();
             }
         });
         view.setLongClickable(true);
@@ -517,6 +527,30 @@ public class ClockActivity extends Activity {
             }
             bellCard = null;
         }
+    }
+
+    /**
+     * Says what time it is, in the clock's own reckoning (issue #57).
+     *
+     * The reading comes from {@link com.reteclock.core.SpokenTime} rather than from the face: the
+     * face may be padded, may be hiding its marker for want of room, and is in any case drawn for
+     * an eye rather than an ear. The offset is the app's own, so a phone whose zone database is
+     * out of date speaks the time the clock is showing.
+     */
+    private void speakTheTime() {
+        if (!Settings.speakTime(this)) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        com.reteclock.core.CivilTime at = com.reteclock.core.CivilTime.of(
+                now, Settings.offsetMinutes(this, now));
+        String reading = com.reteclock.core.SpokenTime.reading(at.hour, at.minute,
+                Settings.hour12(this), Settings.markers(this));
+        if (voice == null) {
+            voice = new TimerVoice(this);
+        }
+        voice.say(getString(R.string.speak_time_sentence, reading),
+                android.os.SystemClock.elapsedRealtime());
     }
 
     /**

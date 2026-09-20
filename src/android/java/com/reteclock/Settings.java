@@ -111,6 +111,7 @@ public final class Settings {
     public static final String KEY_SUN_NIGHT_TO_DAWN = "sun_night_to_dawn";
     /** Whether the page and the bells show the names the chosen set uses, beside our own. */
     public static final String KEY_SUN_SHOW_NAMES = "sun_show_names";
+    public static final String KEY_SPEAK_TIME = "speak_time";
     public static final String KEY_SLEEP_BUTTON = "sleep_button";
     public static final String KEY_SLEEP_BRIGHTNESS = "sleep_brightness";
     public static final String KEY_SLEEP_NO_BACKGROUND = "sleep_no_background";
@@ -281,6 +282,7 @@ public final class Settings {
         out.put(KEY_SUN_EVENING_TENTHS, Integer.valueOf(rules.eveningTenths));
         out.put(KEY_SUN_NIGHT_TO_DAWN, Boolean.valueOf(rules.nightEndsAtDawn));
         out.put(KEY_SUN_SHOW_NAMES, Boolean.valueOf(sunShowNames(context)));
+        out.put(KEY_SPEAK_TIME, Boolean.valueOf(speakTime(context)));
         out.put(KEY_SLEEP_BUTTON, Boolean.valueOf(sleepButton(context)));
         out.put(KEY_SLEEP_BRIGHTNESS, Integer.valueOf(sleepBrightness(context)));
         out.put(KEY_SLEEP_NO_BACKGROUND, Boolean.valueOf(sleepNoBackground(context)));
@@ -942,6 +944,22 @@ public final class Settings {
                 .putString(KEY_SUN_PLACE, name == null ? "" : name)
                 .commit();
         WakeBells.rearm(context);
+    }
+
+    // ---- the spoken time (issue #57) -------------------------------------------------------
+
+    /**
+     * Whether a tap on the clock face has the phone say what time it is.
+     *
+     * Off unless it is asked for: a clock that speaks when it is touched would be a surprise on a
+     * bedside table, and the tap already has a job — stopping whatever is ringing, which keeps it.
+     */
+    public static boolean speakTime(Context context) {
+        return prefs(context).getBoolean(KEY_SPEAK_TIME, false);
+    }
+
+    public static void setSpeakTime(Context context, boolean spoken) {
+        prefs(context).edit().putBoolean(KEY_SPEAK_TIME, spoken).commit();
     }
 
     // ---- sleep mode (issue #54, RFC-0014) -------------------------------------------------
