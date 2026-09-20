@@ -93,10 +93,19 @@ public final class SunPlaces {
         "Asia|Uzbekistan|Tashkent|41.30|69.24",
         "Asia|Afghanistan|Kabul|34.56|69.21",
         "Middle East|Iran|Tehran|35.69|51.39",
+        "Middle East|Iran|Karaj|35.85|50.96"
         "Middle East|Iran|Mashhad|36.30|59.61",
         "Middle East|Iran|Isfahan|32.65|51.67",
-        "Middle East|Iran|Tabriz|38.08|46.29",
+        "Middle East|Iran|Tabriz|38.06|46.29"
         "Middle East|Iran|Shiraz|29.59|52.58",
+        "Middle East|Iran|Kazerun|29.62|51.65"
+        "Middle East|Iran|Qom|34.63|50.87"
+        "Middle East|Iran|Bandar Abbas|27.18|56.27"
+        "Middle East|Iran|Takestan|36.07|49.70"
+        "Middle East|Iran|Yasuj|30.66|51.58"
+        "Middle East|Iran|Aligudarz|33.42|49.69"
+        "Middle East|Iran|Ahar|38.48|47.06"
+        "Middle East|Iran|Ahvaz|31.31|48.67"
         "Middle East|Iraq|Baghdad|33.31|44.36",
         "Middle East|Saudi Arabia|Riyadh|24.71|46.68",
         "Middle East|Saudi Arabia|Jeddah|21.49|39.19",
