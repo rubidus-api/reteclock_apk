@@ -104,6 +104,8 @@ public final class Settings {
     public static final String KEY_SUN_HIGH_RULE = "sun_high_rule";
     /** The published set of numbers in force, and the numbers themselves (issue #56). */
     public static final String KEY_SUN_METHOD = "sun_method";
+    /** Set only when a published set was pressed, so an id worked out by an older build is not believed. */
+    public static final String KEY_SUN_METHOD_CHOSEN = "sun_method_chosen";
     public static final String KEY_SUN_DAWN_TENTHS = "sun_dawn_tenths";
     public static final String KEY_SUN_DUSK_TENTHS = "sun_dusk_tenths";
     public static final String KEY_SUN_DUSK_MINUTES = "sun_dusk_minutes";
@@ -281,6 +283,11 @@ public final class Settings {
         out.put(KEY_SUN_DUSK_MINUTES, Integer.valueOf(rules.duskMinutesAfterEvening));
         out.put(KEY_SUN_EVENING_TENTHS, Integer.valueOf(rules.eveningTenths));
         out.put(KEY_SUN_NIGHT_TO_DAWN, Boolean.valueOf(rules.nightEndsAtDawn));
+        // Both halves, so a restored file keeps the choice rather than dropping to Custom: the id
+        // alone would be an id nobody is recorded as having chosen.
+        out.put(KEY_SUN_METHOD, Integer.valueOf(sunMethod(context)));
+        out.put(KEY_SUN_METHOD_CHOSEN, Boolean.valueOf(
+                sunMethod(context) != com.reteclock.core.SunMethods.CUSTOM));
         out.put(KEY_SUN_SHOW_NAMES, Boolean.valueOf(sunShowNames(context)));
         out.put(KEY_SPEAK_TIME, Boolean.valueOf(speakTime(context)));
         out.put(KEY_SLEEP_BUTTON, Boolean.valueOf(sleepButton(context)));
@@ -864,8 +871,22 @@ public final class Settings {
                 sunHighRule(context));
     }
 
-    /** Stores a set of conventions, and which published set it is (or none, when it is the user's). */
+    /** Stores conventions the user wrote themselves: they are nobody's published set. */
     public static void setSunRules(Context context, com.reteclock.core.SunRules rules) {
+        setSunRules(context, rules, com.reteclock.core.SunMethods.CUSTOM);
+    }
+
+    /**
+     * Stores a set of conventions and says which published set was <em>chosen</em> to get them.
+     *
+     * The id is remembered rather than worked out from the numbers, because the numbers cannot say
+     * it. The app's own defaults — 18° and 18° — are also the numbers Karachi publishes, and before
+     * this was remembered a clock that had never been touched said the user followed Karachi and
+     * wrote Fajr, Asr and Isha beside its own names. Nobody had chosen that. A set is a choice, and
+     * an unmade choice is {@code CUSTOM}.
+     */
+    public static void setSunRules(Context context, com.reteclock.core.SunRules rules,
+            int methodId) {
         prefs(context).edit()
                 .putInt(KEY_SUN_DAWN_TENTHS, rules.dawnTenths)
                 .putInt(KEY_SUN_DUSK_TENTHS, rules.duskTenths)
@@ -874,14 +895,33 @@ public final class Settings {
                 .putBoolean(KEY_SUN_NIGHT_TO_DAWN, rules.nightEndsAtDawn)
                 .putInt(KEY_SUN_SHADOW, rules.shadowMultiple)
                 .putInt(KEY_SUN_HIGH_RULE, rules.highRule)
-                .putInt(KEY_SUN_METHOD, com.reteclock.core.SunMethods.idOf(rules))
+                .putInt(KEY_SUN_METHOD, methodId)
+                .putBoolean(KEY_SUN_METHOD_CHOSEN,
+                        methodId != com.reteclock.core.SunMethods.CUSTOM)
                 .commit();
         WakeBells.rearm(context);
     }
 
-    /** Which published set the times are being read by, or {@code CUSTOM}. */
+    /**
+     * Which published set the user chose, or {@code CUSTOM} when they chose none.
+     *
+     * The stored choice is checked against the numbers in force before it is believed: an imported
+     * settings file, or a number edited by a path that forgot to say so, must not leave a body's
+     * name on numbers that are no longer its own.
+     */
     public static int sunMethod(Context context) {
-        return com.reteclock.core.SunMethods.idOf(sunRules(context));
+        // 0.46.0 to 0.48.0 stored an id worked out from the numbers rather than one chosen, and
+        // the app's own defaults are Karachi's numbers — so an id from those builds says nothing
+        // about what its owner follows and is not believed. Pressing a set writes the flag.
+        if (!prefs(context).getBoolean(KEY_SUN_METHOD_CHOSEN, false)) {
+            return com.reteclock.core.SunMethods.CUSTOM;
+        }
+        int stored = prefs(context).getInt(KEY_SUN_METHOD, com.reteclock.core.SunMethods.CUSTOM);
+        if (stored == com.reteclock.core.SunMethods.CUSTOM) {
+            return com.reteclock.core.SunMethods.CUSTOM;
+        }
+        return com.reteclock.core.SunMethods.idOf(sunRules(context)) == stored
+                ? stored : com.reteclock.core.SunMethods.CUSTOM;
     }
 
     /** Whether the names the chosen set uses are shown beside the app's own. */

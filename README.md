@@ -155,12 +155,11 @@ where a full-screen app is otherwise awkward to leave. The general settings do n
 others — one list of where things are is enough, and it is the main menu.
 
 **A tap stops a ringing bell** — a bell, an alarm rung on the clock's screen, or a timer's sound —
-and otherwise does nothing, so a hand reaching for the clock in the dark changes nothing else. To
-darken the screen for the night, use *Sleep mode* below. A tap can also **say what time it is**:
-turn on *Say the time when the clock is tapped* in the general settings and the phone speaks the
-reading aloud — "It's 6:21 AM" — through the same speech engine the timer's messages use. It stays
-silent on the tap that stopped a sound. On a phone that still has a
-physical **Menu key**, that key opens the general settings directly. The clock names both gestures
+and otherwise does nothing it was not asked to, so a hand reaching for the clock in the dark changes
+nothing else. To
+darken the screen for the night, use *Sleep mode* below; to have a tap **say what time it is**, see
+*Tapping the clock* below. On a phone that still has a physical **Menu key**, that key opens the
+general settings directly. The clock names both gestures
 once when you first open it, and stops mentioning them after you have been there — and it never
 mentions them when the charger started the clock, so it stays quiet on a bedside stand.
 
@@ -171,17 +170,30 @@ settings by itself — which is the way back in.
 
 **Sunrise and sunset** — main menu → *Sunset/sunrise settings*. Set a place once — a city picked
 by region, country and city, or a latitude and longitude — and any bell can ring at one of the
-day's seven solar moments: dawn, sunrise, solar noon, the afternoon shadow, sunset, dusk, or the
-night's middle, up to three hours before or after and worked out again every day. No network and no
-location permission.
+day's eight solar moments: dawn, sunrise, solar noon, the afternoon shadow, sunset, the evening,
+dusk, or the night's middle, up to three hours before or after and worked out again every day. The
+page lists all eight for today, so they can be compared with a timetable you trust. No network and
+no location permission.
 
 **Religious settings** — main menu. Several traditions read the day from the sun and each takes a
 few conventions: how far below the horizon dawn and dusk are taken to be, whether the afternoon
 shadow is once or twice a thing's height, and what to do in the far north where the sun never sinks
-that far. They are chosen here, as numbers or as one of the sets recognised bodies publish (Muslim World
-League, ISNA, Egypt, Umm al-Qura, Karachi, Tehran, Shia Ithna-Ashari), whose numbers are shown and
-can be changed. With a set chosen, the name it uses for each moment is shown beside the app's own —
-*Dusk · Isha* — and that can be switched off.
+that far. They are chosen here, as numbers or as one of the ten sets recognised bodies publish — the
+Muslim World League, ISNA, the Egyptian General Authority of Survey, Umm al-Qura, Karachi's
+University of Islamic Sciences, Tehran's Institute of Geophysics, Shia Ithna-Ashari, Muslims of
+France, the Spiritual Administration of Muslims of Russia, and the Islamic Religious Council of
+Singapore. Choosing one writes its numbers out on the page; change any of them and the choice
+becomes *Custom*. The numbers are carried for convenience, not as a ruling, and have not been
+checked against each body's own publication — compare them once with a timetable you trust. With a
+set chosen, the name it uses for each moment is shown beside the app's own — *Dusk · Isha* — and
+that can be switched off.
+
+**Tapping the clock** — *General settings* → *Tapping the clock*. A tap stops whatever is ringing,
+and it can also say the time aloud: turn on *Say the time when the clock is tapped* and the phone
+reads it — "It's 6:21 AM" — through its own speech engine, the one the timer's spoken messages use.
+Off until you turn it on, silent on the tap that stopped a sound, and it follows this app's clock,
+including your 12- or 24-hour setting and any AM/PM words of your own. A phone with no speech engine
+or no voice for its language says nothing; *Timer settings* reports what it found.
 
 **Sleep mode** — *General settings* → *Sleep mode*. For the night: the screen darker (1 % by
 default), the background and the timer put away, without changing your own settings. Press the

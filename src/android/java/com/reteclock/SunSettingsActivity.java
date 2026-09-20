@@ -257,9 +257,17 @@ public class SunSettingsActivity extends Activity {
             row.setPadding(0, dp(3), 0, dp(3));
             card.addView(row);
         }
-        // Which reckoning these were worked out by, and where it is chosen (issue #56).
-        card.addView(footer(getString(R.string.sun_reckoning_line), Settings.sunTwilight(this),
-                getString(Settings.sunShadow(this) == 2
+        // Which reckoning these were worked out by, and where it is chosen (issue #56). The
+        // numbers in force, not the old single angle: a chosen set moves dawn and dusk apart, and
+        // a line that kept saying 18° while the times were Egypt's would be a plain untruth.
+        com.reteclock.core.SunRules shown = Settings.sunRules(this);
+        String duskShown = shown.duskByInterval()
+                ? getString(R.string.religious_dusk_interval, shown.duskMinutesAfterEvening)
+                : getString(R.string.religious_dusk_angle,
+                        com.reteclock.core.SunRules.degrees(shown.duskTenths));
+        card.addView(footer(getString(R.string.sun_reckoning_line),
+                com.reteclock.core.SunRules.degrees(shown.dawnTenths), duskShown,
+                getString(shown.shadowMultiple == 2
                         ? R.string.sun_shadow_two : R.string.sun_shadow_one)));
         card.addView(actionButton(getString(R.string.menu_religious), new View.OnClickListener() {
             @Override

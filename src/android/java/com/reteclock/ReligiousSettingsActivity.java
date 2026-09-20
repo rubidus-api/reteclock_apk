@@ -87,7 +87,9 @@ public class ReligiousSettingsActivity extends Activity {
     private LinearLayout methodCard() {
         LinearLayout card = card(getString(R.string.religious_card_method));
         final com.reteclock.core.SunRules rules = Settings.sunRules(this);
-        int chosen = com.reteclock.core.SunMethods.idOf(rules);
+        // What the user chose, not what the numbers happen to match: the defaults are Karachi's
+        // numbers, and a clock nobody has touched must not claim to follow anybody.
+        int chosen = Settings.sunMethod(this);
         FlowLayout sets = new FlowLayout(this, dp(4), dp(2));
         for (com.reteclock.core.SunMethods.Method method
                 : com.reteclock.core.SunMethods.all()) {
@@ -105,7 +107,7 @@ public class ReligiousSettingsActivity extends Activity {
                     // a published set says nothing about either.
                     Settings.setSunRules(ReligiousSettingsActivity.this,
                             chosenOne.rules.withShadow(rules.shadowMultiple)
-                                    .withHighRule(rules.highRule));
+                                    .withHighRule(rules.highRule), chosenOne.id);
                     rebuild();
                 }
             }));
@@ -175,6 +177,19 @@ public class ReligiousSettingsActivity extends Activity {
                                             now.shadowMultiple, now.nightEndsAtDawn,
                                             now.highRule));
                             rebuild();
+                        }
+                    }));
+        }
+        if (chosenAngle < 0) {
+            // A set's angle can be half a degree, which no quick chip carries — 19.5° for Egypt,
+            // 17.7° for Tehran. Rather than leave the row with nothing lit, as if no angle were
+            // set at all, the angle in force gets a chip of its own at the end. Pressing it changes
+            // nothing: it is already what is in force.
+            angles.addView(chip(getString(R.string.religious_dusk_angle,
+                    com.reteclock.core.SunRules.degrees(dawnTenths)), true,
+                    new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
                         }
                     }));
         }

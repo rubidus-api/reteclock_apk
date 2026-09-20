@@ -638,7 +638,7 @@
     <string name="sun_high_share">The angle as a share of the night</string>
     <string name="sun_high_nearest">The nearest day it happened</string>
     <string name="sun_high_note">In the far north in summer, and the far south in winter, the sun never sinks that far and dawn and dusk do not happen at all. There is no astronomical answer, only conventions, and they disagree: dividing the night in half or in sevenths, taking a minute of night per degree, or keeping the time from the last day it did happen. None is chosen for you, and \"No time that day\" means a bell that follows dawn or dusk stays silent. Sunrise, sunset, solar noon and the afternoon shadow are unaffected; in orbit none of this applies, and the guidance given to astronauts has been to keep a ground clock instead.</string>
-    <string name="sun_reckoning_line">Dawn and dusk at %1$d°, the afternoon shadow at %2$s. Religious settings has these.</string>
+    <string name="sun_reckoning_line">Dawn at %1$s°, dusk at %2$s, the afternoon shadow at %3$s. Religious settings has these.</string>
     <string name="sun_card_how">How the twilight and the afternoon are reckoned</string>
     <string name="sun_twilight_heading">Dawn and dusk: the sun this far below the horizon</string>
     <string name="sun_twilight_note">Dawn and dusk are the moment the sun passes that angle. 6° is civil twilight (enough light to read by), 12° nautical, 18° the sky fully dark. Timetables that name these moments differ on the angle, by twenty minutes and more — this app does not choose one for you, and does not call the result anything but dawn and dusk.</string>
