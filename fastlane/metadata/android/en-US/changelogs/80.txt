@@ -1,0 +1,5 @@
+New: the clock can say what time it is when you tap it. General settings → Tapping the clock → Say the time when the clock is tapped. It is off until you turn it on.
+
+It speaks through the phone's own speech engine — the one the timer's messages use — so a phone with no engine or no voice for its language says nothing. A tap that stopped a ringing bell stays silent: that tap has already done its job. It follows this app's own clock, including your 12- or 24-hour setting and any AM/PM words of your own.
+
+Also: three more published sets of numbers on Religious settings — Muslims of France, the Spiritual Administration of Muslims of Russia, and the Islamic Religious Council of Singapore — each set now labelled with the body that publishes it, and nine more cities in Iran to choose a place by. Sent in by a reader.

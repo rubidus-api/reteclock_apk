@@ -1,6 +1,6 @@
 # reteclock
 
-**reteclock v0.47.0** (latest release) download — [apk (Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.47.0/reteclock-0.47.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)
+**reteclock v0.48.0** (latest release) download — [apk (Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.48.0/reteclock-0.48.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)
 
 **English** · [한국어](README.ko.md)
 
@@ -30,8 +30,8 @@ you turn that page's switch on.
 
 **[⬇ Get it on F-Droid](https://f-droid.org/packages/com.reteclock/)** — recommended.
 
-**[⬇ Download reteclock-0.47.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.47.0/reteclock-0.47.0.apk)**
-— 570 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
+**[⬇ Download reteclock-0.48.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.48.0/reteclock-0.48.0.apk)**
+— 574 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
 render GitHub's release page can still fetch it.
 
 The newest release is always at
@@ -135,7 +135,7 @@ it needs beyond keeping the screen awake. Copy the APK to the phone, open it, an
 
 ## Which phones it runs on
 
-Published on F-Droid; the latest release is 0.47.0.
+Published on F-Droid; the latest release is 0.48.0.
 
 | | |
 |---|---|
