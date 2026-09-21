@@ -46,6 +46,9 @@ public class ClockActivity extends Activity {
     private TimerView timer;
     /** Everything on screen: the clock, the strip, and the sheet the flash uses. */
     private FrameLayout root;
+    /** The size {@link #layOutScreen} last placed things for, so a different one places them again. */
+    private int laidOutW;
+    private int laidOutH;
     private View flash;
     private TimerSounds sounds;
     private TimerVoice voice;
@@ -229,7 +232,26 @@ public class ClockActivity extends Activity {
             }
         });
 
-        root = new FrameLayout(this);
+        // The screen is laid out for the size the root really is, and again whenever that turns out
+        // to be different (issue #60). Before the first layout pass the root has no size yet and the
+        // best guess is the whole screen; hiding the bars is what makes it so, and the pass after
+        // is the proof.
+        root = new FrameLayout(this) {
+            @Override
+            protected void onSizeChanged(int w, int h, int oldW, int oldH) {
+                super.onSizeChanged(w, h, oldW, oldH);
+                if (w > 0 && h > 0 && (w != laidOutW || h != laidOutH)) {
+                    post(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (!isFinishing()) {
+                                layOutScreen();
+                            }
+                        }
+                    });
+                }
+            }
+        };
         setContentView(root);
         layOutScreen();
         hideSystemBars();
@@ -256,6 +278,18 @@ public class ClockActivity extends Activity {
 
         boolean landscape = getResources().getConfiguration().orientation
                 == Configuration.ORIENTATION_LANDSCAPE;
+        // The root's own size when it has one for this way up. Just after a turn it still has the
+        // old one, and the guess stands in until the layout pass brings the new size back here.
+        int rootW = root.getWidth();
+        int rootH = root.getHeight();
+        if (rootW > 0 && rootH > 0 && (rootW == rootH || (rootW > rootH) == landscape)) {
+            laidOutW = rootW;
+            laidOutH = rootH;
+        } else {
+            int[] screen = FullScreen.size(this);
+            laidOutW = screen[0];
+            laidOutH = screen[1];
+        }
         boolean wantTimer = !safeMode && Settings.timerOn(this)
                 && !Settings.timerPresets(this).isEmpty();
 
@@ -312,10 +346,13 @@ public class ClockActivity extends Activity {
             int edge = landscape ? com.reteclock.core.layout.Strips.LEFT
                     : com.reteclock.core.layout.Strips.TOP;
             java.util.List<com.reteclock.core.layout.LayoutBox> drawnBoxes = drawnBoxes(landscape);
-            android.util.DisplayMetrics screen = getResources().getDisplayMetrics();
+            // Placed against the clock's own size, which is the size its boxes are placed against.
+            // The display metrics are the screen less the navigation bar, so a strip drawn at the
+            // foot of the screen used to stop short of it by the bar and sit on the box above
+            // (issue #60).
             com.reteclock.core.layout.TimerRoom room = com.reteclock.core.layout.TimerRoom.of(
                     drawnBoxes != null, drawnBoxes,
-                    screen.widthPixels, screen.heightPixels, edge, strip, true);
+                    laidOutW, laidOutH, edge, strip, true);
             boolean overlaid = room.insetLeft == 0 && room.insetTop == 0
                     && room.insetRight == 0 && room.insetBottom == 0;
 

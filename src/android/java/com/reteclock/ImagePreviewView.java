@@ -41,9 +41,10 @@ final class ImagePreviewView extends View {
     ImagePreviewView(Context context, int heightPx) {
         super(context);
         height = Math.max(heightPx, 1);
-        android.util.DisplayMetrics metrics = context.getResources().getDisplayMetrics();
-        screenWidth = Math.max(1, metrics.widthPixels);
-        screenHeight = Math.max(1, metrics.heightPixels);
+        // The shape of the screen the picture will fill, which is the whole of it (issue #60).
+        int[] screen = FullScreen.size(context);
+        screenWidth = screen[0];
+        screenHeight = screen[1];
     }
 
     /** The picture it is showing, so a change of fit can be applied without finding it again. */

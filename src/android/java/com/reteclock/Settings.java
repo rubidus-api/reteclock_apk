@@ -2009,9 +2009,8 @@ public final class Settings {
     private static com.reteclock.core.layout.LayoutBook starters(Context context) {
         com.reteclock.core.layout.LayoutBook book =
                 com.reteclock.core.layout.LayoutBook.empty();
-        android.util.DisplayMetrics metrics = context.getResources().getDisplayMetrics();
-        int shorter = Math.min(metrics.widthPixels, metrics.heightPixels);
-        int longer = Math.max(metrics.widthPixels, metrics.heightPixels);
+        int shorter = FullScreen.shortEdge(context);
+        int longer = FullScreen.longEdge(context);
         ClockOptions plain = options(context).withCalendar(false).withTimeOnly(false);
         ClockOptions withGrid = plain.withCalendar(true);
 

@@ -684,16 +684,13 @@ public final class LayoutFieldsActivity extends Activity {
         };
     }
 
+    // The screen the clock will fill, as the editor has it (issue #60).
     private int screenW() {
-        android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
-        return landscape ? Math.max(metrics.widthPixels, metrics.heightPixels)
-                : Math.min(metrics.widthPixels, metrics.heightPixels);
+        return landscape ? FullScreen.longEdge(this) : FullScreen.shortEdge(this);
     }
 
     private int screenH() {
-        android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
-        return landscape ? Math.min(metrics.widthPixels, metrics.heightPixels)
-                : Math.max(metrics.widthPixels, metrics.heightPixels);
+        return landscape ? FullScreen.shortEdge(this) : FullScreen.longEdge(this);
     }
 
     /**
