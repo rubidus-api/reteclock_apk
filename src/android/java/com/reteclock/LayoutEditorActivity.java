@@ -612,7 +612,6 @@ public final class LayoutEditorActivity extends Activity {
     }
 
     private int screenW() {
-        android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
         return landscape ? longEdge() : shortEdge();
     }
 
@@ -620,14 +619,13 @@ public final class LayoutEditorActivity extends Activity {
         return landscape ? shortEdge() : longEdge();
     }
 
+    // The screen the clock will fill, bar and all — not this settings window's (issue #60).
     private int shortEdge() {
-        android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
-        return Math.min(metrics.widthPixels, metrics.heightPixels);
+        return FullScreen.shortEdge(this);
     }
 
     private int longEdge() {
-        android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
-        return Math.max(metrics.widthPixels, metrics.heightPixels);
+        return FullScreen.longEdge(this);
     }
 
     private View button(String label, final Runnable onPress) {

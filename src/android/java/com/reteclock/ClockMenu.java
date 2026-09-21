@@ -13,6 +13,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.Window;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import com.reteclock.core.AboutText;
@@ -56,7 +57,17 @@ final class ClockMenu {
         face.setColor(CARD);
         face.setCornerRadius(dp(activity, 10));
         face.setStroke(1, CARD_STROKE);
-        card.setBackgroundDrawable(face);
+        // The card scrolls inside its frame (issue #59). Fifteen lines and the foot are taller than
+        // a phone lying on its side, or an old small screen standing up, and a dialog that does
+        // not scroll simply cuts off whatever does not fit: the items below were there and could
+        // not be reached. The frame goes on the scroller, so the rounded edge stays put and only
+        // the lines move; the D-pad scrolls it too, by following the focus down the list.
+        ScrollView frame = new ScrollView(activity);
+        frame.setBackgroundDrawable(face);
+        frame.setVerticalScrollBarEnabled(true);
+        frame.addView(card, new android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT));
 
         // The menu has a name now, because it is referred to by name — in the readmes, in the
         // settings, and by anybody explaining where a thing lives.
@@ -219,7 +230,7 @@ final class ClockMenu {
         about.setPadding(0, dp(activity, 10), 0, 0);
         card.addView(about);
 
-        dialog.setContentView(card);
+        dialog.setContentView(frame);
         dialog.setCanceledOnTouchOutside(true);
         dialog.show();
     }

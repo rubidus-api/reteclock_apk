@@ -259,8 +259,9 @@ public final class LayoutSettingsActivity extends Activity {
      * that cannot be blank on a screen where blank means broken.
      */
     private void newLayout(LayoutBook book, boolean landscape) {
-        int width = getResources().getDisplayMetrics().widthPixels;
-        int height = getResources().getDisplayMetrics().heightPixels;
+        int[] screen = FullScreen.size(this);
+        int width = screen[0];
+        int height = screen[1];
         int wide = landscape ? Math.max(width, height) : Math.min(width, height);
         int tall = landscape ? Math.min(width, height) : Math.max(width, height);
         java.util.List<com.reteclock.core.layout.LayoutBox> boxes =
