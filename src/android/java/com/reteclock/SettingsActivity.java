@@ -2888,22 +2888,13 @@ public class SettingsActivity extends Activity {
         // The voice: one engine and one language for everything the app says (T111).
         speak.addView(subheading(getString(R.string.speak_voice)));
         speak.addView(footer(getString(R.string.speak_voice_note)));
-        if (VoiceChoices.enginesChoosable()) {
-            engineButton = actionButton(engineText(), new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    chooseEngine();
-                }
-            });
-            speak.addView(engineButton);
-        }
-        languageButton = actionButton(languageText(), new View.OnClickListener() {
+        voiceButton = actionButton(voiceText(), new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                chooseLanguage();
+                chooseVoice();
             }
         });
-        speak.addView(spaced(languageButton));
+        speak.addView(voiceButton);
         speak.addView(spaced(actionButton(getString(R.string.speak_try), new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -2919,8 +2910,7 @@ public class SettingsActivity extends Activity {
         return speak;
     }
 
-    private TextView engineButton;
-    private TextView languageButton;
+    private TextView voiceButton;
     private TimerVoice trialVoice;
 
     /** A little room above a button, so two in a row read as two. */
@@ -2932,77 +2922,67 @@ public class SettingsActivity extends Activity {
         return view;
     }
 
-    private String engineText() {
+    /** "Voice · German (Germany) · de-DE · Pico TTS", or the phone's default voice. */
+    private String voiceText() {
         String pkg = Settings.ttsEngine(this);
-        return getString(R.string.speak_engine, pkg.isEmpty()
-                ? getString(R.string.speak_engine_default) : VoiceChoices.engineLabel(this, pkg));
-    }
-
-    private String languageText() {
         String tag = Settings.ttsLanguage(this);
-        return getString(R.string.speak_language, tag.isEmpty()
-                ? getString(R.string.speak_language_default) : VoiceChoices.languageLabel(tag));
-    }
-
-    private void chooseEngine() {
-        final java.util.List<VoiceChoices.Engine> engines = VoiceChoices.engines(this);
-        String[] labels = new String[engines.size() + 1];
-        labels[0] = getString(R.string.speak_engine_default);
-        for (int i = 0; i < engines.size(); i++) {
-            labels[i + 1] = engines.get(i).label;
+        if (pkg.isEmpty() && tag.isEmpty()) {
+            return getString(R.string.speak_voice_button, getString(R.string.speak_voice_default));
         }
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.speak_engine_title)
-                .setItems(labels, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        Settings.setTtsEngine(SettingsActivity.this,
-                                which == 0 ? "" : engines.get(which - 1).pkg);
-                        engineButton.setText(engineText());
-                    }
-                })
-                .show();
+        String language = tag.isEmpty() ? getString(R.string.speak_language_default)
+                : VoiceChoices.languageLabel(tag);
+        String engine = pkg.isEmpty() ? getString(R.string.speak_engine_default)
+                : VoiceChoices.engineLabel(this, pkg);
+        return getString(R.string.speak_voice_button, language + "  ·  " + engine);
     }
 
-    private void chooseLanguage() {
-        languageButton.setText(R.string.speak_language_asking);
-        languageButton.setEnabled(false);
-        VoiceChoices.languages(this, Settings.ttsEngine(this), new VoiceChoices.Languages() {
+    /** One list: every language on every installed engine, the one in force marked (T113). */
+    private void chooseVoice() {
+        voiceButton.setText(R.string.speak_voice_asking);
+        voiceButton.setEnabled(false);
+        VoiceChoices.catalogue(this, new VoiceChoices.Catalogue() {
             @Override
-            public void found(java.util.List<String> tags) {
-                languageButton.setEnabled(true);
-                languageButton.setText(languageText());
+            public void found(final java.util.List<com.reteclock.core.VoiceOptions.Option> rows,
+                    String defaultEngine) {
+                voiceButton.setEnabled(true);
+                voiceButton.setText(voiceText());
                 if (isFinishing()) {
                     return;
                 }
-                if (tags == null) {
-                    Toast.makeText(SettingsActivity.this, R.string.speak_language_no_engine,
-                            Toast.LENGTH_LONG).show();
-                    return;
+                String[] labels = new String[rows.size() + 1];
+                labels[0] = getString(R.string.speak_voice_default);
+                for (int i = 0; i < rows.size(); i++) {
+                    com.reteclock.core.VoiceOptions.Option o = rows.get(i);
+                    labels[i + 1] = o.engineLabel.isEmpty()
+                            ? VoiceChoices.languageLabel(o.tag)
+                            : VoiceChoices.languageLabel(o.tag) + "  ·  " + o.engineLabel;
                 }
-                showLanguages(tags);
+                int at = com.reteclock.core.VoiceOptions.chosen(rows,
+                        Settings.ttsEngine(SettingsActivity.this),
+                        Settings.ttsLanguage(SettingsActivity.this), defaultEngine);
+                new AlertDialog.Builder(SettingsActivity.this)
+                        .setTitle(rows.isEmpty() ? getString(R.string.speak_voice_none)
+                                : getString(R.string.speak_voice_title))
+                        .setSingleChoiceItems(labels, at == -1 ? 0 : at >= 0 ? at + 1 : -1,
+                                new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        if (which == 0) {
+                                            Settings.setTtsEngine(SettingsActivity.this, "");
+                                            Settings.setTtsLanguage(SettingsActivity.this, "");
+                                        } else {
+                                            com.reteclock.core.VoiceOptions.Option o =
+                                                    rows.get(which - 1);
+                                            Settings.setTtsEngine(SettingsActivity.this, o.engine);
+                                            Settings.setTtsLanguage(SettingsActivity.this, o.tag);
+                                        }
+                                        voiceButton.setText(voiceText());
+                                        dialog.dismiss();
+                                    }
+                                })
+                        .show();
             }
         });
-    }
-
-    private void showLanguages(final java.util.List<String> tags) {
-        String[] labels = new String[tags.size() + 1];
-        labels[0] = getString(R.string.speak_language_default);
-        for (int i = 0; i < tags.size(); i++) {
-            labels[i + 1] = VoiceChoices.languageLabel(tags.get(i));
-        }
-        new AlertDialog.Builder(this)
-                .setTitle(tags.isEmpty() ? getString(R.string.speak_language_none)
-                        : getString(R.string.speak_language_title))
-                .setItems(labels, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        Settings.setTtsLanguage(SettingsActivity.this,
-                                which == 0 ? "" : tags.get(which - 1));
-                        languageButton.setText(languageText());
-                    }
-                })
-                .show();
     }
 
     @Override
