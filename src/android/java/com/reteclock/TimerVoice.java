@@ -56,7 +56,7 @@ final class TimerVoice {
             return;
         }
         try {
-            engine = new TextToSpeech(context, new TextToSpeech.OnInitListener() {
+            TextToSpeech.OnInitListener listener = new TextToSpeech.OnInitListener() {
                 @Override
                 public void onInit(int status) {
                     if (status != TextToSpeech.SUCCESS) {
@@ -81,7 +81,15 @@ final class TimerVoice {
                         speak(waiting);
                     }
                 }
-            });
+            };
+            // The engine the user chose, where the platform lets one be named (API 14). A chosen
+            // engine that has since been uninstalled gets the phone's default from the platform.
+            String chosen = Settings.ttsEngine(context);
+            if (android.os.Build.VERSION.SDK_INT >= 14 && !chosen.isEmpty()) {
+                engine = new TextToSpeech(context, listener, chosen);
+            } else {
+                engine = new TextToSpeech(context, listener);
+            }
         } catch (RuntimeException e) {
             broken = true;
         }
@@ -90,7 +98,8 @@ final class TimerVoice {
     /** What the engine says about the language it would speak in. */
     private int language() {
         try {
-            int result = engine.setLanguage(java.util.Locale.getDefault());
+            // The language chosen in the settings, or the phone's own.
+            int result = engine.setLanguage(Settings.ttsLocale(context));
             if (result == TextToSpeech.LANG_MISSING_DATA) {
                 return VoiceState.LANG_MISSING;
             }

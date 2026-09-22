@@ -2884,7 +2884,134 @@ public class SettingsActivity extends Activity {
         });
         speak.addView(say);
         speak.addView(footer(getString(R.string.speak_time_note)));
+
+        // The voice: one engine and one language for everything the app says (T111).
+        speak.addView(subheading(getString(R.string.speak_voice)));
+        speak.addView(footer(getString(R.string.speak_voice_note)));
+        if (VoiceChoices.enginesChoosable()) {
+            engineButton = actionButton(engineText(), new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    chooseEngine();
+                }
+            });
+            speak.addView(engineButton);
+        }
+        languageButton = actionButton(languageText(), new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                chooseLanguage();
+            }
+        });
+        speak.addView(spaced(languageButton));
+        speak.addView(spaced(actionButton(getString(R.string.speak_try), new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // A voice of its own, made afresh, so what is heard is the choice just made.
+                if (trialVoice != null) {
+                    trialVoice.release();
+                }
+                trialVoice = new TimerVoice(SettingsActivity.this);
+                trialVoice.say(Settings.spokenTimeNow(SettingsActivity.this),
+                        android.os.SystemClock.elapsedRealtime());
+            }
+        })));
         return speak;
+    }
+
+    private TextView engineButton;
+    private TextView languageButton;
+    private TimerVoice trialVoice;
+
+    /** A little room above a button, so two in a row read as two. */
+    private View spaced(View view) {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = dp(8);
+        view.setLayoutParams(lp);
+        return view;
+    }
+
+    private String engineText() {
+        String pkg = Settings.ttsEngine(this);
+        return getString(R.string.speak_engine, pkg.isEmpty()
+                ? getString(R.string.speak_engine_default) : VoiceChoices.engineLabel(this, pkg));
+    }
+
+    private String languageText() {
+        String tag = Settings.ttsLanguage(this);
+        return getString(R.string.speak_language, tag.isEmpty()
+                ? getString(R.string.speak_language_default) : VoiceChoices.languageLabel(tag));
+    }
+
+    private void chooseEngine() {
+        final java.util.List<VoiceChoices.Engine> engines = VoiceChoices.engines(this);
+        String[] labels = new String[engines.size() + 1];
+        labels[0] = getString(R.string.speak_engine_default);
+        for (int i = 0; i < engines.size(); i++) {
+            labels[i + 1] = engines.get(i).label;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.speak_engine_title)
+                .setItems(labels, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        Settings.setTtsEngine(SettingsActivity.this,
+                                which == 0 ? "" : engines.get(which - 1).pkg);
+                        engineButton.setText(engineText());
+                    }
+                })
+                .show();
+    }
+
+    private void chooseLanguage() {
+        languageButton.setText(R.string.speak_language_asking);
+        languageButton.setEnabled(false);
+        VoiceChoices.languages(this, Settings.ttsEngine(this), new VoiceChoices.Languages() {
+            @Override
+            public void found(java.util.List<String> tags) {
+                languageButton.setEnabled(true);
+                languageButton.setText(languageText());
+                if (isFinishing()) {
+                    return;
+                }
+                if (tags == null) {
+                    Toast.makeText(SettingsActivity.this, R.string.speak_language_no_engine,
+                            Toast.LENGTH_LONG).show();
+                    return;
+                }
+                showLanguages(tags);
+            }
+        });
+    }
+
+    private void showLanguages(final java.util.List<String> tags) {
+        String[] labels = new String[tags.size() + 1];
+        labels[0] = getString(R.string.speak_language_default);
+        for (int i = 0; i < tags.size(); i++) {
+            labels[i + 1] = VoiceChoices.languageLabel(tags.get(i));
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(tags.isEmpty() ? getString(R.string.speak_language_none)
+                        : getString(R.string.speak_language_title))
+                .setItems(labels, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        Settings.setTtsLanguage(SettingsActivity.this,
+                                which == 0 ? "" : tags.get(which - 1));
+                        languageButton.setText(languageText());
+                    }
+                })
+                .show();
+    }
+
+    @Override
+    protected void onPause() {
+        if (trialVoice != null) {
+            trialVoice.release();
+            trialVoice = null;
+        }
+        super.onPause();
     }
 
     /**

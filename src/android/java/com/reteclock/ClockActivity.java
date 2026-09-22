@@ -578,16 +578,12 @@ public class ClockActivity extends Activity {
         if (!Settings.speakTime(this)) {
             return;
         }
-        long now = System.currentTimeMillis();
-        com.reteclock.core.CivilTime at = com.reteclock.core.CivilTime.of(
-                now, Settings.offsetMinutes(this, now));
-        String reading = com.reteclock.core.SpokenTime.reading(at.hour, at.minute,
-                Settings.hour12(this), Settings.markers(this));
         if (voice == null) {
             voice = new TimerVoice(this);
         }
-        voice.say(getString(R.string.speak_time_sentence, reading),
-                android.os.SystemClock.elapsedRealtime());
+        // The time alone, "13:30" or "1:30 PM": the engine reads it in its own language, which an
+        // English sentence around it would stop a Korean or Persian voice from doing (T111).
+        voice.say(Settings.spokenTimeNow(this), android.os.SystemClock.elapsedRealtime());
     }
 
     /**

@@ -114,6 +114,10 @@ public final class Settings {
     /** Whether the page and the bells show the names the chosen set uses, beside our own. */
     public static final String KEY_SUN_SHOW_NAMES = "sun_show_names";
     public static final String KEY_SPEAK_TIME = "speak_time";
+    /** The speech engine's package, "" for the phone's default. Belongs to this phone only. */
+    public static final String KEY_TTS_ENGINE = "tts_engine";
+    /** The language speech is asked for, as a {@link com.reteclock.core.VoiceLocale} tag. */
+    public static final String KEY_TTS_LANGUAGE = "tts_language";
     public static final String KEY_SLEEP_BUTTON = "sleep_button";
     public static final String KEY_SLEEP_BRIGHTNESS = "sleep_brightness";
     public static final String KEY_SLEEP_NO_BACKGROUND = "sleep_no_background";
@@ -293,6 +297,8 @@ public final class Settings {
                 sunMethod(context) != com.reteclock.core.SunMethods.CUSTOM));
         out.put(KEY_SUN_SHOW_NAMES, Boolean.valueOf(sunShowNames(context)));
         out.put(KEY_SPEAK_TIME, Boolean.valueOf(speakTime(context)));
+        out.put(KEY_TTS_ENGINE, ttsEngine(context));
+        out.put(KEY_TTS_LANGUAGE, ttsLanguage(context));
         out.put(KEY_SLEEP_BUTTON, Boolean.valueOf(sleepButton(context)));
         out.put(KEY_SLEEP_BRIGHTNESS, Integer.valueOf(sleepBrightness(context)));
         out.put(KEY_SLEEP_NO_BACKGROUND, Boolean.valueOf(sleepNoBackground(context)));
@@ -1011,6 +1017,45 @@ public final class Settings {
 
     public static void setSpeakTime(Context context, boolean spoken) {
         prefs(context).edit().putBoolean(KEY_SPEAK_TIME, spoken).commit();
+    }
+
+    /** What a tap says now: the reading of this app's own clock, and nothing around it (T111). */
+    public static String spokenTimeNow(Context context) {
+        long now = System.currentTimeMillis();
+        com.reteclock.core.CivilTime at = com.reteclock.core.CivilTime.of(
+                now, offsetMinutes(context, now));
+        return com.reteclock.core.SpokenTime.utterance(at.hour, at.minute, hour12(context),
+                markers(context));
+    }
+
+    /**
+     * The speech engine to speak with, or "" for the phone's default. One choice for everything
+     * the app says — the time and the timer's messages alike.
+     */
+    public static String ttsEngine(Context context) {
+        return prefs(context).getString(KEY_TTS_ENGINE, "");
+    }
+
+    public static void setTtsEngine(Context context, String engine) {
+        prefs(context).edit().putString(KEY_TTS_ENGINE, engine == null ? "" : engine).commit();
+    }
+
+    /** The language to speak in, as a tag, or "" for the phone's own language. */
+    public static String ttsLanguage(Context context) {
+        String tag = prefs(context).getString(KEY_TTS_LANGUAGE, "");
+        java.util.List<String> parts = com.reteclock.core.VoiceLocale.parse(tag);
+        return parts == null ? "" : com.reteclock.core.VoiceLocale.tag(parts.get(0), parts.get(1));
+    }
+
+    public static void setTtsLanguage(Context context, String tag) {
+        prefs(context).edit().putString(KEY_TTS_LANGUAGE, tag == null ? "" : tag).commit();
+    }
+
+    /** The locale speech is asked for: the chosen one, or the phone's. */
+    public static java.util.Locale ttsLocale(Context context) {
+        java.util.List<String> parts = com.reteclock.core.VoiceLocale.parse(ttsLanguage(context));
+        return parts == null ? java.util.Locale.getDefault()
+                : new java.util.Locale(parts.get(0), parts.get(1));
     }
 
     // ---- sleep mode (issue #54, RFC-0014) -------------------------------------------------
