@@ -7,8 +7,11 @@ package com.reteclock.core;
  * in the dark can take without their glasses. What is spoken is deliberately <em>not</em> what is
  * drawn: the face may be padded to "06" for a tidy pair of digits, may be showing no marker at all
  * because the layout is short of room, and may be blinking its colon — none of which a voice can
- * say. So this builds the reading from the hour and the minute themselves, and leaves the sentence
- * around it ("It's %s.") to the Android strings, where it can be translated.
+ * say. So this builds the reading from the hour and the minute themselves.
+ *
+ * <p>Nothing is put around it. The phone's speech engine reads in its own language, and an English
+ * "It's" in front of the time is exactly what a Korean or Persian voice cannot say; "13:30" every
+ * engine reads as a time in its own words.
  *
  * Pure Java: no android.*, no formatting classes, no floating point.
  */
@@ -59,5 +62,14 @@ public final class SpokenTime {
             }
         }
         return out.toString();
+    }
+
+    /**
+     * What is handed to the speech engine when the clock is tapped: the reading and nothing else
+     * (T111). The digits and the colon every engine reads in its own language; the markers are the
+     * user's own words where they set any.
+     */
+    public static String utterance(int hour24, int minute, boolean hour12, CustomMarkers markers) {
+        return reading(hour24, minute, hour12, markers);
     }
 }

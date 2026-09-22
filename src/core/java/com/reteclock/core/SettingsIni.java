@@ -52,7 +52,7 @@ public final class SettingsIni {
     /** Keys that belong to one device and are never carried to another. */
     private static final String[] LOCAL_ONLY = {
         "timer_run_origin", "timer_run_paused_at", "timer_run_preset",
-        "voice_init", "voice_lang",
+        "voice_init", "voice_lang", "tts_engine",
         "run_unfinished", "safe_notice", "hint_seen", "pool_migrated",
     };
 
@@ -69,6 +69,8 @@ public final class SettingsIni {
         {"colors_from_theme", "b", "clock"},
         {"burn_in_shift", "b", "clock"},
         {"oled_care", "b", "clock"},
+        {"speak_time", "b", "clock"},
+        {"tts_language", "s", "clock"},
         {"time_percent_wide", "i", "clock"},
         {"time_percent_tall", "i", "clock"},
         {"text_color", "i", "clock"},

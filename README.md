@@ -190,10 +190,13 @@ that can be switched off.
 
 **Tapping the clock** — *General settings* → *Tapping the clock*. A tap stops whatever is ringing,
 and it can also say the time aloud: turn on *Say the time when the clock is tapped* and the phone
-reads it — "It's 6:21 AM" — through its own speech engine, the one the timer's spoken messages use.
+reads it — "13:30", or "1:30 PM" — through its speech engine, the one the timer's spoken messages
+use. Only the time is handed over, so every engine reads it in its own language. Under *Voice* you
+can pick the speech engine and the language (the list shows what the chosen engine can speak on this
+phone) and try it with *Say the time now*; the choice is used for the timer's messages too.
 Off until you turn it on, silent on the tap that stopped a sound, and it follows this app's clock,
 including your 12- or 24-hour setting and any AM/PM words of your own. A phone with no speech engine
-or no voice for its language says nothing; *Timer settings* reports what it found.
+or no voice for the language says nothing; *Timer settings* reports what it found.
 
 **Sleep mode** — *General settings* → *Sleep mode*. For the night: the screen darker (1 % by
 default), the background and the timer put away, without changing your own settings. Press the
