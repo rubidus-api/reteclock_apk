@@ -37,9 +37,9 @@ final class VoiceChoices {
         }
     }
 
-    /** The answer about languages: the tags, or null when the engine would not start. */
-    interface Languages {
-        void found(List<String> tags);
+    /** The answer about voices: every language on every installed engine, in one list. */
+    interface Catalogue {
+        void found(List<com.reteclock.core.VoiceOptions.Option> rows, String defaultEngine);
     }
 
     private VoiceChoices() {
@@ -99,58 +99,135 @@ final class VoiceChoices {
     }
 
     /**
-     * Asks the engine which languages it can speak, and answers on the main thread. The engine is
-     * started for this alone and let go afterwards.
+     * Asks every installed engine which languages it has installed, one engine after another on a
+     * worker thread, and answers on the main thread with one list. Where engines cannot be named
+     * (below API 14) only the phone's default is asked, and its rows carry the engine "".
      */
-    static void languages(Context context, String engine, final Languages answer) {
+    static void catalogue(Context context, final Catalogue answer) {
+        final Context app = context.getApplicationContext();
         final Handler main = new Handler(Looper.getMainLooper());
-        final TextToSpeech[] box = new TextToSpeech[1];
-        TextToSpeech.OnInitListener listener = new TextToSpeech.OnInitListener() {
+        new Thread(new Runnable() {
             @Override
-            public void onInit(final int status) {
-                new Thread(new Runnable() {
+            public void run() {
+                List<String> pkgs = new ArrayList<String>();
+                List<String> labels = new ArrayList<String>();
+                String defaultEngine = "";
+                if (enginesChoosable()) {
+                    for (Engine e : engines(app)) {
+                        pkgs.add(e.pkg);
+                        labels.add(e.label);
+                    }
+                }
+                if (pkgs.isEmpty()) {
+                    pkgs.add("");
+                    labels.add("");
+                }
+                List<List<String>> tags = new ArrayList<List<String>>();
+                for (String pkg : pkgs) {
+                    String[] engineInUse = new String[1];
+                    tags.add(askEngine(app, pkg, engineInUse));
+                    if (defaultEngine.isEmpty() && pkg.isEmpty() && engineInUse[0] != null) {
+                        defaultEngine = engineInUse[0];
+                    }
+                }
+                if (defaultEngine.isEmpty()) {
+                    defaultEngine = phoneDefaultEngine(app);
+                }
+                final List<com.reteclock.core.VoiceOptions.Option> rows =
+                        com.reteclock.core.VoiceOptions.combine(pkgs, labels, tags);
+                final String def = defaultEngine;
+                main.post(new Runnable() {
                     @Override
                     public void run() {
-                        List<String> tags = null;
-                        TextToSpeech tts = box[0];
-                        // The constructor may call back before it has returned; wait for it.
-                        for (int i = 0; tts == null && i < 50; i++) {
-                            try {
-                                Thread.sleep(20);
-                            } catch (InterruptedException e) {
-                                break;
-                            }
-                            tts = box[0];
-                        }
-                        if (status == TextToSpeech.SUCCESS && tts != null) {
-                            tags = ask(tts);
-                        }
-                        if (tts != null) {
-                            try {
-                                tts.shutdown();
-                            } catch (RuntimeException e) {
-                            }
-                        }
-                        final List<String> found = tags;
-                        main.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                answer.found(found);
-                            }
-                        });
+                        answer.found(rows, def);
                     }
-                }).start();
+                });
+            }
+        }).start();
+    }
+
+    /** The engine the phone uses when none is named; "" when it will not say. */
+    static String phoneDefaultEngine(Context context) {
+        try {
+            String name = android.provider.Settings.Secure.getString(
+                    context.getContentResolver(), "tts_default_synth");
+            return name == null ? "" : name;
+        } catch (RuntimeException e) {
+            return "";
+        }
+    }
+
+    /**
+     * Starts one engine, waits for it, asks it, and lets it go. Null when it would not start in
+     * time. Called on a worker thread; the engine's callback arrives on the main thread.
+     */
+    private static List<String> askEngine(Context context, String pkg, String[] engineInUse) {
+        final java.util.concurrent.CountDownLatch started =
+                new java.util.concurrent.CountDownLatch(1);
+        final int[] status = {TextToSpeech.ERROR};
+        TextToSpeech.OnInitListener listener = new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int s) {
+                status[0] = s;
+                started.countDown();
             }
         };
+        TextToSpeech tts;
         try {
-            if (enginesChoosable() && engine != null && !engine.isEmpty()) {
-                box[0] = new TextToSpeech(context.getApplicationContext(), listener, engine);
-            } else {
-                box[0] = new TextToSpeech(context.getApplicationContext(), listener);
-            }
+            tts = enginesChoosable() && !pkg.isEmpty()
+                    ? new TextToSpeech(context, listener, pkg)
+                    : new TextToSpeech(context, listener);
         } catch (RuntimeException e) {
-            answer.found(null);
+            return null;
         }
+        List<String> out = null;
+        try {
+            if (started.await(8, java.util.concurrent.TimeUnit.SECONDS)
+                    && status[0] == TextToSpeech.SUCCESS) {
+                if (android.os.Build.VERSION.SDK_INT >= 14) {
+                    try {
+                        engineInUse[0] = tts.getDefaultEngine();
+                    } catch (RuntimeException e) {
+                        engineInUse[0] = null;
+                    }
+                }
+                out = installed(tts);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } finally {
+            try {
+                tts.shutdown();
+            } catch (RuntimeException e) {
+            }
+        }
+        return out;
+    }
+
+    /**
+     * The languages this engine has installed. From Android 5.0 its own voices say so, marked when
+     * not installed; below that, or when an engine gives no list, each locale is asked in turn.
+     */
+    private static List<String> installed(TextToSpeech tts) {
+        if (android.os.Build.VERSION.SDK_INT >= 21) {
+            try {
+                List<Locale> locales = VoicesApi21.installed(tts);
+                if (locales != null) {
+                    List<String> tags = new ArrayList<String>();
+                    for (Locale l : locales) {
+                        tags.add(VoiceLocale.tag(l.getLanguage(), l.getCountry()));
+                    }
+                    android.util.Log.d("reteclock", "voices from the engine's own list: "
+                            + tags.size());
+                    return tags;
+                }
+            } catch (RuntimeException e) {
+                // An engine whose list breaks is asked the old way.
+            }
+        }
+        List<String> asked = ask(tts);
+        android.util.Log.d("reteclock", "voices asked locale by locale: " + asked.size());
+        return asked;
     }
 
     /** Every locale the platform knows, put to the engine; the ones it can speak, as tags. */

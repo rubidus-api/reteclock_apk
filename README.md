@@ -192,8 +192,8 @@ that can be switched off.
 and it can also say the time aloud: turn on *Say the time when the clock is tapped* and the phone
 reads it — "13:30", or "1:30 PM" — through its speech engine, the one the timer's spoken messages
 use. Only the time is handed over, so every engine reads it in its own language. Under *Voice* you
-can pick the speech engine and the language (the list shows what the chosen engine can speak on this
-phone) and try it with *Say the time now*; the choice is used for the timer's messages too.
+pick one voice from a list of every installed one — each language on each speech engine on the
+phone — and try it with *Say the time now*; the choice is used for the timer's messages too.
 Off until you turn it on, silent on the tap that stopped a sound, and it follows this app's clock,
 including your 12- or 24-hour setting and any AM/PM words of your own. A phone with no speech engine
 or no voice for the language says nothing; *Timer settings* reports what it found.
