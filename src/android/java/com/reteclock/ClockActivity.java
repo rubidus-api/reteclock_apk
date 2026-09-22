@@ -327,9 +327,9 @@ public class ClockActivity extends Activity {
             timer.setSleep(Settings.sleepButton(this), sleepWatch.asleep());
             // The strip's controls are drawn in the clock's own text colour, so the two belong to
             // the same clock rather than looking like a panel bolted on.
-            int chosenText = Settings.color(this, Settings.KEY_TEXT_COLOR);
+            int chosenText = Settings.colorInForce(this, Settings.KEY_TEXT_COLOR);
             int chosenBackground = com.reteclock.core.ClockColors.opaque(
-                    Settings.color(this, Settings.KEY_BACKGROUND_COLOR));
+                    Settings.colorInForce(this, Settings.KEY_BACKGROUND_COLOR));
             timer.setChrome(
                     com.reteclock.core.ClockColors.resolveText(chosenText, chosenBackground));
 
@@ -692,9 +692,9 @@ public class ClockActivity extends Activity {
         if (!Settings.sleepButton(this)) {
             return;
         }
-        int chosenText = Settings.color(this, Settings.KEY_TEXT_COLOR);
+        int chosenText = Settings.colorInForce(this, Settings.KEY_TEXT_COLOR);
         int chosenBackground = com.reteclock.core.ClockColors.opaque(
-                Settings.color(this, Settings.KEY_BACKGROUND_COLOR));
+                Settings.colorInForce(this, Settings.KEY_BACKGROUND_COLOR));
         SleepButtonView button = new SleepButtonView(this,
                 com.reteclock.core.ClockColors.resolveText(chosenText, chosenBackground),
                 sleepWatch.asleep(), new SleepButtonView.Pressed() {

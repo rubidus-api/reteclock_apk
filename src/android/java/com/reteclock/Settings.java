@@ -149,6 +149,8 @@ public final class Settings {
     public static final String KEY_PADDING = "clock_padding";
     /** Whether the clock wanders a few pixels to spare the panel. On unless turned off. */
     public static final String KEY_BURN_IN_SHIFT = "burn_in_shift";
+    /** OLED care: black, dim, thin, no pictures, drifting — see {@link com.reteclock.core.OledCare}. */
+    public static final String KEY_OLED_CARE = "oled_care";
     public static final String KEY_RUN_ORIGIN = "timer_run_origin";
     public static final String KEY_RUN_PAUSED_AT = "timer_run_paused_at";
     public static final String KEY_RUN_PRESET = "timer_run_preset";
@@ -261,6 +263,7 @@ public final class Settings {
         out.put(KEY_MARKER_SHOWN, Boolean.valueOf(markerShown(context)));
         out.put(KEY_THEME_COLORS, Boolean.valueOf(themeColors(context)));
         out.put(KEY_BURN_IN_SHIFT, Boolean.valueOf(burnInShift(context)));
+        out.put(KEY_OLED_CARE, Boolean.valueOf(oledCare(context)));
         out.put(KEY_TIME_PERCENT_WIDE, Integer.valueOf(timePercent(context, KEY_TIME_PERCENT_WIDE)));
         out.put(KEY_TIME_PERCENT_TALL, Integer.valueOf(timePercent(context, KEY_TIME_PERCENT_TALL)));
         out.put(KEY_TEXT_COLOR, Integer.valueOf(color(context, KEY_TEXT_COLOR)));
@@ -591,12 +594,20 @@ public final class Settings {
         if (sleepNoBackground(context) && sleepInForce(context, System.currentTimeMillis())) {
             return new java.util.ArrayList<File>();
         }
+        // OLED care draws on black: no pool picture and no layout's own either. Both are kept.
+        if (oledCare(context)) {
+            return new java.util.ArrayList<File>();
+        }
         java.util.List<File> own = carried(context, landscape,
                 com.reteclock.core.layout.LayoutPreset.PICTURE_BACKGROUND);
         return own != null ? own : filesFor(context, roles(context).background);
     }
 
     public static java.util.List<File> textFiles(Context context, boolean landscape) {
+        // A picture inside the writing lights it far more than one dim colour does.
+        if (oledCare(context)) {
+            return new java.util.ArrayList<File>();
+        }
         java.util.List<File> own = carried(context, landscape,
                 com.reteclock.core.layout.LayoutPreset.PICTURE_TEXT);
         return own != null ? own : filesFor(context, roles(context).text);
@@ -1566,6 +1577,42 @@ public final class Settings {
 
     public static void setBurnInShift(Context context, boolean on) {
         prefs(context).edit().putBoolean(KEY_BURN_IN_SHIFT, on).commit();
+    }
+
+    /**
+     * Whether OLED care is on (general settings, off by default).
+     *
+     * It overrides without writing: the colours, fonts, pictures, the colon and the drift below it
+     * are the user's and stay stored as they were, and the clock asks the *InForce accessors, which
+     * answer for OLED care while it is on and for the user's own choices when it is not. The layout
+     * and the layout slides are not touched at all.
+     */
+    public static boolean oledCare(Context context) {
+        return prefs(context).getBoolean(KEY_OLED_CARE, false);
+    }
+
+    public static void setOledCare(Context context, boolean on) {
+        prefs(context).edit().putBoolean(KEY_OLED_CARE, on).commit();
+    }
+
+    /** The drift, which OLED care keeps on whatever the switch above it says. */
+    public static boolean burnInShiftInForce(Context context) {
+        return oledCare(context) || burnInShift(context);
+    }
+
+    /** The blinking colon, which OLED care keeps on: the colon is the one shape that never moves. */
+    public static boolean blinkColonInForce(Context context) {
+        return oledCare(context) || blinkColon(context);
+    }
+
+    /** The colour the clock draws with now: OLED care's fixed pair, or {@link #color}. */
+    public static int colorInForce(Context context, String key) {
+        if (oledCare(context)) {
+            return KEY_TEXT_COLOR.equals(key)
+                    ? com.reteclock.core.OledCare.TEXT_COLOR
+                    : com.reteclock.core.OledCare.BACKGROUND_COLOR;
+        }
+        return color(context, key);
     }
 
     /**

@@ -243,6 +243,11 @@ In the order they appear on the screen.
   left showing the time, since an OLED that has drawn the same numerals in the same place for
   months keeps them faintly forever. Turn it off if you would rather the clock held still — an LCD
   has nothing to burn in.
+- **OLED care: spare the screen as much as possible** — off unless you turn it on. Your layout stays
+  as it is; only the drawing changes: black behind everything, the writing in one dim warm colour
+  in the system's thinnest face, no pictures, the colon blinking and the wander always on, and the
+  writing dimming for a moment around each minute so the wander's step is not seen. Nothing you
+  chose is changed: switch it off and your colours, fonts and pictures come back.
 - **A different picture every morning** — set the pictures to *shuffled, a new order each day* and
   the hold to *a day*, and the clock shows one of them from midnight to midnight and another
   tomorrow. The shuffle is decided by the date rather than by chance, so it survives a restart and

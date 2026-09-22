@@ -16,6 +16,7 @@ import android.view.View;
 import com.reteclock.core.BurnInShift;
 import com.reteclock.core.ClockLayout;
 import com.reteclock.core.MonthGrid;
+import com.reteclock.core.OledCare;
 import com.reteclock.core.ClockOptions;
 import com.reteclock.core.ClockText;
 import com.reteclock.core.ColonBlink;
@@ -48,6 +49,8 @@ public class ClockView extends View {
 
     private static final Typeface SYSTEM_REGULAR = Typeface.create("sans-serif-light", Typeface.NORMAL);
     private static final Typeface SYSTEM_BOLD = Typeface.create("sans-serif", Typeface.BOLD);
+    /** OLED care's face: the thinnest the system has (API 16+; older systems give their default). */
+    private static final Typeface SYSTEM_THIN = Typeface.create("sans-serif-thin", Typeface.NORMAL);
     /** How far italic leans. Synthesised, because a user font has one weight and one slant. */
     private static final float ITALIC_SKEW = -0.25f;
 
@@ -89,6 +92,8 @@ public class ClockView extends View {
      * doing, and only the painting of that one character changes. Nothing moves.
      */
     private boolean blinkColon;
+    /** OLED care in force: thin face, fixed dim colour, the fade around each minute. */
+    private boolean oledCare;
     /** Whether the layout on screen has a colon at all — a tall clock stacks its lines and has none. */
     private boolean layoutHasColon;
     /** The glyphs of one string, reused: one path object rather than one per draw. */
@@ -274,6 +279,10 @@ public class ClockView extends View {
                             // has no colon, so it keeps the one redraw a second it always had.
                             ? ColonBlink.millisToNextChange(now)
                             : ClockText.millisToNextSecond(now);
+            if (oledCare) {
+                // The fade begins on time, not up to a second late.
+                delay = Math.min(delay, Math.max(1L, OledCare.millisToNextFade(now)));
+            }
             handler.postDelayed(this, delay);
         }
     };
@@ -301,7 +310,7 @@ public class ClockView extends View {
 
     /** How the calendar is to be read: which day leads the week, and how the month is written. */
     private void loadCalendar(Context context) {
-        burnInShift = Settings.burnInShift(context);
+        burnInShift = Settings.burnInShiftInForce(context);
         weekStart = Settings.calendarWeekStart(context);
         timeSource = Settings.timeSource(context);
         standardOffset = Settings.utcOffsetMinutes(context);
@@ -316,9 +325,9 @@ public class ClockView extends View {
      */
     private void loadColors(Context context) {
         backgroundColor = com.reteclock.core.ClockColors.opaque(
-                Settings.color(context, Settings.KEY_BACKGROUND_COLOR));
+                Settings.colorInForce(context, Settings.KEY_BACKGROUND_COLOR));
         textColor = com.reteclock.core.ClockColors.resolveText(
-                Settings.color(context, Settings.KEY_TEXT_COLOR), backgroundColor);
+                Settings.colorInForce(context, Settings.KEY_TEXT_COLOR), backgroundColor);
         setBackgroundColor(backgroundColor);
         paint.setColor(textColor);
     }
@@ -327,7 +336,7 @@ public class ClockView extends View {
     public void reloadOptions() {
         options = Settings.options(getContext());
         highContrast = HighContrastText.isOn(getContext());
-        blinkColon = Settings.blinkColon(getContext());
+        blinkColon = Settings.blinkColonInForce(getContext());
         loadCalendar(getContext());
         loadTypeface(getContext());
         loadImages(getContext());
@@ -465,7 +474,8 @@ public class ClockView extends View {
 
     /** Whether the next frame is wanted in milliseconds rather than at the next second. */
     private boolean fastFrames(long nowMs) {
-        return animating() || fading(nowMs);
+        return animating() || fading(nowMs)
+                || (oledCare && OledCare.fading(System.currentTimeMillis()));
     }
 
     /**
@@ -1030,9 +1040,13 @@ public class ClockView extends View {
         }
         paint.setShader(foreground != null ? foregroundShader : null);
 
+        // Under OLED care the drift keeps the wall clock's minutes, and the writing dims around
+        // each one (OledCare): the step is taken while the text is faint, with the digits changing.
+        long drift = oledCare ? instant : elapsed;
+        paint.setAlpha(oledCare ? OledCare.textAlpha(instant) : 255);
         canvas.save();
-        canvas.translate(insetLeft + BurnInShift.offsetX(elapsed, maxShift),
-                insetTop + BurnInShift.offsetY(elapsed, maxShift));
+        canvas.translate(insetLeft + BurnInShift.offsetX(drift, maxShift),
+                insetTop + BurnInShift.offsetY(drift, maxShift));
 
         for (ClockLayout.Slot slot : layout.slots()) {
             String[] pieces = piecesFor(slot, time);
@@ -1624,11 +1638,24 @@ public class ClockView extends View {
      */
     private void loadTypeface(Context context) {
         highContrast = HighContrastText.isOn(context);
-        blinkColon = Settings.blinkColon(context);
+        blinkColon = Settings.blinkColonInForce(context);
+        oledCare = Settings.oledCare(context);
         boldRoles.clear();
         italicRoles.clear();
         underlineRoles.clear();
         outlineRoles.clear();
+        userFonts.clear();
+        if (oledCare) {
+            // One thin system face, no bold, no outline, no underline: every one of those lights
+            // more pixels. Italic is kept — a slant lights none. The user's fonts and styles stay
+            // stored and come back when OLED care is off.
+            for (String role : Settings.FONT_ROLES) {
+                if (Settings.italic(context, role)) {
+                    italicRoles.add(role);
+                }
+            }
+            return;
+        }
         for (String role : Settings.FONT_ROLES) {
             if (Settings.bold(context, role)) {
                 boldRoles.add(role);
@@ -1644,7 +1671,6 @@ public class ClockView extends View {
             }
         }
 
-        userFonts.clear();
         // A font file can hang or crash the clock as readily as a picture can, so a safe run draws
         // with the system faces and leaves the imported ones untouched until the user says so.
         if (safeMode) {
@@ -1754,7 +1780,7 @@ public class ClockView extends View {
             paint.setTypeface(font);
             paint.setFakeBoldText(wantBold);
         } else {
-            paint.setTypeface(wantBold ? SYSTEM_BOLD : SYSTEM_REGULAR);
+            paint.setTypeface(oledCare ? SYSTEM_THIN : wantBold ? SYSTEM_BOLD : SYSTEM_REGULAR);
             paint.setFakeBoldText(false);
         }
         paint.setTextSkewX(italicRoles.contains(role) ? ITALIC_SKEW : 0f);
