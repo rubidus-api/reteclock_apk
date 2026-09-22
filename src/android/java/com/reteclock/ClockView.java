@@ -279,8 +279,9 @@ public class ClockView extends View {
                             // has no colon, so it keeps the one redraw a second it always had.
                             ? ColonBlink.millisToNextChange(now)
                             : ClockText.millisToNextSecond(now);
-            if (oledCare) {
-                // The fade begins on time, not up to a second late.
+            if (oledCare && !OledCare.fading(now)) {
+                // The fade begins on time, not up to a second late. During it the frame pacer
+                // above sets the rhythm; asking here then would answer zero and spin.
                 delay = Math.min(delay, Math.max(1L, OledCare.millisToNextFade(now)));
             }
             handler.postDelayed(this, delay);
@@ -1043,7 +1044,7 @@ public class ClockView extends View {
         // Under OLED care the drift keeps the wall clock's minutes, and the writing dims around
         // each one (OledCare): the step is taken while the text is faint, with the digits changing.
         long drift = oledCare ? instant : elapsed;
-        paint.setAlpha(oledCare ? OledCare.textAlpha(instant) : 255);
+        paint.setAlpha(oledCare ? OledCare.textAlpha(instant) : Color.alpha(textColor));
         canvas.save();
         canvas.translate(insetLeft + BurnInShift.offsetX(drift, maxShift),
                 insetTop + BurnInShift.offsetY(drift, maxShift));

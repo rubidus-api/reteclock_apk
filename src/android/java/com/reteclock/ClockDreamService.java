@@ -89,6 +89,10 @@ public class ClockDreamService extends DreamService {
         timer.setListener(dreamListener);
         timer.setPreset(running.preset());
         timer.adopt(running, Settings.runStarted(this));
+        // Under OLED care the controls take the mode's dim colour too, as they do on the clock.
+        if (Settings.oledCare(this)) {
+            timer.setChrome(com.reteclock.core.OledCare.TEXT_COLOR);
+        }
 
         int strip = stripThickness();
         row.addView(timer, landscape
