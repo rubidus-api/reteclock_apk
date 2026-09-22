@@ -423,13 +423,40 @@ public class SettingsActivity extends Activity {
         wander.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton button, boolean checked) {
+                // Greyed out, the box only shows what OLED care keeps on; it writes nothing.
+                if (!button.isEnabled()) {
+                    return;
+                }
                 Settings.setBurnInShift(SettingsActivity.this, checked);
             }
         });
         clock.addView(wander);
         clock.addView(footer(getString(R.string.settings_burn_in_note)));
 
+        final CheckBox care = new CheckBox(this);
+        care.setText(R.string.settings_oled_care);
+        care.setTextColor(TEXT_WHITE);
+        care.setChecked(Settings.oledCare(this));
+        care.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                Settings.setOledCare(SettingsActivity.this, checked);
+                // The drift is kept on underneath; the box says so rather than looking off.
+                wander.setEnabled(!checked);
+                wander.setChecked(checked || Settings.burnInShift(SettingsActivity.this));
+            }
+        });
+        wander.setEnabled(!Settings.oledCare(this));
+        if (Settings.oledCare(this)) {
+            wander.setChecked(true);
+        }
+        clock.addView(care);
+        clock.addView(footer(getString(R.string.settings_oled_care_note)));
+
         clock.addView(subheading(getString(R.string.settings_colors)));
+        if (Settings.oledCare(this)) {
+            clock.addView(warning(getString(R.string.settings_oled_care_overrides)));
+        }
         colorSection = new LinearLayout(this);
         colorSection.setOrientation(LinearLayout.VERTICAL);
         clock.addView(colorSection);
@@ -496,6 +523,9 @@ public class SettingsActivity extends Activity {
     private void buildFontPage(LinearLayout root) {
         root.addView(title(getString(R.string.settings_open_fonts)));
         LinearLayout fonts = card(getString(R.string.settings_font));
+        if (Settings.oledCare(this)) {
+            fonts.addView(warning(getString(R.string.settings_oled_care_overrides)));
+        }
         if (HighContrastText.isOn(this)) {
             fonts.addView(warning(getString(R.string.settings_high_contrast)));
         }
@@ -891,6 +921,9 @@ public class SettingsActivity extends Activity {
     private void buildPicturePage(LinearLayout root) {
         root.addView(title(getString(R.string.settings_open_pictures)));
         LinearLayout images = card(getString(R.string.settings_images));
+        if (Settings.oledCare(this)) {
+            images.addView(warning(getString(R.string.settings_oled_care_overrides)));
+        }
         if (HighContrastText.isOn(this)) {
             images.addView(warning(getString(R.string.settings_high_contrast)));
         }

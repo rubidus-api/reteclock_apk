@@ -68,6 +68,7 @@ public final class SettingsIni {
         {"clock_only_marker", "b", "clock"},
         {"colors_from_theme", "b", "clock"},
         {"burn_in_shift", "b", "clock"},
+        {"oled_care", "b", "clock"},
         {"time_percent_wide", "i", "clock"},
         {"time_percent_tall", "i", "clock"},
         {"text_color", "i", "clock"},
