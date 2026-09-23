@@ -1,0 +1,9 @@
+Added: OLED care, one switch on General settings that makes the clock as easy on an OLED screen as it can be — black behind everything, the writing in one dim warm colour in the thinnest face the system has, no pictures, the colon blinking and the wander always on, and the writing dimming for a moment around each minute so the wander's step is not seen. Your layout and your settings are untouched: switch it off and your colours, fonts and pictures come back.
+
+Added: a choice of voice on General settings, Tapping the clock. One list of every voice installed on the phone — each language on each speech engine — with the one in use marked and "Say the time now" to hear it. On Android 5.0 and newer the list leaves out voices the engine would first have to download or that need the network. The choice is used for the timer's spoken messages too.
+
+Changed: a tap now says the time alone — "13:30", or "1:30 PM" — instead of "It's 13:30." A speech engine reads in its own language, and the English words around the time were what a Korean or Persian voice could not read.
+
+Fixed: the main menu can be scrolled, so on a small screen or with the phone on its side its lower lines can be reached (issue #59).
+
+Fixed: a layout's timer strip drawn along the foot now reaches the bottom of the screen on a phone with gesture navigation, instead of stopping a bar's height short of it (issue #60).
