@@ -96,6 +96,12 @@
     <string name="settings_date_name">Jul 12</string>
     <string name="settings_date_day_month">12/07</string>
     <string name="settings_date_numeric">07-12</string>
+    <string name="settings_turn">Screen orientation</string>
+    <string name="settings_turn_system">Follow the phone</string>
+    <string name="settings_turn_sensor">Follow the sensor</string>
+    <string name="settings_turn_landscape">Lying down</string>
+    <string name="settings_turn_portrait">Standing up</string>
+    <string name="settings_turn_note">Which way up the clock is shown. Following the phone is the usual answer and what this app has always done. Following the sensor turns with the device even where the phone\'s own rotation is locked. The last two are fixed, for a screen that cannot be turned or has no rotation sensor at all — a reader or a tablet on a wall. It applies to the clock; the settings pages and the screensaver follow the phone as before.</string>
     <string name="settings_colors">Colours</string>
     <string name="settings_theme_colors">Take the colours from the system theme</string>
     <string name="settings_theme_colors_note">Dark theme: white writing on black. Light theme: dark writing on white. The clock changes with the phone, without being restarted. Your own two colours are kept and come back the moment this is switched off.</string>
@@ -664,6 +670,10 @@
     <string name="speak_intro">A tap on the clock face stops whatever is ringing — a bell, an alarm, the timer\'s cue. The menu is behind a long press, so a tap can safely be given something else to do.</string>
     <string name="speak_time">Say the time when the clock is tapped</string>
     <string name="speak_time_note">Spoken through the phone\'s speech engine, the one the timer\'s messages use, as the time alone — "13:30", or "1:30 PM" on a twelve-hour clock — so that the engine reads it in its own language; your own AM/PM words are used if you set any. It follows this app\'s own clock — its time offset and its 12- or 24-hour setting — rather than the phone\'s, and it is silent on a tap that stopped a sound. It reads midnight as 12 on a twelve-hour clock whatever the face is set to write. If the phone has no speech engine or no voice for the language, nothing is said.</string>
+    <string name="speak_style">How the time is read</string>
+    <string name="speak_style_reading">As written — 1:05</string>
+    <string name="speak_style_plain">Numbers only — 1 5</string>
+    <string name="speak_style_note">Some speech engines read a time as it is written, character by character: "zero one colon zero five". Numbers only hands them two plain numbers instead — 1 5, 12 30 — with no colon and no leading zero, which those engines read as a time. On an engine that already reads 1:05 well, as written is the more natural of the two. Your AM/PM word, where you have one, follows the numbers either way.</string>
     <string name="speak_voice">Voice</string>
     <string name="speak_voice_note">Which voice speaks — a language on one of the speech engines installed on this phone — for the time and for the timer\'s spoken messages alike. The list shows only voices that are installed: from Android 5.0 each engine marks the ones it would first have to download, or that need the network, and those are left out. The engine is this phone\'s own and stays behind when the settings are carried to another; the language goes with them.</string>
     <string name="speak_voice_button">Voice · %1$s</string>

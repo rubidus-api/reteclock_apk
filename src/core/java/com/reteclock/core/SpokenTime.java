@@ -64,12 +64,51 @@ public final class SpokenTime {
         return out.toString();
     }
 
+    /** The time read as the clock writes it: "1:05", "13:30". What a tap said until 0.49.0. */
+    public static final int STYLE_READING = 0;
+
     /**
-     * What is handed to the speech engine when the clock is tapped: the reading and nothing else
-     * (T111). The digits and the colon every engine reads in its own language; the markers are the
-     * user's own words where they set any.
+     * The time read as two numbers: "1 5", "13 30" — no colon, no leading zero anywhere.
+     *
+     * Issue #62: an engine that reads the string character by character says "zero one colon zero
+     * five" for 01:05, which is not a time in any language. Given two bare numbers it says "one
+     * five", which is what the reporter's Persian voice — and any other — makes sense of.
+     */
+    public static final int STYLE_PLAIN = 1;
+
+    /** The style a stored number means; anything else is the reading. */
+    public static int styleOf(int stored) {
+        return stored == STYLE_PLAIN ? STYLE_PLAIN : STYLE_READING;
+    }
+
+    /**
+     * What is handed to the speech engine when the clock is tapped: the time and nothing else
+     * (T111). No sentence around it, because an engine reads in its own language; the markers are
+     * the user's own words where they set any.
      */
     public static String utterance(int hour24, int minute, boolean hour12, CustomMarkers markers) {
-        return reading(hour24, minute, hour12, markers);
+        return utterance(hour24, minute, hour12, markers, STYLE_READING);
+    }
+
+    /** The same, in the style asked for (T115). */
+    public static String utterance(int hour24, int minute, boolean hour12, CustomMarkers markers,
+            int style) {
+        String said = reading(hour24, minute, hour12, markers);
+        if (styleOf(style) != STYLE_PLAIN) {
+            return said;
+        }
+        // The reading is "H:MM" and then, at most, a space and the marker. Only the time itself is
+        // rewritten; the marker is the user's own word and is left exactly as it is.
+        int colon = said.indexOf(':');
+        if (colon < 0) {
+            return said;
+        }
+        int end = said.indexOf(' ', colon);
+        String rest = end < 0 ? "" : said.substring(end);
+        String minutes = end < 0 ? said.substring(colon + 1) : said.substring(colon + 1, end);
+        while (minutes.length() > 1 && minutes.charAt(0) == '0') {
+            minutes = minutes.substring(1);
+        }
+        return said.substring(0, colon) + " " + minutes + rest;
     }
 }

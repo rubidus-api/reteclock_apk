@@ -99,6 +99,11 @@ public class ClockActivity extends Activity {
             return;
         }
 
+        // Which way up, before anything is laid out (issue #61). The manifest keeps the
+        // configuration change to ourselves, so a change here arrives as onConfigurationChanged
+        // and the screen is simply laid out again.
+        applyScreenTurn();
+
         int flags = WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
                 | WindowManager.LayoutParams.FLAG_FULLSCREEN;
         // Asked to stay up: the same flags the charger already brings, but every time. The screen
@@ -458,6 +463,17 @@ public class ClockActivity extends Activity {
             return boxes == null || boxes.isEmpty() ? null : boxes;
         } catch (RuntimeException broken) {
             return null;
+        }
+    }
+
+    /** Asks Android for the way up the settings name; the system's own choice by default. */
+    private void applyScreenTurn() {
+        try {
+            setRequestedOrientation(
+                    com.reteclock.core.ScreenTurn.requested(Settings.screenTurn(this)));
+        } catch (RuntimeException refused) {
+            // A platform that will not be told keeps whatever it was doing, which is a clock the
+            // right way up more often than not.
         }
     }
 
@@ -965,6 +981,8 @@ public class ClockActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        // The way up may have been changed on the settings page this is coming back from.
+        applyScreenTurn();
         // The user may have just changed the options in the settings screen — including whether
         // the timer is on at all, which changes what is on screen.
         view.reloadOptions();
