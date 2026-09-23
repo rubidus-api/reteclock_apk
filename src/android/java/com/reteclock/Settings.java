@@ -155,6 +155,10 @@ public final class Settings {
     public static final String KEY_BURN_IN_SHIFT = "burn_in_shift";
     /** OLED care: black, dim, thin, no pictures, drifting — see {@link com.reteclock.core.OledCare}. */
     public static final String KEY_OLED_CARE = "oled_care";
+    /** Which way up the clock asks to be shown: a {@link com.reteclock.core.ScreenTurn} mode. */
+    public static final String KEY_SCREEN_TURN = "screen_turn";
+    /** How a tap reads the time: a {@link com.reteclock.core.SpokenTime} style. */
+    public static final String KEY_SPOKEN_TIME_STYLE = "spoken_time_style";
     public static final String KEY_RUN_ORIGIN = "timer_run_origin";
     public static final String KEY_RUN_PAUSED_AT = "timer_run_paused_at";
     public static final String KEY_RUN_PRESET = "timer_run_preset";
@@ -268,6 +272,8 @@ public final class Settings {
         out.put(KEY_THEME_COLORS, Boolean.valueOf(themeColors(context)));
         out.put(KEY_BURN_IN_SHIFT, Boolean.valueOf(burnInShift(context)));
         out.put(KEY_OLED_CARE, Boolean.valueOf(oledCare(context)));
+        out.put(KEY_SCREEN_TURN, Integer.valueOf(screenTurn(context)));
+        out.put(KEY_SPOKEN_TIME_STYLE, Integer.valueOf(spokenTimeStyle(context)));
         out.put(KEY_TIME_PERCENT_WIDE, Integer.valueOf(timePercent(context, KEY_TIME_PERCENT_WIDE)));
         out.put(KEY_TIME_PERCENT_TALL, Integer.valueOf(timePercent(context, KEY_TIME_PERCENT_TALL)));
         out.put(KEY_TEXT_COLOR, Integer.valueOf(color(context, KEY_TEXT_COLOR)));
@@ -1025,7 +1031,7 @@ public final class Settings {
         com.reteclock.core.CivilTime at = com.reteclock.core.CivilTime.of(
                 now, offsetMinutes(context, now));
         return com.reteclock.core.SpokenTime.utterance(at.hour, at.minute, hour12(context),
-                markers(context));
+                markers(context), spokenTimeStyle(context));
     }
 
     /**
@@ -1638,6 +1644,36 @@ public final class Settings {
 
     public static void setOledCare(Context context, boolean on) {
         prefs(context).edit().putBoolean(KEY_OLED_CARE, on).commit();
+    }
+
+    /**
+     * Which way up the clock asks to be shown (issue #61).
+     *
+     * The system's own choice unless it is changed, which is what every clock did before: a phone
+     * knows how it is being held. A device with no rotation sensor does not, and a clock on a wall
+     * is the case this exists for.
+     */
+    public static int screenTurn(Context context) {
+        return com.reteclock.core.ScreenTurn.of(
+                prefs(context).getInt(KEY_SCREEN_TURN, com.reteclock.core.ScreenTurn.SYSTEM));
+    }
+
+    public static void setScreenTurn(Context context, int mode) {
+        prefs(context).edit().putInt(KEY_SCREEN_TURN, com.reteclock.core.ScreenTurn.of(mode))
+                .commit();
+    }
+
+    /** How a tap reads the time: as the clock writes it, or as two bare numbers (issue #62). */
+    public static int spokenTimeStyle(Context context) {
+        return com.reteclock.core.SpokenTime.styleOf(
+                prefs(context).getInt(KEY_SPOKEN_TIME_STYLE,
+                        com.reteclock.core.SpokenTime.STYLE_READING));
+    }
+
+    public static void setSpokenTimeStyle(Context context, int style) {
+        prefs(context).edit()
+                .putInt(KEY_SPOKEN_TIME_STYLE, com.reteclock.core.SpokenTime.styleOf(style))
+                .commit();
     }
 
     /** The drift, which OLED care keeps on whatever the switch above it says. */

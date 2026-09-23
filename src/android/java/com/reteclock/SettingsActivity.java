@@ -453,6 +453,21 @@ public class SettingsActivity extends Activity {
         clock.addView(care);
         clock.addView(footer(getString(R.string.settings_oled_care_note)));
 
+        clock.addView(subheading(getString(R.string.settings_turn)));
+        clock.addView(inlineChoice(
+                new String[] {getString(R.string.settings_turn_system),
+                    getString(R.string.settings_turn_sensor),
+                    getString(R.string.settings_turn_landscape),
+                    getString(R.string.settings_turn_portrait)},
+                Settings.screenTurn(this),
+                new OnChoice() {
+                    @Override
+                    public void chose(int which) {
+                        Settings.setScreenTurn(SettingsActivity.this, which);
+                    }
+                }));
+        clock.addView(footer(getString(R.string.settings_turn_note)));
+
         clock.addView(subheading(getString(R.string.settings_colors)));
         if (Settings.oledCare(this)) {
             clock.addView(warning(getString(R.string.settings_oled_care_overrides)));
@@ -2884,6 +2899,20 @@ public class SettingsActivity extends Activity {
         });
         speak.addView(say);
         speak.addView(footer(getString(R.string.speak_time_note)));
+
+        // How it is read out (issue #62): as the clock writes it, or as two bare numbers.
+        speak.addView(subheading(getString(R.string.speak_style)));
+        speak.addView(inlineChoice(
+                new String[] {getString(R.string.speak_style_reading),
+                    getString(R.string.speak_style_plain)},
+                Settings.spokenTimeStyle(this),
+                new OnChoice() {
+                    @Override
+                    public void chose(int which) {
+                        Settings.setSpokenTimeStyle(SettingsActivity.this, which);
+                    }
+                }));
+        speak.addView(footer(getString(R.string.speak_style_note)));
 
         // The voice: one engine and one language for everything the app says (T111).
         speak.addView(subheading(getString(R.string.speak_voice)));

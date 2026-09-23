@@ -193,7 +193,9 @@ and it can also say the time aloud: turn on *Say the time when the clock is tapp
 reads it — "13:30", or "1:30 PM" — through its speech engine, the one the timer's spoken messages
 use. Only the time is handed over, so every engine reads it in its own language. Under *Voice* you
 pick one voice from a list of every installed one — each language on each speech engine on the
-phone — and try it with *Say the time now*; the choice is used for the timer's messages too.
+phone — and try it with *Say the time now*; the choice is used for the timer's messages too. Under
+*How the time is read* you choose between "1:05" and "1 5" — some engines read a written time
+character by character, and two bare numbers are what those read as a time.
 Off until you turn it on, silent on the tap that stopped a sound, and it follows this app's clock,
 including your 12- or 24-hour setting and any AM/PM words of your own. A phone with no speech engine
 or no voice for the language says nothing; *Timer settings* reports what it found.
@@ -246,6 +248,9 @@ In the order they appear on the screen.
   left showing the time, since an OLED that has drawn the same numerals in the same place for
   months keeps them faintly forever. Turn it off if you would rather the clock held still — an LCD
   has nothing to burn in.
+- **Screen orientation** — follow the phone (the usual answer), follow the sensor, lying down, or
+  standing up. For a screen that cannot be turned, or a device with no rotation sensor: a reader or
+  a tablet on a wall. The screensaver and the settings pages follow the phone as before.
 - **OLED care: spare the screen as much as possible** — off unless you turn it on. Your layout stays
   as it is; only the drawing changes: black behind everything, the writing in one dim warm colour
   in the system's thinnest face, no pictures, the colon blinking and the wander always on, and the

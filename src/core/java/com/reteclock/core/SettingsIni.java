@@ -70,6 +70,8 @@ public final class SettingsIni {
         {"burn_in_shift", "b", "clock"},
         {"oled_care", "b", "clock"},
         {"speak_time", "b", "clock"},
+        {"spoken_time_style", "i", "clock"},
+        {"screen_turn", "i", "clock"},
         {"tts_language", "s", "clock"},
         {"time_percent_wide", "i", "clock"},
         {"time_percent_tall", "i", "clock"},
