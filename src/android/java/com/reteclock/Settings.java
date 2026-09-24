@@ -159,6 +159,15 @@ public final class Settings {
     public static final String KEY_SCREEN_TURN = "screen_turn";
     /** How a tap reads the time: a {@link com.reteclock.core.SpokenTime} style. */
     public static final String KEY_SPOKEN_TIME_STYLE = "spoken_time_style";
+    /** Whether a tap says the user's own sentence rather than one of the fixed styles. */
+    public static final String KEY_SPOKEN_TEMPLATE_ON = "spoken_template_on";
+    /** The user's own sentence, with fields in braces ({@link com.reteclock.core.SpokenTemplate}). */
+    public static final String KEY_SPOKEN_TEMPLATE = "spoken_template";
+    /** Whether the user's own spoken month and weekday names are said. */
+    public static final String KEY_SPOKEN_NAMES_ON = "spoken_names_on";
+    /** The user's spoken month and weekday names, one pair per calendar. */
+    public static final String KEY_SPOKEN_MONTHS = "spoken_months_";
+    public static final String KEY_SPOKEN_WEEKDAYS = "spoken_weekdays_";
     public static final String KEY_RUN_ORIGIN = "timer_run_origin";
     public static final String KEY_RUN_PAUSED_AT = "timer_run_paused_at";
     public static final String KEY_RUN_PRESET = "timer_run_preset";
@@ -274,6 +283,9 @@ public final class Settings {
         out.put(KEY_OLED_CARE, Boolean.valueOf(oledCare(context)));
         out.put(KEY_SCREEN_TURN, Integer.valueOf(screenTurn(context)));
         out.put(KEY_SPOKEN_TIME_STYLE, Integer.valueOf(spokenTimeStyle(context)));
+        out.put(KEY_SPOKEN_TEMPLATE_ON, Boolean.valueOf(spokenTemplateOn(context)));
+        out.put(KEY_SPOKEN_TEMPLATE, spokenTemplate(context));
+        out.put(KEY_SPOKEN_NAMES_ON, Boolean.valueOf(spokenNamesOn(context)));
         out.put(KEY_TIME_PERCENT_WIDE, Integer.valueOf(timePercent(context, KEY_TIME_PERCENT_WIDE)));
         out.put(KEY_TIME_PERCENT_TALL, Integer.valueOf(timePercent(context, KEY_TIME_PERCENT_TALL)));
         out.put(KEY_TEXT_COLOR, Integer.valueOf(color(context, KEY_TEXT_COLOR)));
@@ -365,6 +377,9 @@ public final class Settings {
             CustomNames names = customNames(context, system);
             out.put(KEY_NAMES_MONTHS + system, names.monthsText());
             out.put(KEY_NAMES_WEEKDAYS + system, names.weekdaysText());
+            CustomNames spoken = spokenNames(context, system);
+            out.put(KEY_SPOKEN_MONTHS + system, spoken.monthsText());
+            out.put(KEY_SPOKEN_WEEKDAYS + system, spoken.weekdaysText());
         }
         return out;
     }
@@ -1025,13 +1040,111 @@ public final class Settings {
         prefs(context).edit().putBoolean(KEY_SPEAK_TIME, spoken).commit();
     }
 
-    /** What a tap says now: the reading of this app's own clock, and nothing around it (T111). */
+    /**
+     * What a tap says now: the user's own sentence while it is switched on (T116), otherwise the
+     * reading of this app's own clock in the style chosen, and nothing around it (T111).
+     */
     public static String spokenTimeNow(Context context) {
+        if (spokenTemplateOn(context)) {
+            return spokenSentence(context, spokenTemplate(context), System.currentTimeMillis());
+        }
         long now = System.currentTimeMillis();
         com.reteclock.core.CivilTime at = com.reteclock.core.CivilTime.of(
                 now, offsetMinutes(context, now));
         return com.reteclock.core.SpokenTime.utterance(at.hour, at.minute, hour12(context),
                 markers(context), spokenTimeStyle(context));
+    }
+
+    /** A sentence with its fields filled in for this moment, in the clock's own time and calendar. */
+    public static String spokenSentence(Context context, String template, long epochMillis) {
+        return com.reteclock.core.SpokenTemplate.render(template,
+                spokenMoment(context, epochMillis), spokenWords(context));
+    }
+
+    /** The moment as the clock shows it: its own offset, its own calendar. */
+    public static com.reteclock.core.SpokenTemplate.Moment spokenMoment(Context context,
+            long epochMillis) {
+        com.reteclock.core.CivilTime at = com.reteclock.core.CivilTime.of(
+                epochMillis, offsetMinutes(context, epochMillis));
+        return com.reteclock.core.SpokenTemplate.moment(at.jdn, at.hour, at.minute, at.second,
+                calendarSystem(context), hijriOffset(context));
+    }
+
+    /**
+     * The words the fields are said with. The built-in names are the voice's language, from the
+     * platform's own locale data, because the voice is what says them; the user's own names and
+     * AM/PM words win where they wrote any.
+     */
+    public static com.reteclock.core.SpokenTemplate.Words spokenWords(Context context) {
+        java.util.Locale locale = ttsLocale(context);
+        String[] months = null;
+        String[] weekdays = null;
+        String am = "AM";
+        String pm = "PM";
+        try {
+            java.text.DateFormatSymbols symbols = new java.text.DateFormatSymbols(locale);
+            months = symbols.getMonths();
+            // The platform's weekdays are 1-based, Sunday at 1; the app's are Sunday at 0.
+            String[] raw = symbols.getWeekdays();
+            if (raw != null && raw.length >= 8) {
+                weekdays = new String[7];
+                System.arraycopy(raw, 1, weekdays, 0, 7);
+            }
+            String[] halves = symbols.getAmPmStrings();
+            if (halves != null && halves.length >= 2) {
+                am = halves[0];
+                pm = halves[1];
+            }
+        } catch (RuntimeException e) {
+            // A locale the platform has no data for is said in English.
+        }
+        int system = calendarSystem(context);
+        return com.reteclock.core.SpokenTemplate.Words.of(hour12(context), markers(context), am, pm,
+                months, weekdays, spokenNames(context, system), spokenNamesOn(context),
+                calendarNameStyle(context, system));
+    }
+
+    /** Whether a tap says the user's own sentence. Off unless asked for. */
+    public static boolean spokenTemplateOn(Context context) {
+        return prefs(context).getBoolean(KEY_SPOKEN_TEMPLATE_ON, false);
+    }
+
+    public static void setSpokenTemplateOn(Context context, boolean on) {
+        prefs(context).edit().putBoolean(KEY_SPOKEN_TEMPLATE_ON, on).commit();
+    }
+
+    /** The user's own sentence as they wrote it; "" means the default one. */
+    public static String spokenTemplate(Context context) {
+        return prefs(context).getString(KEY_SPOKEN_TEMPLATE, "");
+    }
+
+    public static void setSpokenTemplate(Context context, String template) {
+        // One line: the settings file keeps one value to a line.
+        String line = template == null ? "" : template.replace('\n', ' ').replace('\r', ' ');
+        prefs(context).edit().putString(KEY_SPOKEN_TEMPLATE, line).commit();
+    }
+
+    /** Whether the user's own spoken names are said. Switching it off keeps them. */
+    public static boolean spokenNamesOn(Context context) {
+        return prefs(context).getBoolean(KEY_SPOKEN_NAMES_ON, false);
+    }
+
+    public static void setSpokenNamesOn(Context context, boolean on) {
+        prefs(context).edit().putBoolean(KEY_SPOKEN_NAMES_ON, on).commit();
+    }
+
+    /** The names the user wrote for saying one calendar's months and weekdays. */
+    public static CustomNames spokenNames(Context context, int system) {
+        return CustomNames.parse(
+                prefs(context).getString(KEY_SPOKEN_MONTHS + system, ""),
+                prefs(context).getString(KEY_SPOKEN_WEEKDAYS + system, ""));
+    }
+
+    public static void setSpokenNames(Context context, int system, CustomNames names) {
+        prefs(context).edit()
+                .putString(KEY_SPOKEN_MONTHS + system, names.monthsText())
+                .putString(KEY_SPOKEN_WEEKDAYS + system, names.weekdaysText())
+                .commit();
     }
 
     /**

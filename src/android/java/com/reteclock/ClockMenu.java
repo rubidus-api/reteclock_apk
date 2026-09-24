@@ -94,6 +94,14 @@ final class ClockMenu {
                         activity.startActivity(new Intent(activity, TimerSettingsActivity.class));
                     }
                 }));
+        card.addView(choice(activity, activity.getString(R.string.menu_speech),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        dialog.dismiss();
+                        activity.startActivity(new Intent(activity, SpeechSettingsActivity.class));
+                    }
+                }));
 
         card.addView(choice(activity, activity.getString(R.string.menu_timedate_settings),
                 new View.OnClickListener() {

@@ -71,6 +71,9 @@ public final class SettingsIni {
         {"oled_care", "b", "clock"},
         {"speak_time", "b", "clock"},
         {"spoken_time_style", "i", "clock"},
+        {"spoken_template_on", "b", "clock"},
+        {"spoken_template", "s", "clock"},
+        {"spoken_names_on", "b", "clock"},
         {"screen_turn", "i", "clock"},
         {"tts_language", "s", "clock"},
         {"time_percent_wide", "i", "clock"},
@@ -155,6 +158,8 @@ public final class SettingsIni {
         {"calendar_system_weekdays_", "i", "timedate"},
         {"names_months_", "s", "timedate"},
         {"names_weekdays_", "s", "timedate"},
+        {"spoken_months_", "s", "clock"},
+        {"spoken_weekdays_", "s", "clock"},
     };
 
     /** One setting on its way in or out. */

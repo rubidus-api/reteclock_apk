@@ -83,6 +83,12 @@
             android:theme="@android:style/Theme.Black" />
 
         <activity
+            android:name=".SpeechSettingsActivity"
+            android:exported="false"
+            android:label="@string/speech_title"
+            android:theme="@android:style/Theme.Black" />
+
+        <activity
             android:name=".ReligiousSettingsActivity"
             android:exported="false"
             android:label="@string/religious_title"

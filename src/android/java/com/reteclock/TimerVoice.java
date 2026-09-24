@@ -132,6 +132,9 @@ final class TimerVoice {
             // The two-argument form is what exists from API 4; its replacement arrived at API 21
             // and this app compiles against 19.
             engine.speak(text, TextToSpeech.QUEUE_FLUSH, null);
+            // What was handed over, for the device lanes: a sound's length says that something
+            // was said, and only this says what (verify-speech.sh).
+            android.util.Log.d("reteclock", "spoken: " + text);
         } catch (RuntimeException e) {
             broken = true;
         }
