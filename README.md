@@ -190,17 +190,24 @@ checked against each body's own publication — compare them once with a timetab
 set chosen, the name it uses for each moment is shown beside the app's own — *Dusk · Isha* — and
 that can be switched off.
 
-**Tapping the clock** — *General settings* → *Tapping the clock*. A tap stops whatever is ringing,
-and it can also say the time aloud: turn on *Say the time when the clock is tapped* and the phone
-reads it — "13:30", or "1:30 PM" — through its speech engine, the one the timer's spoken messages
-use. Only the time is handed over, so every engine reads it in its own language. Under *Voice* you
-pick one voice from a list of every installed one — each language on each speech engine on the
-phone — and try it with *Say the time now*; the choice is used for the timer's messages too. Under
-*How the time is read* you choose between "1:05" and "1 5" — some engines read a written time
-character by character, and two bare numbers are what those read as a time.
-Off until you turn it on, silent on the tap that stopped a sound, and it follows this app's clock,
-including your 12- or 24-hour setting and any AM/PM words of your own. A phone with no speech engine
-or no voice for the language says nothing; *Timer settings* reports what it found.
+**Speech settings** — main menu → *Speech settings* (from the next release; in 0.50.0 the tap
+switch, the two fixed styles and the voice are on *General settings* → *Tapping the clock*).
+Everything the app says aloud is on this page. A tap on the clock stops whatever is ringing, and it can also say the time: turn on *Say the
+time when the clock is tapped* and the phone reads it through its speech engine. *How the time is
+read* offers three ways: as written ("1:05"), numbers only ("1 5" — some engines read a written
+time character by character, and two bare numbers are what those read as a time), or **your own
+sentence** — text with fields in braces, `{hour} {min} {sec} {ampm} {year} {month} {date} {day}`,
+such as `It is {hour} {min} {ampm}` or `{day}, {month} {date}`, written in whatever language your
+voice speaks. Numbers go in bare, month and weekday names are said in full in the voice's language
+and the date in the calendar the clock shows; a line under the field shows what would be said now,
+and one button brings back the default sentence. Under *Spoken names* you can say any month or
+weekday your own way, per calendar and apart from the names the clock writes; a switch turns your
+names on and off without losing them. Under *Voice for the time and the timer* you pick one voice
+from a list of every installed one — each language on each speech engine on the phone — and try it
+with *Say the time now*; the timer's spoken messages use it too. Off until you turn it on, silent
+on the tap that stopped a sound, and it follows this app's clock, including your 12- or 24-hour
+setting and any AM/PM words of your own. A phone with no speech engine or no voice for the language
+says nothing, and the page says what it found.
 
 **Sleep mode** — *General settings* → *Sleep mode*. For the night: the screen darker (1 % by
 default), the background and the timer put away, without changing your own settings. Press the
@@ -521,28 +528,26 @@ A few things worth knowing about particular ones:
   a Ramazan is wrong. **Umm al-Qura, which this app already ships, is the closest thing available**
   — 35 of 38 — and with the ±2 day offset it is what a Turkish user should reach for meanwhile.
 
-**Prayer times and the direction of Mecca — with my apologies.** These were considered for this app
-and they are not in it, and I would rather say why plainly than leave it looking like an oversight.
+**Prayer times — yes; the direction of Mecca — not, with my apologies.** A prayer timetable is
+worked out for the exact place you are standing, for that day's sun, and by a calculation
+convention: the twilight angles that fix Fajr and Isha differ between the recognised authorities,
+Asr depends on which school's shadow length is followed, and the far north and south need further
+conventions again. This app now does that work. Set your place once on *Sunset/sunrise settings* —
+a city from the list or a latitude and longitude, with no location permission and no network — and
+choose a convention on *Religious settings*, one of the ten published sets or your own numbers. The
+page then lists the day's times — dawn (Fajr), sunrise, solar noon (Dhuhr), the afternoon shadow
+(Asr), sunset, the evening (Maghrib), dusk (Isha) and the night's middle — worked out afresh every day, and any
+bell can ring at one of them, before or after by up to three hours. Please compare them once with a
+timetable you trust: the sets' numbers are carried for convenience and not as a ruling, and a
+mosque's own timetable may add minutes of its own.
 
-A prayer timetable is not a clock face. It is worked out for the exact place you are standing, for
-that day's sun, and according to a calculation convention: the twilight angles that fix Fajr and
-Isha differ between the recognised authorities, Asr depends on which school's shadow length is
-followed, and the far north and south need further conventions again. The direction of Mecca is a
-bearing from where you stand to the Kaaba, and for a phone to point at it the compass has to be
-corrected for magnetic declination.
+The direction of Mecca is still not here. It is a bearing from where you stand to the Kaaba, and for
+a phone to point at it the compass has to be read and corrected for magnetic declination. This app
+uses no sensors, and the old phones it is built for often have no magnetometer worth trusting; a
+quietly wrong direction would cost the person praying, not the app. The apps built for the purpose
+do it properly, and pointing at them is more use than doing it badly here.
 
-This app knows none of that and asks for none of it. It requests permissions to keep the
-screen awake, to vibrate, and (for the experimental alarms only) to start after a restart and run a
-foreground service — and no location, no sensors and no network. Everything it shows, it
-works out from the date and the offset you set. The old phones it is built for often have no
-satellite fix and no magnetometer worth trusting.
-
-So it could only ever offer an approximation, and this is the wrong thing to approximate: a quietly
-wrong answer would cost the person praying, not the app. A simple clock for old devices is not the
-right tool for this, and I do not plan to add it later. The apps built for the purpose do it
-properly, and pointing at them is more use than doing it badly here.
-
-What this app does carry for Muslim users is three Hijri reckonings — the arithmetic one, Umm
+Alongside the prayer times, the app carries three Hijri reckonings — the arithmetic one, Umm
 al-Qura, and MABIMS — and a two-day offset either way, for the months where the announcement and
 the calculation part company. My thanks for your understanding.
 
