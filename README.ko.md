@@ -4,6 +4,8 @@
 
 [English](README.md) · **한국어**
 
+웹 브라우저가 오래되어 GitHub 에서 파일을 받을 수 없나요? 옛 안드로이드 폰용 파일·APK 다운로더 [ReteGet](https://github.com/rubidus-api/reteget_apk/blob/main/README.ko.md) 을 이용해 보세요!
+
 **쓰지 않는 안드로이드 폰을 머리맡 시계나 탁상 시계로 만들어 줍니다.**
 
 폰을 충전기에 꽂고 거치대에 세워 두면, reteclock이 화면 가득 큰 숫자로 시각을 보여 주고 그 곁에

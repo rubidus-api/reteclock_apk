@@ -4,6 +4,8 @@
 
 **English** · [한국어](README.ko.md)
 
+Is your phone's web browser too old to download files from GitHub? Try [ReteGet](https://github.com/rubidus-api/reteget_apk), a file and APK downloader for old Android phones.
+
 **Turn an old Android phone into a bedside or desk clock.**
 
 Plug the phone into its charger, stand it up, and reteclock fills the screen with the time in big
