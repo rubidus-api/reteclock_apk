@@ -352,6 +352,13 @@ nothing extra drawn.
   the clock* takes the hourglass off the screen, and a countdown nobody can see is a countdown
   nobody can stop. So the run is ended and forgotten, not paused: switching the timer back on
   finds it at the beginning, not still going.
+- **Keys** — a remote's centre key or Enter starts and pauses the timer, and the media keys do what
+  their labels say. From the next release, *Timer settings* → *Keys* lets you choose keys of your
+  own for *Start / pause* and for *Stop* — an e-reader's page buttons, a keyboard's space bar, a
+  headset button, a phone's volume keys: press *+ Add a key*, then the key. Any key the device sends
+  to apps works, a keyboard's and the device's own buttons alike; Home, the power key and the app
+  switcher never reach an app, Back is kept for leaving, and an on-screen keyboard sends no keys.
+  Off until you switch it on, and then Page Up and Page Down start and pause until you change them.
 
 **Sounds and bells**
 

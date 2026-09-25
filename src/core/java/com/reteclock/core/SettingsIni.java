@@ -133,6 +133,9 @@ public final class SettingsIni {
         {"timer_log", "b", "timer"},
         {"timer_log_ceiling_mb", "i", "timer"},
         {"timer_log_floor_mb", "i", "timer"},
+        {"timer_keys_on", "b", "timer"},
+        {"timer_keys_start_pause", "s", "timer"},
+        {"timer_keys_stop", "s", "timer"},
 
         {"calendar_on", "b", "timedate"},
         {"calendar_week_monday", "b", "timedate"},

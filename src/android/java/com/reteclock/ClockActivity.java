@@ -901,9 +901,25 @@ public class ClockActivity extends Activity {
                 || keyCode == android.view.KeyEvent.KEYCODE_ENTER)) {
             event.startTracking();
         }
+        // The user's own timer keys come first (issue #63): a key they chose means what they chose.
+        if (timer != null) {
+            int own = timerKeys().route(keyCode, event == null ? 0 : event.getRepeatCount(),
+                    timerRunning());
+            if (own == com.reteclock.core.TimerKeys.SWALLOW) {
+                return true;
+            }
+            if (own != com.reteclock.core.KeyRoute.NOTHING) {
+                return obey(own);
+            }
+        }
         boolean held = event != null && event.isLongPress();
         return obey(com.reteclock.core.KeyRoute.onClock(keyCode, held, timerRunning()))
                 || super.onKeyDown(keyCode, event);
+    }
+
+    /** Read on each press rather than kept: the settings page is where it changes. */
+    private com.reteclock.core.TimerKeys timerKeys() {
+        return Settings.timerKeys(this);
     }
 
     /** Whether the strip is counting just now — the question the centre key's answer turns on. */
@@ -959,6 +975,11 @@ public class ClockActivity extends Activity {
     @Override
     public boolean onKeyUp(int keyCode, android.view.KeyEvent event) {
         if (com.reteclock.core.KeyRoute.onClock(keyCode) == com.reteclock.core.KeyRoute.SETTINGS) {
+            return true;
+        }
+        // A chosen timer key was answered on the way down; its release is not the platform's
+        // either (a volume key would otherwise click, a page key scroll whatever has the focus).
+        if (timer != null && timerKeys().takes(keyCode)) {
             return true;
         }
         // The centre key was answered on the way down; letting its release through would have the

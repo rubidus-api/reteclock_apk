@@ -177,6 +177,11 @@ public class TimerSettingsActivity extends Activity {
         sets.addView(footer(getString(R.string.timer_preset_note)));
         root.addView(sets);
 
+        // ---- Keys of the user's choosing (issue #63) ----
+        keysCard = card(getString(R.string.timer_keys_card));
+        root.addView(keysCard);
+        rebuildKeys();
+
         // ---- The log ----
         root.addView(logCard());
 
@@ -1026,6 +1031,140 @@ public class TimerSettingsActivity extends Activity {
                 }
             }
         }
+    }
+
+    // ---- keys of the user's choosing (issue #63) ------------------------------------------
+
+    private LinearLayout keysCard;
+
+    /**
+     * The switch, the two lists and a way to add to them.
+     *
+     * A key is added by pressing it, not by picking it from a list: a reader's page buttons, a
+     * keyboard and a headset all arrive as key codes, and the one sure way to know which code a
+     * device's button sends is to have it sent. Back cancels, so a remote whose every other key
+     * could be chosen still has a way out of the question.
+     */
+    private void rebuildKeys() {
+        if (keysCard == null) {
+            return;
+        }
+        while (keysCard.getChildCount() > 1) {
+            keysCard.removeViewAt(1);
+        }
+        com.reteclock.core.TimerKeys keys = Settings.timerKeys(this);
+        CheckBox on = new CheckBox(this);
+        on.setText(R.string.timer_keys_on);
+        on.setTextColor(TEXT_WHITE);
+        on.setChecked(keys.on());
+        on.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                Settings.setTimerKeysOn(TimerSettingsActivity.this, checked);
+            }
+        });
+        keysCard.addView(on);
+        keysCard.addView(footer(getString(R.string.timer_keys_note)));
+
+        keysCard.addView(subheading(getString(R.string.timer_keys_start_pause)));
+        keysCard.addView(keyRow(keys.startPause(), false));
+        keysCard.addView(subheading(getString(R.string.timer_keys_stop)));
+        keysCard.addView(keyRow(keys.stop(), true));
+
+        keysCard.addView(actionButton(getString(R.string.timer_keys_defaults),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        com.reteclock.core.TimerKeys now =
+                                Settings.timerKeys(TimerSettingsActivity.this);
+                        Settings.setTimerKeys(TimerSettingsActivity.this,
+                                com.reteclock.core.TimerKeys.of(now.on(), null, null));
+                        rebuildKeys();
+                    }
+                }));
+        keysCard.addView(footer(getString(R.string.timer_keys_remove_note)));
+    }
+
+    /** One list: a button per key, which takes it off, and one that adds a key. */
+    private View keyRow(int[] codes, final boolean stop) {
+        FlowLayout row = new FlowLayout(this, dp(4), dp(2));
+        for (int i = 0; i < codes.length; i++) {
+            final int code = codes[i];
+            final String name = keyName(code);
+            row.addView(smallButton(name, new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    new AlertDialog.Builder(TimerSettingsActivity.this)
+                            .setMessage(getString(R.string.timer_keys_remove_ask, name))
+                            .setPositiveButton(R.string.timer_keys_remove_yes,
+                                    new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            Settings.setTimerKeys(TimerSettingsActivity.this,
+                                                    Settings.timerKeys(TimerSettingsActivity.this)
+                                                            .without(code));
+                                            rebuildKeys();
+                                        }
+                                    })
+                            .setNegativeButton(android.R.string.cancel, null)
+                            .show();
+                }
+            }));
+        }
+        if (codes.length == 0) {
+            TextView none = footer(getString(R.string.timer_keys_none));
+            row.addView(none);
+        }
+        row.addView(smallButton(getString(R.string.timer_keys_add), new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                askForKey(stop);
+            }
+        }));
+        return row;
+    }
+
+    /** Waits for a key and puts it in the list asked for. */
+    private void askForKey(final boolean stop) {
+        final AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(stop ? R.string.timer_keys_stop : R.string.timer_keys_start_pause)
+                .setMessage(R.string.timer_keys_press)
+                .create();
+        dialog.setOnKeyListener(new DialogInterface.OnKeyListener() {
+            @Override
+            public boolean onKey(DialogInterface d, int keyCode, android.view.KeyEvent event) {
+                if (keyCode == android.view.KeyEvent.KEYCODE_BACK) {
+                    // The way out, and never a choice: let the dialog cancel itself.
+                    return false;
+                }
+                if (event.getAction() != android.view.KeyEvent.ACTION_DOWN
+                        || event.getRepeatCount() > 0) {
+                    return true;
+                }
+                if (!com.reteclock.core.TimerKeys.assignable(keyCode)) {
+                    toast(getString(R.string.timer_keys_refused, keyName(keyCode)));
+                    return true;
+                }
+                com.reteclock.core.TimerKeys now = Settings.timerKeys(TimerSettingsActivity.this);
+                Settings.setTimerKeys(TimerSettingsActivity.this,
+                        stop ? now.withStop(keyCode) : now.withStartPause(keyCode));
+                toast(getString(stop ? R.string.timer_keys_added_stop
+                        : R.string.timer_keys_added_start_pause, keyName(keyCode)));
+                dialog.dismiss();
+                rebuildKeys();
+                return true;
+            }
+        });
+        dialog.show();
+    }
+
+    /** "Page Up", from the core's table, or the platform's own name where it has one (API 12). */
+    private static String keyName(int code) {
+        String platform = null;
+        if (android.os.Build.VERSION.SDK_INT >= 12) {
+            platform = KeyNamesApi12.of(code);
+        }
+        return com.reteclock.core.TimerKeys.name(code, platform);
     }
 
     private void toast(String message) {

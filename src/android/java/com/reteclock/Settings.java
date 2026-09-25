@@ -66,6 +66,11 @@ public final class Settings {
     /** How much of the phone the log may have, and how far a trim goes, in whole megabytes. */
     public static final String KEY_TIMER_LOG_CEILING = "timer_log_ceiling_mb";
     public static final String KEY_TIMER_LOG_FLOOR = "timer_log_floor_mb";
+    /** Whether the user's own timer keys are listened for (issue #63). */
+    public static final String KEY_TIMER_KEYS_ON = "timer_keys_on";
+    /** The keys that start and pause the timer, and those that stop it: key codes, commas. */
+    public static final String KEY_TIMER_KEYS_START_PAUSE = "timer_keys_start_pause";
+    public static final String KEY_TIMER_KEYS_STOP = "timer_keys_stop";
     public static final String KEY_CALENDAR_ON = "calendar_on";
     public static final String KEY_CALENDAR_MONDAY = "calendar_week_monday";
     public static final String KEY_CALENDAR_HEADER = "calendar_header";
@@ -349,6 +354,10 @@ public final class Settings {
         out.put(KEY_TIMER_LOG, Boolean.valueOf(timerLogKept(context)));
         out.put(KEY_TIMER_LOG_CEILING, Integer.valueOf(timerLogCeilingMb(context)));
         out.put(KEY_TIMER_LOG_FLOOR, Integer.valueOf(timerLogFloorMb(context)));
+        com.reteclock.core.TimerKeys keys = timerKeys(context);
+        out.put(KEY_TIMER_KEYS_ON, Boolean.valueOf(keys.on()));
+        out.put(KEY_TIMER_KEYS_START_PAUSE, keys.startPauseText());
+        out.put(KEY_TIMER_KEYS_STOP, keys.stopText());
 
         out.put(KEY_CALENDAR_ON, Boolean.valueOf(calendarOn(context)));
         out.put(KEY_CALENDAR_HEADER, Integer.valueOf(calendarHeaderStyle(context)));
@@ -1102,6 +1111,29 @@ public final class Settings {
         return com.reteclock.core.SpokenTemplate.Words.of(hour12(context), markers(context), am, pm,
                 months, weekdays, spokenNames(context, system), spokenNamesOn(context),
                 calendarNameStyle(context, system));
+    }
+
+    /**
+     * The user's own timer keys (issue #63). Off unless asked for; a list never stored is the
+     * defaults (the two page keys), and a list the user emptied stays empty.
+     */
+    public static com.reteclock.core.TimerKeys timerKeys(Context context) {
+        return com.reteclock.core.TimerKeys.of(
+                prefs(context).getBoolean(KEY_TIMER_KEYS_ON, false),
+                prefs(context).getString(KEY_TIMER_KEYS_START_PAUSE, null),
+                prefs(context).getString(KEY_TIMER_KEYS_STOP, null));
+    }
+
+    public static void setTimerKeys(Context context, com.reteclock.core.TimerKeys keys) {
+        prefs(context).edit()
+                .putBoolean(KEY_TIMER_KEYS_ON, keys.on())
+                .putString(KEY_TIMER_KEYS_START_PAUSE, keys.startPauseText())
+                .putString(KEY_TIMER_KEYS_STOP, keys.stopText())
+                .commit();
+    }
+
+    public static void setTimerKeysOn(Context context, boolean on) {
+        prefs(context).edit().putBoolean(KEY_TIMER_KEYS_ON, on).commit();
     }
 
     /** Whether a tap says the user's own sentence. Off unless asked for. */
