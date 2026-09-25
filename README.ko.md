@@ -1,6 +1,6 @@
 # reteclock
 
-**reteclock v0.50.0** (최신 릴리즈) 다운로드 — [apk (안드로이드 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.50.0/reteclock-0.50.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)
+**reteclock v0.51.0** (최신 릴리즈) 다운로드 — [apk (안드로이드 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.51.0/reteclock-0.51.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)
 
 [English](README.md) · **한국어**
 
@@ -31,8 +31,8 @@
 
 **[⬇ F-Droid에서 받기](https://f-droid.org/packages/com.reteclock/)** — 권장합니다.
 
-**[⬇ reteclock-0.50.0.apk 내려받기](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.50.0/reteclock-0.50.0.apk)**
-— 586 KB이고 안드로이드 2.3 이상에 설치됩니다. 파일로 곧장 이어지는 링크라, 깃허브의 릴리즈
+**[⬇ reteclock-0.51.0.apk 내려받기](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.51.0/reteclock-0.51.0.apk)**
+— 598 KB이고 안드로이드 2.3 이상에 설치됩니다. 파일로 곧장 이어지는 링크라, 깃허브의 릴리즈
 페이지를 제대로 그리지 못하는 오래된 브라우저에서도 내려받으실 수 있습니다.
 
 가장 최근 릴리즈는 언제나
@@ -136,7 +136,7 @@ F-Droid 앱은 업데이트할 때마다 서명도 검사합니다.
 
 ## 어떤 폰에서 돌아가나
 
-F-Droid에 게시되어 있고, 최신 릴리즈는 0.50.0입니다.
+F-Droid에 게시되어 있고, 최신 릴리즈는 0.51.0입니다.
 
 | | |
 |---|---|
@@ -183,8 +183,8 @@ F-Droid에 게시되어 있고, 최신 릴리즈는 0.50.0입니다.
 맞춰 보시기 바랍니다. 묶음을 고르면 각 시각에 그 전통이 쓰는 이름이 앱의
 이름 옆에 함께 표시되며(예: *Dusk · Isha*), 원하면 끌 수 있습니다.
 
-**음성 설정(Speech settings)** — 메인 메뉴 → *Speech settings*(다음 릴리스부터입니다. 0.50.0 에서는
-누름 스위치와 고정 방식 두 가지, 음성 선택이 *General settings* → *Tapping the clock* 에 있습니다).
+**음성 설정(Speech settings)** — 메인 메뉴 → *Speech settings*(0.51.0 부터입니다. 그 전에는 누름
+스위치와 고정 방식 두 가지, 음성 선택이 *General settings* → *Tapping the clock* 에 있었습니다).
 앱이 소리 내어 말하는 것은 모두 이 페이지에 있습니다. 시계를 한 번 누르면 울리던 소리가 멈추고, 원하시면 시각을 읽게 할 수도
 있습니다. *Say the time when the clock is tapped* 를 켜면 폰의 음성 엔진이 읽어 줍니다. *How the
 time is read* 에서는 세 가지 중에 고릅니다. 쓰인 그대로("1:05"), 숫자만("1 5" — 어떤 엔진은 쓰인
@@ -326,7 +326,7 @@ background*(배경 표시) 스위치가 따로 있습니다 — 예컨대 무늬
   화면에서 사라지는데, 보이지 않는 카운트다운은 멈출 수도 없는 카운트다운입니다. 그래서 돌고 있던
   것을 끝내고 기억에서도 지웁니다. 다시 켜면 세던 자리가 아니라 처음 상태입니다.
 - **키(Keys)** — 리모컨의 가운데 키나 Enter 는 타이머를 시작·일시정지하고, 미디어 키는 적힌 대로
-  동작합니다. 다음 릴리스부터는 *Timer settings* → *Keys* 에서 *Start / pause* 와 *Stop* 에 쓸 키를
+  동작합니다. 0.51.0 부터는 *Timer settings* → *Keys* 에서 *Start / pause* 와 *Stop* 에 쓸 키를
   직접 정할 수 있습니다. 전자책 리더의 페이지 버튼, 키보드의 스페이스 바, 헤드셋 버튼, 폰의 볼륨 키
   등을 *+ Add a key* 를 누른 다음 그 키를 눌러 등록합니다. 기기가 앱에 보내는 키라면 키보드 키든
   기기 자체 버튼이든 모두 됩니다. 홈·전원·앱 전환 키는 앱에 오지 않고, Back 은 시계를 나가는 데

@@ -1,0 +1,3 @@
+Added: Speech settings, one page on the main menu for everything the clock says. A tap can read your own sentence, with fields such as {hour} {min} {ampm} {day} {month} {date}; numbers are said without leading zeros, and month and weekday names in the voice's language, or your own.
+
+Added: keys of your own for the timer, on Timer settings, Keys: press any key or button to make it start/pause or stop the timer. Off until switched on; then Page Up and Page Down start and pause (issue #63).

@@ -1,6 +1,6 @@
 # reteclock
 
-**reteclock v0.50.0** (latest release) download — [apk (Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.50.0/reteclock-0.50.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)
+**reteclock v0.51.0** (latest release) download — [apk (Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.51.0/reteclock-0.51.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)
 
 **English** · [한국어](README.ko.md)
 
@@ -32,8 +32,8 @@ you turn that page's switch on.
 
 **[⬇ Get it on F-Droid](https://f-droid.org/packages/com.reteclock/)** — recommended.
 
-**[⬇ Download reteclock-0.50.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.50.0/reteclock-0.50.0.apk)**
-— 586 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
+**[⬇ Download reteclock-0.51.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.51.0/reteclock-0.51.0.apk)**
+— 598 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
 render GitHub's release page can still fetch it.
 
 The newest release is always at
@@ -137,7 +137,7 @@ it needs beyond keeping the screen awake. Copy the APK to the phone, open it, an
 
 ## Which phones it runs on
 
-Published on F-Droid; the latest release is 0.50.0.
+Published on F-Droid; the latest release is 0.51.0.
 
 | | |
 |---|---|
@@ -190,9 +190,8 @@ checked against each body's own publication — compare them once with a timetab
 set chosen, the name it uses for each moment is shown beside the app's own — *Dusk · Isha* — and
 that can be switched off.
 
-**Speech settings** — main menu → *Speech settings* (from the next release; in 0.50.0 the tap
-switch, the two fixed styles and the voice are on *General settings* → *Tapping the clock*).
-Everything the app says aloud is on this page. A tap on the clock stops whatever is ringing, and it can also say the time: turn on *Say the
+**Speech settings** — main menu → *Speech settings* (since 0.51.0; before it the tap switch, the
+two fixed styles and the voice were on *General settings* → *Tapping the clock*). Everything the app says aloud is on this page. A tap on the clock stops whatever is ringing, and it can also say the time: turn on *Say the
 time when the clock is tapped* and the phone reads it through its speech engine. *How the time is
 read* offers three ways: as written ("1:05"), numbers only ("1 5" — some engines read a written
 time character by character, and two bare numbers are what those read as a time), or **your own
@@ -353,7 +352,7 @@ nothing extra drawn.
   nobody can stop. So the run is ended and forgotten, not paused: switching the timer back on
   finds it at the beginning, not still going.
 - **Keys** — a remote's centre key or Enter starts and pauses the timer, and the media keys do what
-  their labels say. From the next release, *Timer settings* → *Keys* lets you choose keys of your
+  their labels say. Since 0.51.0, *Timer settings* → *Keys* lets you choose keys of your
   own for *Start / pause* and for *Stop* — an e-reader's page buttons, a keyboard's space bar, a
   headset button, a phone's volume keys: press *+ Add a key*, then the key. Any key the device sends
   to apps works, a keyboard's and the device's own buttons alike; Home, the power key and the app
