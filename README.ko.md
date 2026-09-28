@@ -1,8 +1,6 @@
-**한국어** | [English](README.md) — **reteclock v0.51.0** — [APK(Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.51.0/reteclock-0.51.0.apk)
+**한국어** | [English](README.md) — **reteclock v0.51.0** — [APK(Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.51.0/reteclock-0.51.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)
 
 # reteclock
-
-[F-Droid](https://f-droid.org/packages/com.reteclock/) 에서도 받을 수 있습니다.
 
 웹 브라우저가 오래되어 GitHub 에서 파일을 받을 수 없나요? 옛 안드로이드 폰용 파일·APK 다운로더 [ReteGet](https://github.com/rubidus-api/reteget_apk/blob/main/README.ko.md) 을 이용해 보세요!
 
