@@ -1,8 +1,8 @@
+[한국어](README.ko.md) | **English** — **reteclock v0.51.0** — [APK(Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.51.0/reteclock-0.51.0.apk)
+
 # reteclock
 
-**reteclock v0.51.0** (latest release) download — [apk (Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.51.0/reteclock-0.51.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)
-
-**English** · [한국어](README.ko.md)
+Also on [F-Droid](https://f-droid.org/packages/com.reteclock/).
 
 Is your phone's web browser too old to download files from GitHub? Try [ReteGet](https://github.com/rubidus-api/reteget_apk), a file and APK downloader for old Android phones.
 
