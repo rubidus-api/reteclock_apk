@@ -207,9 +207,17 @@ public class WakeRingService extends Service {
         sounding = true;
         WakeBells.record(this, locked ? WakeLog.LOCKED : WakeLog.RANG, due, bell.label);
         File file = locked || bell.sound.isEmpty() ? null : Settings.sounds(this).file(bell.sound);
-        if (file == null) {
-            chime.playAlarm(Tones.repeated(Tones.CHIME, bell.repeats, CHIME_GAP_MS));
+        // The wake bells' row in the tab the phone's switch picks; *Mute all* does not reach them.
+        com.reteclock.core.SoundLevels levels = Settings.soundLevels(this);
+        int mode = Settings.soundMode(this);
+        float gain = levels.gain(mode, com.reteclock.core.SoundLevels.WAKE_BELLS);
+        boolean buzz = levels.buzzes(mode, com.reteclock.core.SoundLevels.WAKE_BELLS);
+        Tones.Note[] chimes = Tones.repeated(Tones.CHIME, bell.repeats, CHIME_GAP_MS);
+        if (file == null || gain <= 0f) {
+            chime.playAlarm(chimes, gain, buzz);
         } else {
+            chime.playAlarm(chimes, 0f, buzz);
+            player.setGain(gain);
             player.play(file, Settings.soundClips(this).of(bell.sound), bell.repeats);
         }
         // A fresh notification, under its own id, so the platform treats it as new and shows the

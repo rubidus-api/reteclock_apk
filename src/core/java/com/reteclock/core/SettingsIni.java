@@ -112,6 +112,7 @@ public final class SettingsIni {
         {"sound_clips", "s", "sounds"},
         {"bells", "s", "sounds"},
         {"bells_on", "b", "sounds"},
+        {"sound_mute_all", "b", "sounds"},
         {"sun_latitude", "s", "sounds"},
         {"sun_longitude", "s", "sounds"},
         {"sun_place", "s", "sounds"},
@@ -163,6 +164,10 @@ public final class SettingsIni {
         {"names_weekdays_", "s", "timedate"},
         {"spoken_months_", "s", "clock"},
         {"spoken_weekdays_", "s", "clock"},
+        // SoundLevels: one per phone mode and kind, e.g. sound_level_vibrate_bells.
+        {"sound_level_", "i", "sounds"},
+        {"sound_mute_", "b", "sounds"},
+        {"sound_buzz_", "b", "sounds"},
     };
 
     /** One setting on its way in or out. */

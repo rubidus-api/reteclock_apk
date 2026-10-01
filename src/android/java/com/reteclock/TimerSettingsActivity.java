@@ -17,8 +17,6 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.RadioButton;
-import android.widget.RadioGroup;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
@@ -101,25 +99,18 @@ public class TimerSettingsActivity extends Activity {
         using.addView(footer(getString(R.string.timer_show_note)));
 
         using.addView(subheading(getString(R.string.timer_alert)));
-        RadioGroup alert = new RadioGroup(this);
-        alert.setOrientation(RadioGroup.VERTICAL);
-        alert.addView(radio(1, R.string.timer_alert_sound));
-        // A television has nothing to buzz with, so offering the choice would be offering a
-        // setting that does nothing — which is how a settings screen becomes a list of lies. The
-        // stored answer is untouched: the same phone, plugged back in, still vibrates (RFC-0009).
-        if (!Settings.onTelevision(this)) {
-            alert.addView(radio(2, R.string.timer_alert_vibrate));
-        }
-        alert.addView(radio(3, R.string.timer_alert_silent));
-        alert.check(Settings.timerAlert(this) + 1);
-        alert.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(RadioGroup group, int checkedId) {
-                Settings.setTimerAlert(TimerSettingsActivity.this, checkedId - 1);
-            }
-        });
-        using.addView(alert);
-        using.addView(footer(getString(R.string.timer_alert_note)));
+        // Sound, vibrate or silent used to be chosen here, once for every mode of the phone. It is
+        // now a row in each tab of the Volume card (R129), where the bells and speech are too; the
+        // old choice is still stored and is read as those rows' default.
+        using.addView(footer(getString(R.string.timer_alert_moved)));
+        using.addView(actionButton(getString(R.string.timer_alert_open),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        startActivity(new Intent(TimerSettingsActivity.this,
+                                SoundSettingsActivity.class));
+                    }
+                }));
 
         // Speech is the one thing an old phone may simply not have. Saying so here is the only way
         // somebody who typed a message learns why it never sounds.
@@ -191,14 +182,6 @@ public class TimerSettingsActivity extends Activity {
         scroll.setBackgroundColor(Color.BLACK);
         scroll.addView(root);
         setContentView(scroll);
-    }
-
-    private RadioButton radio(int id, int label) {
-        RadioButton button = new RadioButton(this);
-        button.setId(id);
-        button.setText(label);
-        button.setTextColor(TEXT_WHITE);
-        return button;
     }
 
     /**

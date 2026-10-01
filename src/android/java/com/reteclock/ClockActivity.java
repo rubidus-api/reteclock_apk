@@ -591,7 +591,8 @@ public class ClockActivity extends Activity {
      * out of date speaks the time the clock is showing.
      */
     private void speakTheTime() {
-        if (!Settings.speakTime(this)) {
+        float gain = Settings.soundGain(this, com.reteclock.core.SoundLevels.SPOKEN_TIME);
+        if (!Settings.speakTime(this) || gain <= 0f) {
             return;
         }
         if (voice == null) {
@@ -599,7 +600,7 @@ public class ClockActivity extends Activity {
         }
         // The time alone, "13:30" or "1:30 PM": the engine reads it in its own language, which an
         // English sentence around it would stop a Korean or Persian voice from doing (T111).
-        voice.say(Settings.spokenTimeNow(this), android.os.SystemClock.elapsedRealtime());
+        voice.say(Settings.spokenTimeNow(this), android.os.SystemClock.elapsedRealtime(), gain);
     }
 
     /**
@@ -652,7 +653,7 @@ public class ClockActivity extends Activity {
             if (sounds == null) {
                 sounds = new TimerSounds(ClockActivity.this);
             }
-            sounds.play(pattern, Settings.timerAlert(ClockActivity.this));
+            CueSound.cue(ClockActivity.this, sounds, pattern);
         }
 
         @Override
@@ -675,7 +676,9 @@ public class ClockActivity extends Activity {
             if (voice == null) {
                 voice = new TimerVoice(ClockActivity.this);
             }
-            voice.say(message, android.os.SystemClock.elapsedRealtime());
+            voice.say(message, android.os.SystemClock.elapsedRealtime(),
+                    Settings.soundGain(ClockActivity.this,
+                            com.reteclock.core.SoundLevels.TIMER_MESSAGES));
         }
 
         @Override

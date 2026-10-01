@@ -32,22 +32,27 @@ final class TimerVoice {
     /** What was asked for before the engine was ready, and when. */
     private String pending;
     private long pendingAtMs;
+    private float pendingGain = 1f;
 
     TimerVoice(Context context) {
         this.context = context.getApplicationContext();
     }
 
-    /** Says this, when it can. Empty says nothing and starts no engine. */
-    void say(String text, long nowMs) {
-        if (text == null || text.isEmpty() || broken) {
+    /**
+     * Says this, when it can, at {@code gain} of the engine's usual loudness. Empty or a gain of
+     * nought says nothing and starts no engine.
+     */
+    void say(String text, long nowMs, float gain) {
+        if (text == null || text.isEmpty() || broken || gain <= 0f) {
             return;
         }
         if (ready) {
-            speak(text);
+            speak(text, gain);
             return;
         }
         pending = text;
         pendingAtMs = nowMs;
+        pendingGain = gain;
         start();
     }
 
@@ -78,7 +83,7 @@ final class TimerVoice {
                     pending = null;
                     if (waiting != null
                             && android.os.SystemClock.elapsedRealtime() - pendingAtMs < STALE_MS) {
-                        speak(waiting);
+                        speak(waiting, pendingGain);
                     }
                 }
             };
@@ -127,11 +132,18 @@ final class TimerVoice {
     }
 
     @SuppressWarnings("deprecation")
-    private void speak(String text) {
+    private void speak(String text, float gain) {
         try {
-            // The two-argument form is what exists from API 4; its replacement arrived at API 21
-            // and this app compiles against 19.
-            engine.speak(text, TextToSpeech.QUEUE_FLUSH, null);
+            // The form that exists from API 4; its replacement arrived at API 21 and this app
+            // compiles against 19. The volume parameter is API 11, and asked for only below full,
+            // so a voice at its usual level is spoken exactly as it always was. An engine may ignore
+            // it; nothing else is lost when one does.
+            java.util.HashMap<String, String> params = null;
+            if (gain < 1f) {
+                params = new java.util.HashMap<String, String>();
+                params.put(TextToSpeech.Engine.KEY_PARAM_VOLUME, Float.toString(gain));
+            }
+            engine.speak(text, TextToSpeech.QUEUE_FLUSH, params);
             // What was handed over, for the device lanes: a sound's length says that something
             // was said, and only this says what (verify-speech.sh).
             android.util.Log.d("reteclock", "spoken: " + text);

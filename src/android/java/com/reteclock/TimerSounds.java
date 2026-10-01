@@ -6,6 +6,7 @@ import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.os.Vibrator;
 
+import com.reteclock.core.SoundLevels;
 import com.reteclock.core.Tones;
 
 /**
@@ -43,32 +44,30 @@ final class TimerSounds {
     }
 
     /**
-     * Plays one pattern in whichever way the settings ask for.
+     * Plays one pattern as a row of the Volume card asks: as a sound, as a buzz, both, or neither.
+     *
+     * The phone's ringer switch is not asked here. It has already chosen which tab of the card
+     * applies, and that tab is the user's answer to what a phone on vibrate or silent should do.
      *
      * @param pattern one of the sets in {@link Tones}
-     * @param mode {@link Settings#ALERT_SOUND}, {@code ALERT_VIBRATE} or {@code ALERT_SILENT}
+     * @param gain the share of the usual loudness, from {@link SoundLevels}; 0 is no sound
+     * @param buzz whether the pattern is also played on the vibrator
      */
-    void play(final Tones.Note[] pattern, int mode) {
-        if (pattern == null || pattern.length == 0 || mode == Settings.ALERT_SILENT) {
+    void play(final Tones.Note[] pattern, final float gain, boolean buzz) {
+        if (pattern == null || pattern.length == 0) {
             return;
         }
-        if (mode == Settings.ALERT_VIBRATE) {
-            // A phone switched to silent is not asking to be buzzed either.
-            if (PhoneQuiet.vibrationAllowed(context)) {
-                buzz(pattern);
-            }
-            return;
+        if (buzz) {
+            buzz(pattern);
         }
-        // The ringer switch wins over this app's own setting. Sounds go out on the music stream,
-        // which the platform does not silence for us, so it is silenced here.
-        if (!PhoneQuiet.soundAllowed(context)) {
+        if (gain <= 0f) {
             return;
         }
         final Tones.Note[] notes = pattern;
         Thread player = new Thread(new Runnable() {
             @Override
             public void run() {
-                sound(notes, AudioManager.STREAM_MUSIC);
+                sound(notes, AudioManager.STREAM_MUSIC, gain);
             }
         }, "reteclock-tone");
         player.setPriority(Thread.NORM_PRIORITY - 1);
@@ -79,15 +78,21 @@ final class TimerSounds {
      * Plays a pattern on the alarm stream, whatever the ringer switch says — for a bell that wakes
      * the phone and nothing else (RFC-0012, F1). An alarm on a silenced phone is the point of one.
      */
-    void playAlarm(Tones.Note[] pattern) {
+    void playAlarm(Tones.Note[] pattern, final float gain, boolean buzz) {
         if (pattern == null || pattern.length == 0) {
+            return;
+        }
+        if (buzz) {
+            buzz(pattern);
+        }
+        if (gain <= 0f) {
             return;
         }
         final Tones.Note[] notes = pattern;
         Thread player = new Thread(new Runnable() {
             @Override
             public void run() {
-                sound(notes, AudioManager.STREAM_ALARM);
+                sound(notes, AudioManager.STREAM_ALARM, gain);
             }
         }, "reteclock-alarm-tone");
         player.start();
@@ -111,7 +116,7 @@ final class TimerSounds {
     }
 
     /** Builds the whole pattern as one buffer and plays it once. */
-    private void sound(Tones.Note[] pattern, int stream) {
+    private void sound(Tones.Note[] pattern, int stream, float gain) {
         int frames = 0;
         for (Tones.Note note : pattern) {
             frames += (note.onMs + note.offMs) * RATE / 1000;
@@ -125,7 +130,7 @@ final class TimerSounds {
             int on = note.onMs * RATE / 1000;
             int off = note.offMs * RATE / 1000;
             float step = 2f * (float) Math.PI * Math.max(1, note.hz) / RATE;
-            float peak = Short.MAX_VALUE * VOLUME;
+            float peak = Short.MAX_VALUE * VOLUME * Math.min(1f, gain);
             for (int i = 0; i < on && at < samples.length; i++, at++) {
                 float phase = step * i;
                 // The fundamental, with a little of the two harmonics above it: enough to give the

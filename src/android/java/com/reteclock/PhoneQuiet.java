@@ -39,6 +39,11 @@ final class PhoneQuiet {
         return mode(context) != AudioManager.RINGER_MODE_SILENT;
     }
 
+    /** The ringer mode as {@link AudioManager} numbers it: which of the Volume card's tabs applies. */
+    static int ringerMode(Context context) {
+        return mode(context);
+    }
+
     /**
      * The ringer mode, or "normal" when the phone will not say.
      *

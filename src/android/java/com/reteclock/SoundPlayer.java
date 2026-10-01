@@ -74,6 +74,8 @@ final class SoundPlayer {
      */
     private int playsLeft = 1;
     private float volume = VOLUME;
+    /** Where the current sound started from, so a fade takes its {@link #FADE_MS} at any level. */
+    private float startVolume = VOLUME;
 
     private final Handler handler = new Handler() {
         @Override
@@ -119,6 +121,16 @@ final class SoundPlayer {
         this.stream = stream;
     }
 
+    /**
+     * The share of the usual loudness the next {@link #play} starts at — one kind's level from the
+     * Volume card, from {@link Settings#soundGain}. 1 unless somebody says otherwise.
+     */
+    private float gain = 1f;
+
+    void setGain(float gain) {
+        this.gain = gain < 0f ? 0f : gain > 1f ? 1f : gain;
+    }
+
     void play(File file, SoundClip clip, int times) {
         // Stopping in order to start again is not falling idle; the screen would rebuild itself
         // out from under the press that asked for this.
@@ -126,7 +138,7 @@ final class SoundPlayer {
         stopNow();
         replacing = false;
         playsLeft = times < 1 ? 1 : times;
-        if (file == null || !file.isFile()) {
+        if (file == null || !file.isFile() || gain <= 0f) {
             return;
         }
         final SoundClip wanted = clip == null ? SoundClip.whole(file.getName()) : clip;
@@ -156,7 +168,8 @@ final class SoundPlayer {
             });
             player = created;
             playing = wanted;
-            volume = VOLUME;
+            startVolume = VOLUME * gain;
+            volume = startVolume;
             created.setVolume(volume, volume);
             created.prepareAsync();
         } catch (IOException e) {
@@ -258,7 +271,7 @@ final class SoundPlayer {
         if (player == null) {
             return;
         }
-        volume -= VOLUME * FADE_STEP_MS / FADE_MS;
+        volume -= startVolume * FADE_STEP_MS / FADE_MS;
         if (volume <= 0f) {
             stopNow();
             return;
@@ -280,7 +293,7 @@ final class SoundPlayer {
         player = null;
         playing = null;
         playsLeft = 1;
-        volume = VOLUME;
+        volume = startVolume;
         release(going);
         // However it ended — its own end, a fade, an error, or somebody leaving the screen — the
         // sound is over and whoever is watching is told once.

@@ -342,6 +342,20 @@ public final class Settings {
         out.put(KEY_POOL_TEXT, prefs(context).getString(KEY_POOL_TEXT, ""));
 
         out.put(KEY_BELLS_ON, Boolean.valueOf(bellsOn(context)));
+        com.reteclock.core.SoundLevels levels = soundLevels(context);
+        out.put(com.reteclock.core.SoundLevels.KEY_MUTE_ALL, Boolean.valueOf(levels.allMuted()));
+        for (int mode = 0; mode < com.reteclock.core.SoundLevels.MODES; mode++) {
+            for (int kind = 0; kind < com.reteclock.core.SoundLevels.COUNT; kind++) {
+                out.put(com.reteclock.core.SoundLevels.levelKey(mode, kind),
+                        Integer.valueOf(levels.level(mode, kind)));
+                out.put(com.reteclock.core.SoundLevels.muteKey(mode, kind),
+                        Boolean.valueOf(levels.muted(mode, kind)));
+                if (com.reteclock.core.SoundLevels.canBuzz(kind)) {
+                    out.put(com.reteclock.core.SoundLevels.buzzKey(mode, kind),
+                            Boolean.valueOf(levels.buzz(mode, kind)));
+                }
+            }
+        }
         out.put(KEY_BELLS, bells(context).text());
         out.put(KEY_SOUND_CLIPS, soundClips(context).text());
 
@@ -435,6 +449,67 @@ public final class Settings {
     }
 
     /** The one switch that silences every bell without unsetting any of them. */
+    /**
+     * How loud each kind of sound is in each of the phone's modes, and what buzzes.
+     *
+     * Each row reads what was stored for it and falls back on the default otherwise — and the
+     * default of the timer rows is the timer's old sound / vibrate / silent choice, so a phone whose
+     * timer was set to vibrate before the Volume card existed goes on vibrating.
+     */
+    public static com.reteclock.core.SoundLevels soundLevels(Context context) {
+        SharedPreferences p = prefs(context);
+        com.reteclock.core.SoundLevels levels = com.reteclock.core.SoundLevels
+                .defaults(timerAlert(context))
+                .withAllMuted(p.getBoolean(com.reteclock.core.SoundLevels.KEY_MUTE_ALL, false));
+        for (int mode = 0; mode < com.reteclock.core.SoundLevels.MODES; mode++) {
+            for (int kind = 0; kind < com.reteclock.core.SoundLevels.COUNT; kind++) {
+                String level = com.reteclock.core.SoundLevels.levelKey(mode, kind);
+                if (p.contains(level)) {
+                    levels = levels.withLevel(mode, kind, p.getInt(level, 0));
+                }
+                String mute = com.reteclock.core.SoundLevels.muteKey(mode, kind);
+                if (p.contains(mute)) {
+                    levels = levels.withMuted(mode, kind, p.getBoolean(mute, false));
+                }
+                String buzz = com.reteclock.core.SoundLevels.buzzKey(mode, kind);
+                if (p.contains(buzz)) {
+                    levels = levels.withBuzz(mode, kind, p.getBoolean(buzz, false));
+                }
+            }
+        }
+        return levels;
+    }
+
+    /** Which of the Volume card's tabs applies now: the phone's ringer switch decides. */
+    public static int soundMode(Context context) {
+        return com.reteclock.core.SoundLevels.modeOfRinger(PhoneQuiet.ringerMode(context));
+    }
+
+    /** The share of its usual loudness one kind plays at right now: 0 when silenced. */
+    public static float soundGain(Context context, int kind) {
+        return soundLevels(context).gain(soundMode(context), kind);
+    }
+
+    public static void setSoundLevel(Context context, int mode, int kind, int level) {
+        prefs(context).edit().putInt(com.reteclock.core.SoundLevels.levelKey(mode, kind),
+                com.reteclock.core.SoundLevels.clampLevel(level)).commit();
+    }
+
+    public static void setSoundMuted(Context context, int mode, int kind, boolean muted) {
+        prefs(context).edit().putBoolean(com.reteclock.core.SoundLevels.muteKey(mode, kind),
+                muted).commit();
+    }
+
+    public static void setSoundBuzz(Context context, int mode, int kind, boolean buzz) {
+        prefs(context).edit().putBoolean(com.reteclock.core.SoundLevels.buzzKey(mode, kind),
+                buzz).commit();
+    }
+
+    public static void setAllSoundsMuted(Context context, boolean muted) {
+        prefs(context).edit().putBoolean(com.reteclock.core.SoundLevels.KEY_MUTE_ALL, muted)
+                .commit();
+    }
+
     public static boolean bellsOn(Context context) {
         return prefs(context).getBoolean(KEY_BELLS_ON, true);
     }
@@ -1567,13 +1642,12 @@ public final class Settings {
                 prefs(context).getInt(KEY_VOICE_LANG, com.reteclock.core.VoiceState.LANG_UNKNOWN));
     }
 
-    /** Sound, vibrate or silent — one setting covering every noise the timer makes. */
+    /**
+     * The timer's old sound / vibrate / silent choice. No longer shown (R129): kept, carried in the
+     * settings file, and read as the default of the timer rows on the Volume card.
+     */
     public static int timerAlert(Context context) {
         return prefs(context).getInt(KEY_TIMER_ALERT, ALERT_SOUND);
-    }
-
-    public static void setTimerAlert(Context context, int mode) {
-        prefs(context).edit().putInt(KEY_TIMER_ALERT, mode).commit();
     }
 
     /** The fields that can each carry their own font, in the order the settings screen lists them. */

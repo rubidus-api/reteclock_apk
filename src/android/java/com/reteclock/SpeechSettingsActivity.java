@@ -208,7 +208,7 @@ public class SpeechSettingsActivity extends Activity {
             trialVoice.release();
         }
         trialVoice = new TimerVoice(this);
-        trialVoice.say(Settings.spokenTimeNow(this), android.os.SystemClock.elapsedRealtime());
+        trialVoice.say(Settings.spokenTimeNow(this), android.os.SystemClock.elapsedRealtime(), 1f);
     }
 
     // ---- the names a month and a weekday are said by ----------------------------------------

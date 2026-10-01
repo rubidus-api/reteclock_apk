@@ -163,7 +163,7 @@ public class ClockDreamService extends DreamService {
             if (sounds == null) {
                 sounds = new TimerSounds(ClockDreamService.this);
             }
-            sounds.play(pattern, Settings.timerAlert(ClockDreamService.this));
+            CueSound.cue(ClockDreamService.this, sounds, pattern);
         }
 
         @Override

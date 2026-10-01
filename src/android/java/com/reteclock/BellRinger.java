@@ -139,14 +139,22 @@ final class BellRinger {
         wakeBell = bell;
         wakeDue = pendingDue;
         WakeBells.record(context, WakeLog.RANG, wakeDue, bell.label);
-        if (bell.sound.isEmpty()) {
-            tones.playAlarm(Tones.repeated(Tones.CHIME, bell.repeats, CHIME_GAP_MS));
+        // The wake bells' row in the tab the phone's switch picks; *Mute all* does not reach them.
+        com.reteclock.core.SoundLevels levels = Settings.soundLevels(context);
+        int mode = Settings.soundMode(context);
+        float gain = levels.gain(mode, com.reteclock.core.SoundLevels.WAKE_BELLS);
+        boolean buzz = levels.buzzes(mode, com.reteclock.core.SoundLevels.WAKE_BELLS);
+        Tones.Note[] chimes = Tones.repeated(Tones.CHIME, bell.repeats, CHIME_GAP_MS);
+        if (bell.sound.isEmpty() || gain <= 0f) {
+            tones.playAlarm(chimes, gain, buzz);
         } else {
             File file = Settings.sounds(context).file(bell.sound);
             if (file == null) {
-                tones.playAlarm(Tones.CHIME);
+                tones.playAlarm(Tones.CHIME, gain, buzz);
             } else {
+                tones.playAlarm(chimes, 0f, buzz);
                 player.setStream(AudioManager.STREAM_ALARM);
+                player.setGain(gain);
                 player.play(file, Settings.soundClips(context).of(bell.sound), bell.repeats);
             }
         }
@@ -309,30 +317,35 @@ final class BellRinger {
      * is nothing left to stop. A bell naming a file goes through the player, which can be faded.
      */
     private void ring(Bell bell) {
-        // A bell does not answer to the timer's vibrate or silent setting — it is a different
-        // feature, set separately — but it does answer to the phone's own ringer switch.
-        if (!PhoneQuiet.soundAllowed(context)) {
+        // The bells' row in the tab the phone's switch picks. Neither a sound nor a buzz means
+        // nothing at all — and so no card either: the card is an answer to something felt or heard.
+        com.reteclock.core.SoundLevels levels = Settings.soundLevels(context);
+        int mode = Settings.soundMode(context);
+        float gain = levels.gain(mode, com.reteclock.core.SoundLevels.BELLS);
+        boolean buzz = levels.buzzes(mode, com.reteclock.core.SoundLevels.BELLS);
+        if (gain <= 0f && !buzz) {
             return;
         }
-        // Asked alongside the sound, and only once the phone has been found willing to make one:
-        // the card is an answer to a noise, so it must not appear on a silenced phone.
+        // Asked alongside the sound or the buzz, and only once there is one to answer.
         if (ringing != null && bell.canSnooze()) {
             ringing.bellIsRinging(bell);
         }
-        if (bell.sound.isEmpty()) {
-            // The chime is repeated as one pattern rather than as several sounds started in turn:
-            // the spacing is then exact, and one stop stops all of it.
-            tones.play(Tones.repeated(Tones.CHIME, bell.repeats, CHIME_GAP_MS),
-                    Settings.ALERT_SOUND);
+        // The chime is repeated as one pattern rather than as several sounds started in turn: the
+        // spacing is then exact, and one stop stops all of it. A buzz follows the same pattern.
+        Tones.Note[] chimes = Tones.repeated(Tones.CHIME, bell.repeats, CHIME_GAP_MS);
+        if (bell.sound.isEmpty() || gain <= 0f) {
+            tones.play(chimes, gain, buzz);
             return;
         }
         File file = Settings.sounds(context).file(bell.sound);
         if (file == null) {
             // The file was deleted after the bell was set. The bell still means something.
-            tones.play(Tones.CHIME, Settings.ALERT_SOUND);
+            tones.play(Tones.CHIME, gain, buzz);
             return;
         }
+        tones.play(chimes, 0f, buzz);
         player.setStream(AudioManager.STREAM_MUSIC);
+        player.setGain(gain);
         player.play(file, Settings.soundClips(context).of(bell.sound), bell.repeats);
     }
 

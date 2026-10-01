@@ -22,6 +22,7 @@ import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -31,6 +32,8 @@ import com.reteclock.core.FontLibrary;
 import com.reteclock.core.MediaFormats;
 import com.reteclock.core.SoundClip;
 import com.reteclock.core.SoundClips;
+import com.reteclock.core.SoundLevels;
+import com.reteclock.core.Tones;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -75,6 +78,26 @@ public class SoundSettingsActivity extends Activity {
     /** The weekday letters, Sunday first, in the order {@link Bell} numbers them. */
     private static final String[] DAY_LETTERS = {"S", "M", "T", "W", "T", "F", "S"};
 
+    /** The Volume card's names for {@link SoundLevels}' kinds, in its order. */
+    private static final int[] KIND_NAMES = {
+        R.string.sound_kind_timer, R.string.sound_kind_timer_speech,
+        R.string.sound_kind_spoken_time, R.string.sound_kind_bells, R.string.sound_kind_wake_bells,
+    };
+
+    /** The tabs of the Volume card, in {@link SoundLevels}' order of the phone's modes. */
+    private static final int[] MODE_NAMES = {
+        R.string.sound_mode_ring, R.string.sound_mode_vibrate, R.string.sound_mode_silent,
+    };
+    private static final int[] MODE_NOTES = {
+        R.string.sound_mode_ring_note, R.string.sound_mode_vibrate_note,
+        R.string.sound_mode_silent_note,
+    };
+
+    private LinearLayout levelSection;
+    /** Which tab of the Volume card is shown; the phone's own mode until another is chosen. */
+    private int shownMode = -1;
+    /** Says a test of the two spoken kinds; let go when the screen is left. */
+    private TimerVoice testVoice;
     private LinearLayout soundSection;
     private LinearLayout bellSection;
     private final SoundPlayer player = new SoundPlayer();
@@ -155,6 +178,14 @@ public class SoundSettingsActivity extends Activity {
         }));
         root.addView(bells);
 
+        // Last, below what it adjusts: the sounds and the bells are what this page is opened for.
+        LinearLayout volume = card(getString(R.string.sound_card_volume));
+        levelSection = new LinearLayout(this);
+        levelSection.setOrientation(LinearLayout.VERTICAL);
+        volume.addView(levelSection);
+        root.addView(volume);
+        rebuildLevels();
+
         // A sound that ends by itself leaves the row still offering *Stop*, which is the sound
         // half of issue #29. The player says when it has fallen quiet and the rows are drawn again.
         rebuildSounds();
@@ -185,6 +216,212 @@ public class SoundSettingsActivity extends Activity {
         player.setOnIdle(null);
         player.stopNow();
         previewing = "";
+        if (testVoice != null) {
+            testVoice.release();
+            testVoice = null;
+        }
+    }
+
+    // ---- how loud ----------------------------------------------------------------------------
+
+    /**
+     * The Volume card: *Mute all*, three tabs for the phone's ringer switch, and under the tab shown
+     * a level, a mute, a buzz and a test for each kind of sound (R129).
+     *
+     * The tab the phone is in now is marked, and is the one shown first: it is the one that is
+     * playing. Drawn again whenever a switch changes; a level is not, only its percentage.
+     */
+    private void rebuildLevels() {
+        levelSection.removeAllViews();
+        SoundLevels levels = Settings.soundLevels(this);
+        int now = Settings.soundMode(this);
+        if (shownMode < 0) {
+            shownMode = now;
+        }
+        CheckBox all = new CheckBox(this);
+        all.setText(R.string.sound_mute_all);
+        all.setTextColor(TEXT_WHITE);
+        all.setChecked(levels.allMuted());
+        all.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                Settings.setAllSoundsMuted(SoundSettingsActivity.this, checked);
+                rebuildLevels();
+            }
+        });
+        levelSection.addView(all);
+        levelSection.addView(footer(getString(R.string.sound_mute_all_note)));
+        levelSection.addView(divider());
+
+        LinearLayout tabs = new LinearLayout(this);
+        tabs.setOrientation(LinearLayout.HORIZONTAL);
+        for (int mode = 0; mode < SoundLevels.MODES; mode++) {
+            final int chosen = mode;
+            String label = getString(MODE_NAMES[mode]);
+            if (mode == now) {
+                label = getString(R.string.sound_mode_now, label);
+            }
+            TextView tab = smallButton(label, new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    shownMode = chosen;
+                    rebuildLevels();
+                }
+            });
+            if (mode == shownMode) {
+                tab.setBackgroundColor(PRESSED);
+                tab.setTypeface(Typeface.DEFAULT_BOLD);
+            }
+            tabs.addView(tab);
+        }
+        levelSection.addView(tabs);
+        levelSection.addView(footer(getString(MODE_NOTES[shownMode])));
+        for (int kind = 0; kind < SoundLevels.COUNT; kind++) {
+            levelSection.addView(divider());
+            levelSection.addView(levelRow(shownMode, kind, levels));
+        }
+        levelSection.addView(footer(getString(R.string.sound_levels_note)));
+    }
+
+    private View levelRow(final int mode, final int kind, SoundLevels levels) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.VERTICAL);
+        row.setPadding(0, dp(4), 0, dp(4));
+
+        LinearLayout top = new LinearLayout(this);
+        top.setOrientation(LinearLayout.HORIZONTAL);
+        top.setGravity(Gravity.CENTER_VERTICAL);
+        TextView name = new TextView(this);
+        name.setText(KIND_NAMES[kind]);
+        name.setTextColor(TEXT_WHITE);
+        name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f);
+        top.addView(name, new LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        final TextView percent = new TextView(this);
+        percent.setText(getString(R.string.sound_level_percent, levels.level(mode, kind)));
+        percent.setTextColor(TEXT_DIM);
+        percent.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f);
+        top.addView(percent);
+        row.addView(top);
+
+        // The sound half of the row, dimmed while it makes no sound — muted here, or under *Mute
+        // all* — where the platform can dim (API 11); below it the rows simply stay lit.
+        final LinearLayout soundPart = new LinearLayout(this);
+        soundPart.setOrientation(LinearLayout.VERTICAL);
+        if (!levels.audible(mode, kind)
+                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+            soundPart.setAlpha(0.45f);
+        }
+        // Steps of ten: a finer level is not one anybody can hear the difference of on a phone, and
+        // ten steps are ten presses of a remote's arrow on a box under a television.
+        SeekBar bar = new SeekBar(this);
+        bar.setMax(SoundLevels.FULL / 10);
+        bar.setProgress((levels.level(mode, kind) + 5) / 10);
+        bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (!fromUser) {
+                    return;
+                }
+                // Stored as it moves, not when it is let go: a remote's arrow keys move a seek bar
+                // without ever touching it, and those moves would otherwise never be kept.
+                Settings.setSoundLevel(SoundSettingsActivity.this, mode, kind, progress * 10);
+                percent.setText(getString(R.string.sound_level_percent, progress * 10));
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+            }
+        });
+        soundPart.addView(bar);
+        row.addView(soundPart);
+
+        LinearLayout bottom = new LinearLayout(this);
+        bottom.setOrientation(LinearLayout.HORIZONTAL);
+        bottom.setGravity(Gravity.CENTER_VERTICAL);
+        CheckBox mute = new CheckBox(this);
+        mute.setText(R.string.sound_level_mute);
+        mute.setTextColor(TEXT_WHITE);
+        mute.setChecked(levels.muted(mode, kind));
+        mute.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                Settings.setSoundMuted(SoundSettingsActivity.this, mode, kind, checked);
+                rebuildLevels();
+            }
+        });
+        bottom.addView(mute);
+        // A television has nothing to buzz with, so the switch is not offered there; what is stored
+        // is untouched, and the same phone off its dock still buzzes (RFC-0009).
+        if (SoundLevels.canBuzz(kind) && !Settings.onTelevision(this)) {
+            CheckBox buzz = new CheckBox(this);
+            buzz.setText(R.string.sound_level_buzz);
+            buzz.setTextColor(TEXT_WHITE);
+            buzz.setChecked(levels.buzz(mode, kind));
+            buzz.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton button, boolean checked) {
+                    Settings.setSoundBuzz(SoundSettingsActivity.this, mode, kind, checked);
+                }
+            });
+            bottom.addView(buzz);
+        }
+        View gap = new View(this);
+        bottom.addView(gap, new LinearLayout.LayoutParams(0, 1, 1f));
+        bottom.addView(smallButton(getString(R.string.sound_level_test),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        testLevel(mode, kind);
+                    }
+                }));
+        row.addView(bottom);
+        if (levels.soundsOnQuietPhone(mode, kind)) {
+            TextView warning = footer(getString(mode == SoundLevels.SILENT
+                    ? R.string.sound_level_quiet_silent : R.string.sound_level_quiet_vibrate));
+            warning.setTextColor(WARNING);
+            row.addView(warning);
+        }
+        if (kind == SoundLevels.WAKE_BELLS && levels.muted(mode, kind)) {
+            TextView warning = footer(getString(R.string.sound_level_wake_warning));
+            warning.setTextColor(WARNING);
+            row.addView(warning);
+        }
+        return row;
+    }
+
+    /**
+     * Plays one row as it will be heard and felt in the tab shown, whichever mode the phone is in
+     * now: at its level, on its own stream, with the built-in sound — the time said for the two
+     * spoken kinds, words the voice can say in its own language — and a buzz if the row has one.
+     */
+    private void testLevel(int mode, int kind) {
+        SoundLevels levels = Settings.soundLevels(this);
+        float gain = levels.gain(mode, kind);
+        boolean buzz = levels.buzzes(mode, kind) && !Settings.onTelevision(this);
+        if (gain <= 0f && !buzz) {
+            toast(getString(R.string.sound_level_muted));
+            return;
+        }
+        if (kind == SoundLevels.WAKE_BELLS) {
+            // The alarm stream, as the bell itself.
+            new TimerSounds(this).playAlarm(Tones.CHIME, gain, buzz);
+            return;
+        }
+        if (kind == SoundLevels.TIMER_MESSAGES || kind == SoundLevels.SPOKEN_TIME) {
+            if (testVoice == null) {
+                testVoice = new TimerVoice(this);
+            }
+            testVoice.say(Settings.spokenTimeNow(this), android.os.SystemClock.elapsedRealtime(),
+                    gain);
+            return;
+        }
+        new TimerSounds(this).play(kind == SoundLevels.BELLS ? Tones.CHIME : Tones.END,
+                gain, buzz);
     }
 
     // ---- the pool -------------------------------------------------------------------------
@@ -295,7 +532,7 @@ public class SoundSettingsActivity extends Activity {
         if (name == null || name.isEmpty()) {
             player.stopNow();
             previewing = "";
-            new TimerSounds(this).play(com.reteclock.core.Tones.CHIME, Settings.ALERT_SOUND);
+            new TimerSounds(this).play(com.reteclock.core.Tones.CHIME, 1f, false);
             return;
         }
         File file = Settings.sounds(this).file(name);
