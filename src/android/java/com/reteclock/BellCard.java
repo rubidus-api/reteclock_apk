@@ -78,7 +78,20 @@ final class BellCard {
                     new android.graphics.drawable.ColorDrawable(0x00000000));
         }
 
-        LinearLayout card = new LinearLayout(activity);
+        // The button the remote should land on. Asked for again when the card's window takes the
+        // focus: a request made while the dialog is still being shown did not always hold on API 19,
+        // and the first press of the centre key then only moved onto the button (seen by hand,
+        // 2026-10-02).
+        final View[] first = new View[1];
+        LinearLayout card = new LinearLayout(activity) {
+            @Override
+            public void onWindowFocusChanged(boolean hasWindowFocus) {
+                super.onWindowFocusChanged(hasWindowFocus);
+                if (hasWindowFocus && first[0] != null && findFocus() == null) {
+                    first[0].requestFocus();
+                }
+            }
+        };
         card.setOrientation(LinearLayout.VERTICAL);
         int pad = dp(activity, 16);
         card.setPadding(pad, pad, pad, dp(activity, 12));
@@ -162,11 +175,8 @@ final class BellCard {
         dialog.show();
         // The remote lands on the first button rather than nowhere, so the centre key means
         // something the moment the card appears.
-        if (bell.canSnooze()) {
-            putOff.requestFocus();
-        } else {
-            stop.requestFocus();
-        }
+        first[0] = bell.canSnooze() ? putOff : stop;
+        first[0].requestFocus();
 
         final Handler handler = new Handler();
         handler.postDelayed(new Runnable() {
