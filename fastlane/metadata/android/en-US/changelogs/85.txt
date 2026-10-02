@@ -1,0 +1,3 @@
+Added: Volume, on Sounds and bells. For each kind of sound (timer sounds, timer messages, the spoken time, bells, wake bells): a level from 0 to 100 %, a mute, a vibrate switch and a test, with a tab for each mode of the phone (ringing, vibrate, silent). Mute all sounds leaves the wake bells ringing.
+
+Changed: on vibrate the timer now vibrates. Its sound / vibrate / silent choice moved from Timer settings to the Volume card, and what you had chosen is kept.

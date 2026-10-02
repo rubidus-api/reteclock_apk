@@ -1,4 +1,4 @@
-[한국어](README.ko.md) | **English** — **reteclock v0.51.0** — [APK(Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.51.0/reteclock-0.51.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)
+[한국어](README.ko.md) | **English** — **reteclock v0.52.0** — [APK(Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.52.0/reteclock-0.52.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)
 
 # reteclock
 
@@ -14,7 +14,7 @@ so the numbers never burn into an OLED screen.
 There is nothing to sign up for and nothing to configure. It needs no account, no network and no
 Play Store, so it still works on phones that can no longer install anything else. It is small —
 about 500 KB — and asks for four normal permissions, all granted at install: one to keep the screen
-awake, one to vibrate, which only the timer uses, and two that only *Alarms (experimental)* uses —
+awake, one to vibrate, which only the timer and the bells use, and two that only *Alarms (experimental)* uses —
 starting after a restart, and a foreground service while an alarm rings. Those two stay unused until
 you turn that page's switch on.
 
@@ -30,8 +30,8 @@ you turn that page's switch on.
 
 **[⬇ Get it on F-Droid](https://f-droid.org/packages/com.reteclock/)** — recommended.
 
-**[⬇ Download reteclock-0.51.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.51.0/reteclock-0.51.0.apk)**
-— 598 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
+**[⬇ Download reteclock-0.52.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.52.0/reteclock-0.52.0.apk)**
+— 606 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
 render GitHub's release page can still fetch it.
 
 The newest release is always at
@@ -135,7 +135,7 @@ it needs beyond keeping the screen awake. Copy the APK to the phone, open it, an
 
 ## Which phones it runs on
 
-Published on F-Droid; the latest release is 0.51.0.
+Published on F-Droid; the latest release is 0.52.0.
 
 | | |
 |---|---|
@@ -333,8 +333,10 @@ nothing extra drawn.
 - **Counting in** — pressing play starts the preset three seconds later, with a low beep on each of
   those three seconds and a high one landing exactly on the start, so you can put the phone down and
   begin on the beat.
-- **Sound, vibration or silence** — one setting covers everything the timer says. Whichever you
-  choose, the end of each interval also flashes the screen three times. The tune at the end of a
+- **Sound, vibration or silence** — set on *Sounds and bells* → *Volume*, separately for a phone
+  that is ringing, on vibrate and on silent (since 0.52.0; before it, one setting on *Timer
+  settings*). By default the timer sounds on a ringing phone and vibrates on a vibrating one. Whatever
+  you choose, the end of each interval also flashes the screen three times. The tune at the end of a
   preset is the theme from the fourth movement of Schubert's *Trout* Quintet, which the phone plays
   from the notes rather than from a recording.
 - **Putting it away** — the hourglass at the end of the strip opens the list of presets, and the
@@ -381,6 +383,13 @@ Its own screen, reached from the main menu.
   did. **No guarantee is given that an alarm rings** — not if the phone is off, the app was
   force-stopped, or a battery saver stops it. For an alarm you cannot afford to miss, use the phone's
   own clock app.
+- **Volume** — how loud each kind of sound is: the timer's sounds, its spoken messages, the time
+  spoken on a tap, bells and wake bells, each from 0 to 100 % of its usual loudness, with a mute, a
+  vibrate switch and a *Test* button. There is a tab for each mode of the phone — ringing, vibrate,
+  silent — and the one the phone is in is marked ● and is the one that plays. Out of the box a phone
+  on vibrate or silent stays quiet, except the wake bells; a sound you turn on there is marked with a
+  warning. *Mute all sounds* silences everything except the wake bells, and keeps your levels for
+  when you turn it off. (Since 0.52.0.)
 - **The timer can use them too** — in *Timer settings*, each preset has a sound for its start and one
   for its finish, and each interval has one for its beginning and one for its warning. A message you
   set is still spoken: the sound and the words share the moment. A slot with no sound, or one whose
