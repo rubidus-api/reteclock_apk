@@ -138,6 +138,7 @@ public class ClockActivity extends Activity {
         }
 
         view = new ClockView(this, safeMode);
+        view.allowWallpaper(true);
         // A bell is not part of the clock's drawing, but it happens on the clock's second.
         bells = new BellRinger(this);
         slideWatch = new SlideWatch(this);
@@ -171,6 +172,7 @@ public class ClockActivity extends Activity {
             @Override
             public void second(long nowMs) {
                 bells.tick(nowMs);
+                sayTheHour(nowMs);
                 // A slide ending is a different layout, pictures and strip (issue #53).
                 if (slideWatch.changed(nowMs)) {
                     view.reloadOptions();
@@ -193,6 +195,10 @@ public class ClockActivity extends Activity {
         // around the clock face would be a teal rectangle on somebody's bedside table, and the
         // keys it would catch are already answered by onKeyDown. See KeyRoute and Focusable.
         view.setClickable(true);
+        // Said outright: from Android 8 a clickable view is focusable unless told otherwise, so the
+        // face took the focus from a keyboard, lit the whole screen with its focus colour, and ate
+        // Enter and Space before the clock could answer them (issue #64).
+        view.setFocusable(false);
         // The calendar's arrows are part of the clock's own face, so a touch is offered to them
         // before it is taken as "open the menu". They exist only while the calendar does.
         view.setOnTouchListener(new View.OnTouchListener() {
@@ -272,6 +278,7 @@ public class ClockActivity extends Activity {
      * changes and the strip has to change sides.
      */
     private void layOutScreen() {
+        applyWallpaper();
         // The strip is built afresh each time; the one being dropped must stop ticking, or it goes
         // on sounding its own copy of the run in the background.
         if (timer != null) {
@@ -572,6 +579,55 @@ public class ClockActivity extends Activity {
             bells.takeWake(bell, dueEpochMillis);
         }
     };
+
+    /**
+     * The phone's wallpaper behind the clock, or the black window the clock has always had
+     * (issue #65). The platform draws the wallpaper — a live one too — under a window that asks
+     * for it, so no permission and no copy of the picture are involved; the clock face is then
+     * clear wherever it has no writing (see {@link ClockView#allowWallpaper}).
+     */
+    private void applyWallpaper() {
+        boolean landscape = getResources().getConfiguration().orientation
+                == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+        boolean on = !safeMode && Settings.wallpaperInForce(this, landscape);
+        if (on) {
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER);
+            getWindow().setBackgroundDrawable(
+                    new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
+        } else {
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER);
+            getWindow().setBackgroundDrawable(
+                    new android.graphics.drawable.ColorDrawable(Color.BLACK));
+        }
+    }
+
+    /** When {@link #sayTheHour} last looked; reset on the way back, so a turned hour is not late. */
+    private long hourLooked = com.reteclock.core.HourChime.NEVER;
+
+    /**
+     * The time said as each hour turns, if that is switched on (issue #67) — in the reading the tap
+     * uses, at the Volume card's level for the spoken time. Not while the clock is asleep, while a
+     * timer is counting (it has the right of way, as over a bell) or while a bell is ringing.
+     */
+    private void sayTheHour(long nowMs) {
+        long last = hourLooked;
+        hourLooked = nowMs;
+        if (!Settings.speakHour(this) || !com.reteclock.core.HourChime.due(last, nowMs,
+                Settings.offsetMinutes(this, nowMs))) {
+            return;
+        }
+        if (sleepWatch.asleep() || timerRunning() || bells.isRinging() || bells.justRang()) {
+            return;
+        }
+        float gain = Settings.soundGain(this, com.reteclock.core.SoundLevels.SPOKEN_TIME);
+        if (gain <= 0f) {
+            return;
+        }
+        if (voice == null) {
+            voice = new TimerVoice(this);
+        }
+        voice.say(Settings.spokenTimeNow(this), android.os.SystemClock.elapsedRealtime(), gain);
+    }
 
     /** Whether the clock is behind something — paused — which is when a dark screen hands over. */
     private boolean paused;
@@ -971,6 +1027,28 @@ public class ClockActivity extends Activity {
                 || super.onKeyDown(keyCode, event);
     }
 
+    /**
+     * The user's own timer keys, before anything on the screen sees them (issue #64).
+     *
+     * A key reaches {@link #onKeyDown} only if the view holding the focus passes it on, and a
+     * focused button takes the keys that press it — Enter, and from Android 5 Space as well — so a
+     * timer key chosen from those two clicked the sleep button or a timer control instead, on a
+     * phone driven from a keyboard. A chosen key is the user's statement of what it means, so it is
+     * answered here first, down and up alike; every other key goes the way it always went.
+     */
+    @Override
+    public boolean dispatchKeyEvent(android.view.KeyEvent event) {
+        if (event != null && timer != null && timerKeys().takes(event.getKeyCode())) {
+            if (event.getAction() == android.view.KeyEvent.ACTION_DOWN) {
+                onKeyDown(event.getKeyCode(), event);
+            } else if (event.getAction() == android.view.KeyEvent.ACTION_UP) {
+                onKeyUp(event.getKeyCode(), event);
+            }
+            return true;
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
     /** Read on each press rather than kept: the settings page is where it changes. */
     private com.reteclock.core.TimerKeys timerKeys() {
         return Settings.timerKeys(this);
@@ -1072,6 +1150,7 @@ public class ClockActivity extends Activity {
         applyBrightness();
         view.start();
         paused = false;
+        hourLooked = com.reteclock.core.HourChime.NEVER;
         // Back from a dark screen: the service that played the cues meanwhile hands them back, and
         // the run is the one written down — it may have been paused or stopped from the
         // notification.

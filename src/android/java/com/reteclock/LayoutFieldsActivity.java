@@ -904,7 +904,9 @@ public final class LayoutFieldsActivity extends Activity {
                 @Override
                 public void onClick(View v) {
                     List<LayoutBox> out = new ArrayList<LayoutBox>(boxes());
-                    out.set(which, out.get(which).onEdge(wanted));
+                    // Laid along the edge, not only labelled with it: the box and the edge
+                    // must say the same thing, or the editor and the clock disagree (issue #68).
+                    out.set(which, out.get(which).placedOnEdge(wanted, screenW(), screenH()));
                     write(out);
                     list.post(new Runnable() {
                         @Override

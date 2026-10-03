@@ -68,7 +68,8 @@ public final class SpokenTime {
     public static final int STYLE_READING = 0;
 
     /**
-     * The time read as two numbers: "1 5", "13 30" — no colon, no leading zero anywhere.
+     * The time read as two numbers: "1 5", "13 30" — no colon, no leading zero anywhere — and a
+     * round hour as one: "14", "2 PM" (issue #66).
      *
      * Issue #62: an engine that reads the string character by character says "zero one colon zero
      * five" for 01:05, which is not a time in any language. Given two bare numbers it says "one
@@ -108,6 +109,10 @@ public final class SpokenTime {
         String minutes = end < 0 ? said.substring(colon + 1) : said.substring(colon + 1, end);
         while (minutes.length() > 1 && minutes.charAt(0) == '0') {
             minutes = minutes.substring(1);
+        }
+        // A round hour is the hour alone: "14", "2 PM" — nobody says the nought (issue #66).
+        if (minutes.equals("0")) {
+            return said.substring(0, colon) + rest;
         }
         return said.substring(0, colon) + " " + minutes + rest;
     }

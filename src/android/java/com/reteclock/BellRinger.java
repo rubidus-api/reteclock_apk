@@ -138,6 +138,7 @@ final class BellRinger {
         player.stopNow();
         wakeBell = bell;
         wakeDue = pendingDue;
+        rungAtMs = SystemClock.uptimeMillis();
         WakeBells.record(context, WakeLog.RANG, wakeDue, bell.label);
         // The wake bells' row in the tab the phone's switch picks; *Mute all* does not reach them.
         com.reteclock.core.SoundLevels levels = Settings.soundLevels(context);
@@ -326,6 +327,7 @@ final class BellRinger {
         if (gain <= 0f && !buzz) {
             return;
         }
+        rungAtMs = SystemClock.uptimeMillis();
         // Asked alongside the sound or the buzz, and only once there is one to answer.
         if (ringing != null && bell.canSnooze()) {
             ringing.bellIsRinging(bell);
@@ -347,6 +349,17 @@ final class BellRinger {
         player.setStream(AudioManager.STREAM_MUSIC);
         player.setGain(gain);
         player.play(file, Settings.soundClips(context).of(bell.sound), bell.repeats);
+    }
+
+    /** When a bell last rang on this screen, on the uptime clock; chimes leave no player behind. */
+    private long rungAtMs = Long.MIN_VALUE / 2L;
+
+    /**
+     * Whether a bell rang in the last few seconds, chime or file — what the hour said aloud waits
+     * out (issue #67), since a chime is handed to the platform and leaves nothing to ask.
+     */
+    boolean justRang() {
+        return SystemClock.uptimeMillis() - rungAtMs < 5000L;
     }
 
     /** Whether a bell is sounding right now — which is what makes a touch mean "stop". */

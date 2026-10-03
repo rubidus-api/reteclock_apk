@@ -63,6 +63,7 @@ public class ClockDreamService extends DreamService {
             @Override
             public void second(long nowMs) {
                 bells.tick(nowMs);
+                sayTheHour(nowMs);
                 if (slideWatch.changed(nowMs)) {
                     view.reloadOptions();
                 }
@@ -213,9 +214,40 @@ public class ClockDreamService extends DreamService {
         getWindow().setAttributes(params);
     }
 
+    /** When {@link #sayTheHour} last looked; reset as the screensaver starts. */
+    private long hourLooked = com.reteclock.core.HourChime.NEVER;
+    /** The voice for the hour, made only if it is ever needed and let go when the dream stops. */
+    private TimerVoice hourVoice;
+
+    /**
+     * The time said as each hour turns, as on the clock (issue #67): not asleep, not while a timer
+     * is counting or a bell ringing, at the Volume card's level for the spoken time.
+     */
+    private void sayTheHour(long nowMs) {
+        long last = hourLooked;
+        hourLooked = nowMs;
+        if (!Settings.speakHour(this) || !com.reteclock.core.HourChime.due(last, nowMs,
+                Settings.offsetMinutes(this, nowMs))) {
+            return;
+        }
+        if ((sleepWatch != null && sleepWatch.asleep()) || (timer != null && timer.isRunning())
+                || (bells != null && (bells.isRinging() || bells.justRang()))) {
+            return;
+        }
+        float gain = Settings.soundGain(this, com.reteclock.core.SoundLevels.SPOKEN_TIME);
+        if (gain <= 0f) {
+            return;
+        }
+        if (hourVoice == null) {
+            hourVoice = new TimerVoice(this);
+        }
+        hourVoice.say(Settings.spokenTimeNow(this), android.os.SystemClock.elapsedRealtime(), gain);
+    }
+
     @Override
     public void onDreamingStarted() {
         super.onDreamingStarted();
+        hourLooked = com.reteclock.core.HourChime.NEVER;
         if (bells != null) {
             bells.reload();
         }
@@ -235,6 +267,10 @@ public class ClockDreamService extends DreamService {
     @Override
     public void onDreamingStopped() {
         view.stop();
+        if (hourVoice != null) {
+            hourVoice.release();
+            hourVoice = null;
+        }
         cuePlayer.stopNow();
         if (bells != null) {
             bells.stop();

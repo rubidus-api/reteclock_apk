@@ -113,6 +113,32 @@ public final class LayoutBox {
         return new LayoutBox(field, anchor, x, y, width, height, align, locked, shown, edge);
     }
 
+    /**
+     * The same box laid along this edge — the whole of it, at the thickness it already had in
+     * pixels — or, for {@link Strips#NONE}, made an ordinary box where it stands.
+     *
+     * What a strip dropped in the editor, or given an edge on the fields page, becomes: where the
+     * box sits and which edge it takes are stored apart, and the editor used to change only the
+     * first, so a timer strip dragged to the head of the screen stayed at the foot on the clock
+     * (issue #68). Laid out here, the two always say the same thing.
+     */
+    public LayoutBox placedOnEdge(int edge, int screenW, int screenH) {
+        if (edge != Strips.TOP && edge != Strips.BOTTOM && edge != Strips.LEFT
+                && edge != Strips.RIGHT) {
+            return onEdge(Strips.NONE);
+        }
+        boolean wasSide = this.edge == Strips.LEFT || this.edge == Strips.RIGHT;
+        float thickness = wasSide
+                ? widthOn(screenW, screenW * BoxPlan.DEFAULT_HEIGHT_SHARE)
+                : heightOn(screenH, screenH * BoxPlan.DEFAULT_HEIGHT_SHARE);
+        if (edge == Strips.TOP || edge == Strips.BOTTOM) {
+            return at(edge == Strips.TOP ? Anchor.TOP_CENTRE : Anchor.BOTTOM_CENTRE, 0f, 0f)
+                    .sized(1f, thickness / screenH).onEdge(edge);
+        }
+        return at(edge == Strips.LEFT ? Anchor.MIDDLE_LEFT : Anchor.MIDDLE_RIGHT, 0f, 0f)
+                .sized(thickness / screenW, 1f).onEdge(edge);
+    }
+
     /** Whether this box is a strip along an edge rather than a rectangle among the others. */
     public boolean isStrip() {
         return edge != Strips.NONE;

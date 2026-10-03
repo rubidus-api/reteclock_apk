@@ -163,6 +163,13 @@ public class ClockView extends View {
     private int textColor = com.reteclock.core.ClockColors.DEFAULT_TEXT;
     /** What shows where no image does: the empty clock, letterbox bars, the fade's floor. */
     private int backgroundColor = com.reteclock.core.ClockColors.DEFAULT_BACKGROUND;
+    /** Whether this clock's window can show the wallpaper — the clock's, not the screensaver's. */
+    private boolean wallpaperAllowed;
+
+    /** Said by the clock, whose window can show the phone's wallpaper (issue #65). */
+    void allowWallpaper(boolean allowed) {
+        wallpaperAllowed = allowed;
+    }
 
     private ClockOptions options;
     private ClockLayout layout;
@@ -329,7 +336,13 @@ public class ClockView extends View {
                 Settings.colorInForce(context, Settings.KEY_BACKGROUND_COLOR));
         textColor = com.reteclock.core.ClockColors.resolveText(
                 Settings.colorInForce(context, Settings.KEY_TEXT_COLOR), backgroundColor);
-        setBackgroundColor(backgroundColor);
+        // Over the phone's wallpaper the clock has no ground of its own (issue #65); the colour is
+        // still what the text is kept readable against.
+        boolean landscape = context.getResources().getConfiguration().orientation
+                == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+        setBackgroundColor(!safeMode && wallpaperAllowed
+                && Settings.wallpaperInForce(context, landscape)
+                ? android.graphics.Color.TRANSPARENT : backgroundColor);
         paint.setColor(textColor);
     }
 

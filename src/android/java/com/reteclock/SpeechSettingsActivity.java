@@ -115,6 +115,19 @@ public class SpeechSettingsActivity extends Activity {
         speak.addView(say);
         speak.addView(footer(getString(R.string.speak_time_note)));
 
+        CheckBox hour = new CheckBox(this);
+        hour.setText(R.string.speak_hour);
+        hour.setTextColor(TEXT_WHITE);
+        hour.setChecked(Settings.speakHour(this));
+        hour.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                Settings.setSpeakHour(SpeechSettingsActivity.this, checked);
+            }
+        });
+        speak.addView(hour);
+        speak.addView(footer(getString(R.string.speak_hour_note)));
+
         speak.addView(subheading(getString(R.string.speak_style)));
         int chosen = Settings.spokenTemplateOn(this) ? CHOICE_OWN : Settings.spokenTimeStyle(this);
         speak.addView(inlineChoice(

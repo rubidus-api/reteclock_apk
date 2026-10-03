@@ -96,7 +96,7 @@ public final class LayoutEditorActivity extends Activity {
                     Settings.options(this));
             drawn = automatic == null ? new ArrayList<LayoutBox>() : automatic;
         }
-        boxes = new ArrayList<LayoutBox>(drawn);
+        boxes = alongTheirEdges(drawn);
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -235,7 +235,7 @@ public final class LayoutEditorActivity extends Activity {
         preset = Settings.layouts(this).get(landscape, index);
         List<LayoutBox> drawn = preset.boxes();
         if (!drawn.isEmpty()) {
-            boxes = new ArrayList<LayoutBox>(drawn);
+            boxes = alongTheirEdges(drawn);
             canvas.invalidate();
             refreshComplaints();
         }
@@ -435,6 +435,7 @@ public final class LayoutEditorActivity extends Activity {
                             && System.currentTimeMillis() - downAt >= 500L) {
                         askNumbers(selected);
                     } else if (moved) {
+                        dropStrip();
                         refreshComplaints();
                     }
                     grabbed = Grab.NONE;
@@ -460,6 +461,23 @@ public final class LayoutEditorActivity extends Activity {
             grabbed = Grab.NONE;
         }
 
+        /**
+         * A strip let go of takes the edge it was dropped nearest — the saying the top or the
+         * bottom only — and is laid along it, so the editor shows what the clock will draw
+         * (issue #68: the box moved and its edge did not).
+         */
+        private void dropStrip() {
+            if (selected < 0 || selected >= boxes.size() || !boxes.get(selected).isStrip()) {
+                return;
+            }
+            LayoutBox box = boxes.get(selected);
+            boolean sides = !ClockLayout.ROLE_QUOTE.equals(box.field);
+            int edge = com.reteclock.core.layout.Strips.nearest(rectOf(box), screenW(), screenH(),
+                    sides);
+            boxes.set(selected, box.placedOnEdge(edge, screenW(), screenH()));
+            save();
+        }
+
         private void drag(float dx, float dy) {
             LayoutBox box = boxes.get(selected);
             float[] was = rectOf(box);
@@ -471,6 +489,19 @@ public final class LayoutEditorActivity extends Activity {
     }
 
     // ---- boxes and rectangles --------------------------------------------------------------
+
+    /**
+     * The boxes as the editor shows them: each strip laid along the edge it takes. A layout saved
+     * before issue #68 was fixed may hold a strip whose box was dragged away from its edge; shown
+     * where the clock draws it, the next drag puts it right.
+     */
+    private List<LayoutBox> alongTheirEdges(List<LayoutBox> drawn) {
+        List<LayoutBox> out = new ArrayList<LayoutBox>(drawn.size());
+        for (LayoutBox box : drawn) {
+            out.add(box.isStrip() ? box.placedOnEdge(box.edge, screenW(), screenH()) : box);
+        }
+        return out;
+    }
 
     /** Where a box is on the phone's screen, at the size the editor treats as its own. */
     private float[] rectOf(LayoutBox box) {

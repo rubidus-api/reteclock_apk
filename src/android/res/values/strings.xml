@@ -524,7 +524,7 @@
     <string name="sound_levels_note">100% is how loud each sound has always been; this only turns sounds down. The phone\'s own volume keys still set the loudness of the music stream, and the alarm volume sets the wake bells\'. A phone in Do Not Disturb may hold back sounds whatever is chosen here.</string>
     <string name="sound_kind_timer">Timer sounds</string>
     <string name="sound_kind_timer_speech">Timer messages (spoken)</string>
-    <string name="sound_kind_spoken_time">Time spoken on a tap</string>
+    <string name="sound_kind_spoken_time">Spoken time (a tap, the hour)</string>
     <string name="sound_kind_bells">Bells</string>
     <string name="sound_kind_wake_bells">Wake bells</string>
     <string name="sound_level_percent">%1$d%%</string>
@@ -701,6 +701,10 @@
     <string name="speak_card">Tapping the clock</string>
     <string name="speak_intro">A tap on the clock face stops whatever is ringing — a bell, an alarm, the timer\'s cue. The menu is behind a long press, so a tap can safely be given something else to do.</string>
     <string name="speak_time">Say the time when the clock is tapped</string>
+    <string name="settings_background_wallpaper">Show the phone\'s wallpaper behind the clock</string>
+    <string name="settings_background_wallpaper_note">The wallpaper of the phone\'s home screen, live ones included, shows through where the clock has no writing; the pictures below and the background colour are kept for when this is off. No permission is needed. This is for the clock; the screensaver keeps its own background. A slide set to no background, sleep with the background off and OLED care\'s black still win. A live wallpaper keeps moving behind the clock, and costs battery as it does.</string>
+    <string name="speak_hour">Say the time on the hour</string>
+    <string name="speak_hour_note">As each hour turns — 13:00, 14:00 — the time is said the way a tap says it, while the clock or the screensaver is showing. Not while the clock is asleep, while a timer is counting or while a bell is ringing, and not with the screen off. Its loudness is the spoken time\'s, on Sounds and bells → Volume.</string>
     <string name="speak_time_note">Spoken through the phone\'s speech engine, the one the timer\'s messages use, as the time alone — "13:30", or "1:30 PM" on a twelve-hour clock — so that the engine reads it in its own language; your own AM/PM words are used if you set any. It follows this app\'s own clock — its time offset and its 12- or 24-hour setting — rather than the phone\'s, and it is silent on a tap that stopped a sound. It reads midnight as 12 on a twelve-hour clock whatever the face is set to write. If the phone has no speech engine or no voice for the language, nothing is said.</string>
     <string name="speak_style">How the time is read</string>
     <string name="speak_style_reading">As written — 1:05</string>

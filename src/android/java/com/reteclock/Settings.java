@@ -34,6 +34,7 @@ public final class Settings {
     public static final String KEY_BACKGROUND_FIT = "background_fit";
     public static final String KEY_BACKGROUND_STILL_SECONDS = "background_still_seconds";
     public static final String KEY_BACKGROUND_FADE = "background_fade";
+    public static final String KEY_BACKGROUND_WALLPAPER = "background_wallpaper";
     public static final String KEY_BACKGROUND_ORDER_MODE = "background_order_mode";
     public static final String KEY_BACKGROUND_ORDER = "background_order";
     public static final String KEY_FOREGROUND = "foreground";
@@ -120,6 +121,7 @@ public final class Settings {
     /** Whether the page and the bells show the names the chosen set uses, beside our own. */
     public static final String KEY_SUN_SHOW_NAMES = "sun_show_names";
     public static final String KEY_SPEAK_TIME = "speak_time";
+    public static final String KEY_SPEAK_HOUR = "speak_hour";
     /** The speech engine's package, "" for the phone's default. Belongs to this phone only. */
     public static final String KEY_TTS_ENGINE = "tts_engine";
     /** The language speech is asked for, as a {@link com.reteclock.core.VoiceLocale} tag. */
@@ -321,6 +323,7 @@ public final class Settings {
                 sunMethod(context) != com.reteclock.core.SunMethods.CUSTOM));
         out.put(KEY_SUN_SHOW_NAMES, Boolean.valueOf(sunShowNames(context)));
         out.put(KEY_SPEAK_TIME, Boolean.valueOf(speakTime(context)));
+        out.put(KEY_SPEAK_HOUR, Boolean.valueOf(speakHour(context)));
         out.put(KEY_TTS_ENGINE, ttsEngine(context));
         out.put(KEY_TTS_LANGUAGE, ttsLanguage(context));
         out.put(KEY_SLEEP_BUTTON, Boolean.valueOf(sleepButton(context)));
@@ -337,6 +340,7 @@ public final class Settings {
         out.put(KEY_BACKGROUND_FIT, Integer.valueOf(backgroundFit(context)));
         out.put(KEY_BACKGROUND_STILL_SECONDS, Integer.valueOf(backgroundStillSeconds(context)));
         out.put(KEY_BACKGROUND_FADE, Boolean.valueOf(backgroundFade(context)));
+        out.put(KEY_BACKGROUND_WALLPAPER, Boolean.valueOf(backgroundWallpaper(context)));
         out.put(KEY_BACKGROUND_ORDER_MODE, Integer.valueOf(backgroundOrderMode(context)));
         out.put(KEY_BACKGROUND_ORDER, prefs(context).getString(KEY_BACKGROUND_ORDER, ""));
         out.put(KEY_POOL_BACKGROUND, prefs(context).getString(KEY_POOL_BACKGROUND, ""));
@@ -706,6 +710,38 @@ public final class Settings {
      *
      * A name the layout carries whose file has gone is skipped, exactly as a missing pool file is.
      */
+    /**
+     * Whether the phone's own wallpaper is wanted behind the clock (issue #65): the switch on
+     * Pictures, off unless turned on.
+     */
+    public static boolean backgroundWallpaper(Context context) {
+        return prefs(context).getBoolean(KEY_BACKGROUND_WALLPAPER, false);
+    }
+
+    public static void setBackgroundWallpaper(Context context, boolean on) {
+        prefs(context).edit().putBoolean(KEY_BACKGROUND_WALLPAPER, on).commit();
+    }
+
+    /**
+     * Whether the wallpaper is behind the clock just now: switched on, and not held back by what
+     * holds back a picture — a slide that says no background, sleep with the background off, OLED
+     * care's black. The pictures and the colour are kept either way.
+     */
+    public static boolean wallpaperInForce(Context context, boolean landscape) {
+        if (!backgroundWallpaper(context)) {
+            return false;
+        }
+        long now = System.currentTimeMillis();
+        com.reteclock.core.layout.LayoutSlides.Slide slide = slideInForce(context, landscape, now);
+        if (slide != null && !slide.background) {
+            return false;
+        }
+        if (sleepNoBackground(context) && sleepInForce(context, now)) {
+            return false;
+        }
+        return !oledCare(context);
+    }
+
     public static java.util.List<File> backgroundFiles(Context context, boolean landscape) {
         // A slide that says "no background" draws the plain ground, whatever its layout carries
         // or the pool holds (RFC-0013 D3).
@@ -721,6 +757,10 @@ public final class Settings {
         }
         // OLED care draws on black: no pool picture and no layout's own either. Both are kept.
         if (oledCare(context)) {
+            return new java.util.ArrayList<File>();
+        }
+        // The phone's wallpaper is the background: no picture over it (issue #65).
+        if (wallpaperInForce(context, landscape)) {
             return new java.util.ArrayList<File>();
         }
         java.util.List<File> own = carried(context, landscape,
@@ -1130,6 +1170,18 @@ public final class Settings {
      * Off unless it is asked for: a clock that speaks when it is touched would be a surprise on a
      * bedside table, and the tap already has a job — stopping whatever is ringing, which keeps it.
      */
+    /**
+     * Whether the clock says the time as each hour turns, while it or the screensaver is showing
+     * (issue #67). Off unless switched on.
+     */
+    public static boolean speakHour(Context context) {
+        return prefs(context).getBoolean(KEY_SPEAK_HOUR, false);
+    }
+
+    public static void setSpeakHour(Context context, boolean on) {
+        prefs(context).edit().putBoolean(KEY_SPEAK_HOUR, on).commit();
+    }
+
     public static boolean speakTime(Context context) {
         return prefs(context).getBoolean(KEY_SPEAK_TIME, false);
     }

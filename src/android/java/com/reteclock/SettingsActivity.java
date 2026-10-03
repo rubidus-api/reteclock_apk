@@ -1132,6 +1132,21 @@ public class SettingsActivity extends Activity {
         // Whatever just changed — an import, a deletion, a rename — the baked files follow it.
         prepareImages();
 
+        // The phone's own wallpaper, instead of a picture or the colour (issue #65).
+        CheckBox wallpaper = new CheckBox(this);
+        wallpaper.setText(R.string.settings_background_wallpaper);
+        wallpaper.setTextColor(TEXT_WHITE);
+        wallpaper.setChecked(Settings.backgroundWallpaper(this));
+        wallpaper.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                Settings.setBackgroundWallpaper(SettingsActivity.this, checked);
+            }
+        });
+        imageSection.addView(wallpaper);
+        imageSection.addView(footer(getString(R.string.settings_background_wallpaper_note)));
+        imageSection.addView(divider());
+
         final FontLibrary store = Settings.images(this);
         final List<FontLibrary.Entry> entries = Settings.orderedImages(this);
         final ImageRoles.Lists roles = Settings.roles(this);

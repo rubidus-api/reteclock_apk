@@ -92,6 +92,34 @@ public final class Strips {
      * @param timerThickness how deep the strip is, in pixels
      * @param sayingEdge     likewise for the saying; moved to the opposite edge if it clashes
      */
+    /**
+     * The edge a box dropped at this rectangle belongs to: the one the middle of it is closest to,
+     * each distance a share of the screen across that axis (issue #68). The saying may take only
+     * the top and the bottom, so {@code sides} is false for it.
+     *
+     * @param rect left, top, width, height, in pixels
+     */
+    public static int nearest(float[] rect, int screenW, int screenH, boolean sides) {
+        float cx = rect[0] + rect[2] / 2f;
+        float cy = rect[1] + rect[3] / 2f;
+        int best = TOP;
+        float distance = cy / screenH;
+        if ((screenH - cy) / screenH < distance) {
+            best = BOTTOM;
+            distance = (screenH - cy) / screenH;
+        }
+        if (sides) {
+            if (cx / screenW < distance) {
+                best = LEFT;
+                distance = cx / screenW;
+            }
+            if ((screenW - cx) / screenW < distance) {
+                best = RIGHT;
+            }
+        }
+        return best;
+    }
+
     public static Strips of(int screenW, int screenH, int timerEdge, float timerThickness,
             int sayingEdge, float sayingThickness) {
         float[] content = {0f, 0f, screenW, screenH};
