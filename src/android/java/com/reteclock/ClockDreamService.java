@@ -88,7 +88,14 @@ public class ClockDreamService extends DreamService {
         timer = new TimerView(this);
         timer.setListener(dreamListener);
         timer.setPreset(running.preset());
-        timer.adopt(running, Settings.runStarted(this));
+        // Back from a dark screen, the run is the one the service left written down and the cues
+        // carry on after the last one it played (R130).
+        long handed = TimerSoundService.takeBack(this);
+        if (handed != TimerSoundService.NOTHING) {
+            timer.handOver(running, Settings.runStarted(this), handed);
+        } else {
+            timer.adopt(running, Settings.runStarted(this));
+        }
         // Under OLED care the controls take the mode's dim colour too, as they do on the clock.
         if (Settings.oledCare(this)) {
             timer.setChrome(com.reteclock.core.OledCare.TEXT_COLOR);
@@ -234,6 +241,11 @@ public class ClockDreamService extends DreamService {
         }
         if (timer != null) {
             timer.pauseDrawing();
+            // The screensaver ends when the screen goes off; a run going carries on sounding.
+            if (timer.isRunning() && Settings.timerWhileLocked(this)
+                    && !ClockActivity.screenOn(this)) {
+                TimerSoundService.startFor(this, timer.lastCueMs());
+            }
         }
         super.onDreamingStopped();
     }

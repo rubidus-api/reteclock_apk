@@ -77,7 +77,25 @@ public class TimerView extends View {
     private Listener listener;
 
     /** What the strip needs the world to do for it. */
-    interface Listener {
+    /**
+     * What a cue becomes: a sound, a spoken message, a flash. The screen's listener is one; with the
+     * screen off, {@link TimerSoundService} is the other, so both play exactly the same thing.
+     */
+    interface CueSink {
+        /** Play this pattern, however the settings say it should be heard. */
+        void cue(Tones.Note[] pattern);
+
+        /** Play the sound this cue was given, falling back to the pattern when there is none. */
+        void sound(String name, Tones.Note[] fallback);
+
+        /** Say this, if there is anything to say. */
+        void speak(String message);
+
+        /** Flash the whole screen: an interval has ended. */
+        void flash();
+    }
+
+    interface Listener extends CueSink {
         /**
          * Write the run down, or forget it, so another screen can pick it up where it stands.
          *
@@ -411,28 +429,33 @@ public class TimerView extends View {
         }
         List<TimerCues.Cue> cues = TimerCues.between(run, lastCueMs, now);
         lastCueMs = now;
+        dispatch(preset, cues, listener);
+    }
+
+    /** Plays these cues of this preset, in order — on the screen, or with the screen off. */
+    static void dispatch(TimerPreset preset, List<TimerCues.Cue> cues, CueSink sink) {
         for (TimerCues.Cue cue : cues) {
             switch (cue.kind) {
                 case TimerCues.PRE_ALARM:
-                    listener.sound(cue.interval < preset.intervals.size()
+                    sink.sound(cue.interval < preset.intervals.size()
                             ? preset.intervals.get(cue.interval).preAlarmSound : "",
                             Tones.PRE_ALARM);
                     break;
                 case TimerCues.TICK:
-                    listener.cue(Tones.TICK);
+                    sink.cue(Tones.TICK);
                     break;
                 case TimerCues.START:
                     // The high one, landing on the moment the preset really begins — the same
                     // sound as an ending, because it marks an instant just as exactly. A preset
                     // with a sound of its own plays that instead.
-                    listener.sound(preset.startSound, Tones.END);
+                    sink.sound(preset.startSound, Tones.END);
                     break;
                 case TimerCues.END:
-                    listener.cue(Tones.END);
-                    listener.flash();
+                    sink.cue(Tones.END);
+                    sink.flash();
                     break;
                 case TimerCues.FINISH:
-                    listener.sound(preset.finishSound, Tones.FINISH);
+                    sink.sound(preset.finishSound, Tones.FINISH);
                     break;
                 case TimerCues.SPEAK:
                     if (cue.interval < preset.intervals.size()) {
@@ -440,9 +463,9 @@ public class TimerView extends View {
                         // other: one says what is beginning, the other marks that it has.
                         String named = preset.intervals.get(cue.interval).startSound;
                         if (!named.isEmpty()) {
-                            listener.sound(named, null);
+                            sink.sound(named, null);
                         }
-                        listener.speak(preset.intervals.get(cue.interval).message);
+                        sink.speak(preset.intervals.get(cue.interval).message);
                     }
                     break;
                 default:
@@ -849,6 +872,35 @@ public class TimerView extends View {
                 break;
         }
         return true;
+    }
+
+    /** The run on the strip, if any, for whoever carries it on with the screen off. */
+    TimerRun run() {
+        return run;
+    }
+
+    /** The moment up to which this strip has played its cues. */
+    long lastCueMs() {
+        return lastCueMs;
+    }
+
+    /**
+     * Takes the run back from {@link TimerSoundService}, which played its cues with the screen off
+     * and may have paused or stopped it from its notification: the run is the one written down, and
+     * the cues carry on just after the last one the service played — none twice, none missed.
+     */
+    void handOver(TimerRun existing, long startedEpochMs, long playedUpToMs) {
+        run = existing;
+        startEpochMs = startedEpochMs;
+        long now = SystemClock.elapsedRealtime();
+        lastCueMs = playedUpToMs == TimerSoundService.NOTHING ? now : Math.min(playedUpToMs, now);
+        if (run != null && !run.isPaused() && !run.finishedAt(now)) {
+            begin();
+        } else {
+            running = false;
+            handler.removeCallbacks(tick);
+            invalidate();
+        }
     }
 
     /** Stops the redraws; the run itself is kept, so coming back shows where it got to. */

@@ -209,6 +209,12 @@
             android:exported="false"
             android:directBootAware="true" />
 
+        <!-- The timer's cues with the screen off (R130): started only by the clock and the
+             screensaver going dark with a run going. -->
+        <service
+            android:name=".TimerSoundService"
+            android:exported="false" />
+
         <receiver
             android:name=".PowerConnectionReceiver"
             android:exported="true">

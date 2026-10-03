@@ -68,6 +68,7 @@ public final class Settings {
     public static final String KEY_TIMER_LOG_FLOOR = "timer_log_floor_mb";
     /** Whether the user's own timer keys are listened for (issue #63). */
     public static final String KEY_TIMER_KEYS_ON = "timer_keys_on";
+    public static final String KEY_TIMER_WHILE_LOCKED = "timer_while_locked";
     /** The keys that start and pause the timer, and those that stop it: key codes, commas. */
     public static final String KEY_TIMER_KEYS_START_PAUSE = "timer_keys_start_pause";
     public static final String KEY_TIMER_KEYS_STOP = "timer_keys_stop";
@@ -370,6 +371,7 @@ public final class Settings {
         out.put(KEY_TIMER_LOG_FLOOR, Integer.valueOf(timerLogFloorMb(context)));
         com.reteclock.core.TimerKeys keys = timerKeys(context);
         out.put(KEY_TIMER_KEYS_ON, Boolean.valueOf(keys.on()));
+        out.put(KEY_TIMER_WHILE_LOCKED, Boolean.valueOf(timerWhileLocked(context)));
         out.put(KEY_TIMER_KEYS_START_PAUSE, keys.startPauseText());
         out.put(KEY_TIMER_KEYS_STOP, keys.stopText());
 
@@ -488,6 +490,18 @@ public final class Settings {
     /** The share of its usual loudness one kind plays at right now: 0 when silenced. */
     public static float soundGain(Context context, int kind) {
         return soundLevels(context).gain(soundMode(context), kind);
+    }
+
+    /**
+     * Whether a running timer goes on sounding its cues with the screen off or locked (owner's
+     * choice, 2026-10-03: on unless switched off).
+     */
+    public static boolean timerWhileLocked(Context context) {
+        return prefs(context).getBoolean(KEY_TIMER_WHILE_LOCKED, true);
+    }
+
+    public static void setTimerWhileLocked(Context context, boolean on) {
+        prefs(context).edit().putBoolean(KEY_TIMER_WHILE_LOCKED, on).commit();
     }
 
     public static void setSoundLevel(Context context, int mode, int kind, int level) {

@@ -315,6 +315,16 @@
     <string name="timer_alert">How it makes itself heard</string>
     <string name="timer_alert_moved">Every interval end flashes the screen. Whether it also sounds, how loudly, and whether it vibrates — separately for a phone that is ringing, on vibrate and on silent — is set with the other sounds, on Sounds and bells → Volume.</string>
     <string name="timer_alert_open">Open Volume…</string>
+    <string name="timer_while_locked">Keep sounding with the screen off</string>
+    <string name="timer_while_locked_note">A running timer goes on playing its cues — beeps, your sounds, its spoken messages and vibration, as Volume sets them for the phone\'s mode — when the screen goes off or the phone locks. While it does, a notification names the interval and when it ends, with Pause and Stop. At the finish it plays the finish; the screen stays off. Off, the timer keeps its time with the screen off but stays quiet until the clock is back. On Android 6 and newer a phone left still for a long while may hold back cues late in a long timer.</string>
+    <string name="timer_locked_channel">Timer</string>
+    <string name="timer_locked_channel_note">Shown while a timer sounds with the screen off.</string>
+    <string name="timer_locked_running">Timer running</string>
+    <string name="timer_locked_paused">Paused</string>
+    <string name="timer_locked_ends">%1$s · ends at %2$s</string>
+    <string name="timer_locked_pause">Pause</string>
+    <string name="timer_locked_resume">Resume</string>
+    <string name="timer_locked_stop">Stop</string>
     <string name="timer_no_speech">This device has no speech engine, so an interval\'s message will not be spoken. Everything else — the beeps, the count into each ending, and the flash — works as usual.</string>
     <string name="timer_no_voice">This device\'s speech engine has no voice data installed, so a message will not be heard. Everything else — the beeps, the count into each ending, and the flash — works as usual.</string>
     <string name="timer_card_presets">Presets</string>

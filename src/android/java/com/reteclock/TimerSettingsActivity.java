@@ -103,6 +103,18 @@ public class TimerSettingsActivity extends Activity {
         // now a row in each tab of the Volume card (R129), where the bells and speech are too; the
         // old choice is still stored and is read as those rows' default.
         using.addView(footer(getString(R.string.timer_alert_moved)));
+        final CheckBox locked = new CheckBox(this);
+        locked.setText(R.string.timer_while_locked);
+        locked.setTextColor(TEXT_WHITE);
+        locked.setChecked(Settings.timerWhileLocked(this));
+        locked.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                Settings.setTimerWhileLocked(TimerSettingsActivity.this, checked);
+            }
+        });
+        using.addView(locked);
+        using.addView(footer(getString(R.string.timer_while_locked_note)));
         using.addView(actionButton(getString(R.string.timer_alert_open),
                 new View.OnClickListener() {
                     @Override

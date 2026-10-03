@@ -112,6 +112,49 @@ public final class TimerCues {
         return out;
     }
 
+    /** What {@link #nextAt} answers when nothing more is coming. */
+    public static final long NONE = Long.MIN_VALUE;
+
+    /**
+     * When the next cue after {@code afterMs} falls, on the same clock the run is asked about, or
+     * {@link #NONE} when the run is paused or has nothing left to play.
+     *
+     * For a screen that is off and has to be woken: woken then, the window from {@code afterMs} up
+     * to this moment holds that cue and nothing earlier, so walking from cue to cue plays exactly
+     * what watching every frame would have.
+     */
+    public static long nextAt(TimerRun run, long afterMs) {
+        if (run == null || run.isPaused()) {
+            return NONE;
+        }
+        TimerPreset preset = run.preset();
+        long total = run.totalMs();
+        if (total <= 0L) {
+            return NONE;
+        }
+        long from = run.rawElapsedAt(afterMs);
+        // Every pass ends with a cue, so two passes ahead always holds the next one of a preset
+        // that repeats; one that runs once has nothing past its end.
+        long to = preset.loops ? from + 2L * total : total;
+        if (to <= from) {
+            return NONE;
+        }
+        List<Cue> out = new ArrayList<Cue>();
+        long firstPass = preset.loops ? Math.max(0L, from / total) : 0L;
+        long lastPass = preset.loops ? to / total : 0L;
+        for (long pass = firstPass; pass <= lastPass; pass++) {
+            layOut(out, preset, pass * total, from, to);
+        }
+        long best = NONE;
+        for (Cue cue : out) {
+            if (best == NONE || cue.atMs < best) {
+                best = cue.atMs;
+            }
+        }
+        // A running run's elapsed time moves with the clock, one for one.
+        return best == NONE ? NONE : afterMs + (best - from);
+    }
+
     /** How many passes of a repeating preset one window will lay out before giving up on the rest. */
     private static final int MAX_PASSES_AT_ONCE = 4;
 

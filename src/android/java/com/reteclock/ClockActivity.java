@@ -94,6 +94,7 @@ public class ClockActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        registerReceiver(screenOff, new android.content.IntentFilter(Intent.ACTION_SCREEN_OFF));
 
         if (routeToSettings()) {
             return;
@@ -572,6 +573,56 @@ public class ClockActivity extends Activity {
         }
     };
 
+    /** Whether the clock is behind something — paused — which is when a dark screen hands over. */
+    private boolean paused;
+
+    /**
+     * The screen went off or locked with a run going: the timer's cues carry on in
+     * {@link TimerSoundService} (R130), if the switch on Timer settings says so. Leaving for the
+     * settings or another app with the screen on is not this, and goes on as it always did.
+     */
+    private void handOverIfDark() {
+        if (!paused || timer == null || !timer.isRunning() || !Settings.timerWhileLocked(this)
+                || screenOn(this)) {
+            return;
+        }
+        TimerSoundService.startFor(this, timer.lastCueMs());
+    }
+
+    @SuppressWarnings("deprecation")
+    static boolean screenOn(android.content.Context context) {
+        try {
+            android.os.PowerManager power = (android.os.PowerManager)
+                    context.getSystemService(android.content.Context.POWER_SERVICE);
+            return power == null || power.isScreenOn();
+        } catch (RuntimeException e) {
+            return true;
+        }
+    }
+
+    /**
+     * The screen may go off a moment after the clock was paused rather than before: then this is
+     * what notices. Registered for the life of the clock.
+     */
+    private final android.content.BroadcastReceiver screenOff =
+            new android.content.BroadcastReceiver() {
+                @Override
+                public void onReceive(android.content.Context context, Intent intent) {
+                    handOverIfDark();
+                }
+            };
+
+    /** The run written down, as the service may have left it. */
+    private com.reteclock.core.TimerRun storedRun() {
+        List<TimerPreset> presets = Settings.timerPresets(this);
+        if (presets.isEmpty()) {
+            return null;
+        }
+        return com.reteclock.core.TimerMemory.restore(presets.get(Settings.timerChosen(this)),
+                Settings.runPreset(this), Settings.runOrigin(this), Settings.runPausedAt(this),
+                android.os.SystemClock.elapsedRealtime());
+    }
+
     /** Takes the card away with the screen, so it is not left over a window nobody is at. */
     private void dismissBellCard() {
         if (bellCard != null) {
@@ -1020,13 +1071,32 @@ public class ClockActivity extends Activity {
         layOutScreen();
         applyBrightness();
         view.start();
+        paused = false;
+        // Back from a dark screen: the service that played the cues meanwhile hands them back, and
+        // the run is the one written down — it may have been paused or stopped from the
+        // notification.
+        long handed = TimerSoundService.takeBack(this);
         if (timer != null) {
-            timer.resumeDrawing();
+            if (handed != TimerSoundService.NOTHING) {
+                timer.handOver(storedRun(), Settings.runStarted(this), handed);
+            } else {
+                timer.resumeDrawing();
+            }
         }
         // The mark this run leaves if it never comes back.
         Settings.setRunUnfinished(this, true);
         handler.removeCallbacks(reportHealthy);
         handler.postDelayed(reportHealthy, com.reteclock.core.SafeStart.HEALTHY_MS);
+    }
+
+    @Override
+    protected void onDestroy() {
+        try {
+            unregisterReceiver(screenOff);
+        } catch (IllegalArgumentException e) {
+            // Never registered: an onCreate that did not get that far.
+        }
+        super.onDestroy();
     }
 
     @Override
@@ -1043,6 +1113,8 @@ public class ClockActivity extends Activity {
         if (timer != null) {
             timer.pauseDrawing();
         }
+        paused = true;
+        handOverIfDark();
         if (voice != null) {
             voice.release();
             voice = null;

@@ -34,6 +34,25 @@ final class WakeApi26 {
         manager.createNotificationChannel(channel);
     }
 
+    /**
+     * A channel that shows without a sound or a pop-up: the timer's, whose notification is there
+     * only because a foreground service must have one, and whose sounds are the timer's own.
+     */
+    static void createQuietChannel(Context context, String id, CharSequence name,
+            String description) {
+        NotificationManager manager =
+                (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (manager == null) {
+            return;
+        }
+        NotificationChannel channel =
+                new NotificationChannel(id, name, NotificationManager.IMPORTANCE_LOW);
+        channel.setDescription(description);
+        channel.setSound(null, null);
+        channel.enableVibration(false);
+        manager.createNotificationChannel(channel);
+    }
+
     static Notification.Builder builder(Context context, String channelId) {
         return new Notification.Builder(context, channelId);
     }
