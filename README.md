@@ -1,4 +1,4 @@
-[한국어](README.ko.md) | **English** — **reteclock v0.52.0** — [APK(Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.52.0/reteclock-0.52.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)
+[한국어](README.ko.md) | **English** — **reteclock v0.53.0** — [APK(Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.53.0/reteclock-0.53.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)
 
 # reteclock
 
@@ -14,9 +14,9 @@ so the numbers never burn into an OLED screen.
 There is nothing to sign up for and nothing to configure. It needs no account, no network and no
 Play Store, so it still works on phones that can no longer install anything else. It is small —
 about 500 KB — and asks for four normal permissions, all granted at install: one to keep the screen
-awake, one to vibrate, which only the timer and the bells use, and two that only *Alarms (experimental)* uses —
-starting after a restart, and a foreground service while an alarm rings. Those two stay unused until
-you turn that page's switch on.
+awake, one to vibrate, which only the timer and the bells use, one for a foreground service — while
+a timer sounds with the screen off, or an alarm rings — and one that only *Alarms (experimental)*
+uses, starting after a restart, which stays unused until you turn that page's switch on.
 
 > **If the clock does not answer your touch, it is not the clock.** Android does not pass touches to
 > a screensaver (Daydream) or to anything showing over the lock screen — the first touch wakes the
@@ -30,8 +30,8 @@ you turn that page's switch on.
 
 **[⬇ Get it on F-Droid](https://f-droid.org/packages/com.reteclock/)** — recommended.
 
-**[⬇ Download reteclock-0.52.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.52.0/reteclock-0.52.0.apk)**
-— 606 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
+**[⬇ Download reteclock-0.53.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.53.0/reteclock-0.53.0.apk)**
+— 610 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
 render GitHub's release page can still fetch it.
 
 The newest release is always at
@@ -135,7 +135,7 @@ it needs beyond keeping the screen awake. Copy the APK to the phone, open it, an
 
 ## Which phones it runs on
 
-Published on F-Droid; the latest release is 0.52.0.
+Published on F-Droid; the latest release is 0.53.0.
 
 | | |
 |---|---|
@@ -336,7 +336,12 @@ nothing extra drawn.
 - **Sound, vibration or silence** — set on *Sounds and bells* → *Volume*, separately for a phone
   that is ringing, on vibrate and on silent (since 0.52.0; before it, one setting on *Timer
   settings*). By default the timer sounds on a ringing phone and vibrates on a vibrating one. Whatever
-  you choose, the end of each interval also flashes the screen three times. The tune at the end of a
+  you choose, the end of each interval also flashes the screen three times.
+- **With the screen off** — a running timer keeps sounding when the screen goes off or the phone
+  locks: every cue, its spoken messages and vibration, under a notification that names the interval
+  and when it ends, with *Pause* and *Stop*. At the finish it plays the finish and leaves the screen
+  off. On unless you turn off *Timer settings* → *Keep sounding with the screen off*. (Since 0.53.0.)
+- **The finish** — the tune at the end of a
   preset is the theme from the fourth movement of Schubert's *Trout* Quintet, which the phone plays
   from the notes rather than from a recording.
 - **Putting it away** — the hourglass at the end of the strip opens the list of presets, and the
@@ -643,8 +648,8 @@ Java and the Android framework, nothing else. Built with the Android SDK command
 AndroidX, no support library, no Kotlin runtime and no third-party dependency — a single
 `classes.dex` and an APK of about 500 KB. It is signed with the v1 (JAR) scheme so old phones
 accept it, plus v2 and v3 for current ones, and it holds four normal permissions (`WAKE_LOCK`,
-`VIBRATE` for the timer, and `RECEIVE_BOOT_COMPLETED` and `FOREGROUND_SERVICE` for the experimental
-alarms, whose components ship disabled), all granted at install and never requested at runtime.
+`VIBRATE` for the timer, `FOREGROUND_SERVICE` for the timer with the screen off and for the
+experimental alarms, and `RECEIVE_BOOT_COMPLETED` for those alarms, whose components ship disabled), all granted at install and never requested at runtime.
 
 ### Build
 

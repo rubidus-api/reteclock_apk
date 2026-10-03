@@ -1,4 +1,4 @@
-**한국어** | [English](README.md) — **reteclock v0.52.0** — [APK(Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.52.0/reteclock-0.52.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)
+**한국어** | [English](README.md) — **reteclock v0.53.0** — [APK(Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.53.0/reteclock-0.53.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)
 
 # reteclock
 
@@ -12,9 +12,9 @@
 
 가입할 것도, 설정할 것도 없습니다. 계정도 네트워크도 플레이 스토어도 필요하지 않아서, 이제는
 아무 앱도 새로 설치할 수 없는 폰에서도 잘 돌아갑니다. 크기는 500 KB 남짓으로 작고, 요구하는 권한은
-일반 권한 넷입니다 — 화면을 켜 두기 위한 것, 타이머와 종만 쓰는 진동, 그리고 *Alarms (experimental)*
-만 쓰는 둘(재시작 후 시작, 알람이 울리는 동안의 포그라운드 서비스). 모두 설치할 때 부여되며, 뒤의
-둘은 그 페이지의 스위치를 켜기 전에는 쓰이지 않습니다.
+일반 권한 넷입니다 — 화면을 켜 두기 위한 것, 타이머와 종만 쓰는 진동, 화면이 꺼진 채 타이머가
+울리거나 알람이 울리는 동안의 포그라운드 서비스, 그리고 *Alarms (experimental)* 만 쓰는 재시작 후
+시작. 모두 설치할 때 부여되며, 마지막 것은 그 페이지의 스위치를 켜기 전에는 쓰이지 않습니다.
 
 > 기준이 되는 문서는 영어판 README이고, 이 문서는 그 번역본입니다.
 
@@ -29,8 +29,8 @@
 
 **[⬇ F-Droid에서 받기](https://f-droid.org/packages/com.reteclock/)** — 권장합니다.
 
-**[⬇ reteclock-0.52.0.apk 내려받기](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.52.0/reteclock-0.52.0.apk)**
-— 606 KB이고 안드로이드 2.3 이상에 설치됩니다. 파일로 곧장 이어지는 링크라, 깃허브의 릴리즈
+**[⬇ reteclock-0.53.0.apk 내려받기](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.53.0/reteclock-0.53.0.apk)**
+— 610 KB이고 안드로이드 2.3 이상에 설치됩니다. 파일로 곧장 이어지는 링크라, 깃허브의 릴리즈
 페이지를 제대로 그리지 못하는 오래된 브라우저에서도 내려받으실 수 있습니다.
 
 가장 최근 릴리즈는 언제나
@@ -134,7 +134,7 @@ F-Droid 앱은 업데이트할 때마다 서명도 검사합니다.
 
 ## 어떤 폰에서 돌아가나
 
-F-Droid에 게시되어 있고, 최신 릴리즈는 0.52.0입니다.
+F-Droid에 게시되어 있고, 최신 릴리즈는 0.53.0입니다.
 
 | | |
 |---|---|
@@ -313,7 +313,12 @@ background*(배경 표시) 스위치가 따로 있습니다 — 예컨대 무늬
   바로 그 순간에 높은 소리가 울립니다. 폰을 내려놓고 박자에 맞춰 시작하실 수 있습니다.
 - **소리·진동·무음** — *Sounds and bells* → *Volume* 에서, 폰이 소리·진동·무음일 때를 각각 따로
   정합니다(0.52.0 부터입니다. 그 전에는 *Timer settings* 의 설정 하나였습니다). 기본은 소리 모드에서
-  소리, 진동 모드에서 진동입니다. 무엇을 고르시든 구간이 끝날 때 화면이 세 번 깜박입니다. 프리셋을 마칠 때 나오는 곡은 슈베르트 «송어» 5중주 4악장의
+  소리, 진동 모드에서 진동입니다. 무엇을 고르시든 구간이 끝날 때 화면이 세 번 깜박입니다.
+- **화면이 꺼져도** — 타이머가 도는 중에 화면이 꺼지거나 폰이 잠겨도 신호와 읽어 주는 메시지,
+  진동이 그대로 이어집니다. 그동안 구간 이름과 끝나는 시각, *Pause*·*Stop* 버튼이 있는 알림이
+  뜹니다. 끝나면 마침 곡만 울리고 화면은 꺼진 채로 둡니다. *Timer settings* → *Keep sounding with
+  the screen off* 를 끄기 전에는 켜져 있습니다. (0.53.0 부터입니다.)
+- **마침 곡** — 프리셋을 마칠 때 나오는 곡은 슈베르트 «송어» 5중주 4악장의
   주제이며, 녹음을 트는 것이 아니라 폰이 악보의 음을 직접 연주합니다.
 - **치워 두기** — 띠 끝의 모래시계를 누르면 프리셋 목록이 열리고, 그 첫 항목이 타이머를 숨깁니다.
   띠는 비워지고 모래시계만 제자리에 남으며, 시계는 크기도 배치도 그대로 유지합니다. 돌고 있던
@@ -587,8 +592,8 @@ settings* 에서 규약을 고르시면(공표된 열 가지 묶음 중 하나 �
 `zipalign`, `apksigner`)를 POSIX 셸 스크립트로 몰아 빌드하며, Gradle은 쓰지 않습니다. AndroidX도,
 서포트 라이브러리도, 코틀린 런타임도, 서드파티 의존성도 없습니다. `classes.dex` 하나에 APK는
 500 KB 남짓입니다. 옛 기기가 받아들이도록 v1(JAR) 방식으로 서명하고 최신 안드로이드를 위해
-v2와 v3도 함께 붙이며, 일반 권한 넷(`WAKE_LOCK`, 타이머용 `VIBRATE`, 실험 알람용
-`RECEIVE_BOOT_COMPLETED`·`FOREGROUND_SERVICE` — 해당 부품은 꺼진 채 들어 있음)만 지니고 설치할 때
+v2와 v3도 함께 붙이며, 일반 권한 넷(`WAKE_LOCK`, 타이머용 `VIBRATE`, 화면이 꺼진 타이머와 실험 알람용
+`FOREGROUND_SERVICE`, 실험 알람용 `RECEIVE_BOOT_COMPLETED` — 알람 부품은 꺼진 채 들어 있음)만 지니고 설치할 때
 부여되어 실행 중에는 권한을 요청하지 않습니다.
 
 ### 빌드

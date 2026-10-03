@@ -1,0 +1,1 @@
+Added: the timer keeps sounding with the screen off. When the screen goes off or the phone locks while a timer runs, its cues, spoken messages and vibration go on, under a notification with Pause and Stop. On by default; Timer settings, Keep sounding with the screen off.
