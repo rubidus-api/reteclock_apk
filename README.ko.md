@@ -1,4 +1,4 @@
-**한국어** | [English](README.md) — **reteclock v0.53.0** — [APK(Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.53.0/reteclock-0.53.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)
+**한국어** | [English](README.md) — **reteclock v0.54.0** — [APK(Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.54.0/reteclock-0.54.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)
 
 # reteclock
 
@@ -29,8 +29,8 @@
 
 **[⬇ F-Droid에서 받기](https://f-droid.org/packages/com.reteclock/)** — 권장합니다.
 
-**[⬇ reteclock-0.53.0.apk 내려받기](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.53.0/reteclock-0.53.0.apk)**
-— 610 KB이고 안드로이드 2.3 이상에 설치됩니다. 파일로 곧장 이어지는 링크라, 깃허브의 릴리즈
+**[⬇ reteclock-0.54.0.apk 내려받기](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.54.0/reteclock-0.54.0.apk)**
+— 614 KB이고 안드로이드 2.3 이상에 설치됩니다. 파일로 곧장 이어지는 링크라, 깃허브의 릴리즈
 페이지를 제대로 그리지 못하는 오래된 브라우저에서도 내려받으실 수 있습니다.
 
 가장 최근 릴리즈는 언제나
@@ -134,7 +134,7 @@ F-Droid 앱은 업데이트할 때마다 서명도 검사합니다.
 
 ## 어떤 폰에서 돌아가나
 
-F-Droid에 게시되어 있고, 최신 릴리즈는 0.53.0입니다.
+F-Droid에 게시되어 있고, 최신 릴리즈는 0.54.0입니다.
 
 | | |
 |---|---|
@@ -186,7 +186,7 @@ F-Droid에 게시되어 있고, 최신 릴리즈는 0.53.0입니다.
 앱이 소리 내어 말하는 것은 모두 이 페이지에 있습니다. 시계를 한 번 누르면 울리던 소리가 멈추고, 원하시면 시각을 읽게 할 수도
 있습니다. *Say the time when the clock is tapped* 를 켜면 폰의 음성 엔진이 읽어 줍니다. *How the
 time is read* 에서는 세 가지 중에 고릅니다. 쓰인 그대로("1:05"), 숫자만("1 5" — 어떤 엔진은 쓰인
-시각을 한 글자씩 읽어서, 그런 엔진에는 숫자 둘이 시각으로 읽힙니다), 그리고 **Your own sentence**(내 문장)입니다. 내
+시각을 한 글자씩 읽어서, 그런 엔진에는 숫자가 시각으로 읽힙니다. 정시는 시만 "14" 로 읽습니다), 그리고 **Your own sentence**(내 문장)입니다. 내
 문장은 중괄호 칸 `{hour} {min} {sec} {ampm} {year} {month} {date} {day}` 를 넣어 직접 쓰는
 문장으로, `{ampm} {hour}시 {min}분` 이나 `{month} {date}일 {day}` 처럼 음성의 언어로 쓰시면 됩니다.
 숫자는 앞자리 0 없이 넘기고, 달과 요일 이름은 음성의 언어로 온전히 읽으며, 날짜는 시계가 보여 주는
@@ -198,6 +198,9 @@ time is read* 에서는 세 가지 중에 고릅니다. 쓰인 그대로("1:05")
 타이머의 음성 메시지도 이 음성을 씁니다. 켜기 전에는 꺼져 있고, 소리를 끈 그 누름에서는 말하지
 않으며, 12/24시간 설정과 직접 정한 오전·오후 낱말 등 이 앱의 시계를 따릅니다. 음성 엔진이 없거나
 해당 언어의 음성이 없는 폰은 아무 말도 하지 않으며, 앱이 알아낸 상태는 이 페이지에 적힙니다.
+**Say the time on the hour**(0.54.0 부터, 켜기 전에는 꺼져 있음)를 켜면 정시마다 같은 방식으로 시각을
+말합니다. 시계나 화면보호기가 떠 있을 때만이고, 잠자기 모드·타이머가 도는 동안·종이 울리는 동안, 그리고
+화면이 꺼져 있을 때는 말하지 않습니다.
 
 **수면 모드(Sleep mode)** — *General settings* → *Sleep mode*. 밤을 위한 모드입니다. 화면을
 어둡게(기본 1 %) 하고 배경과 타이머를 치우며, 사용자 설정은 바꾸지 않습니다. 달 버튼(타이머 띠에서
@@ -284,6 +287,10 @@ background*(배경 표시) 스위치가 따로 있습니다 — 예컨대 무늬
 
 **사진**
 
+- **폰의 배경화면** — *Show the phone's wallpaper behind the clock*(0.54.0 부터, 켜기 전에는 꺼져
+  있음). 홈 화면 배경화면이 — 라이브 배경화면도 — 시계의 글자가 없는 곳마다 뒤에 보이며, 권한은
+  필요 없습니다. 직접 넣은 사진과 색은 끌 때를 위해 그대로 남습니다. 시계 화면만이고 화면보호기는
+  아닙니다.
 - **이미지** — 사진은 모두 한곳에 모이며, 글꼴과 똑같이 권한 없이 가져옵니다. 사진마다 체크가 두
   개인데 둘 중 하나만 켜집니다. **BG**는 시계 뒤에 깔고, **글자**는 숫자 속에 보여 줍니다. 숫자가
   그 사진을 들여다보는 창이 되는 셈입니다. 둘 다 꺼 두면 쓰이지 않고 보관만 됩니다. 체크 열마다

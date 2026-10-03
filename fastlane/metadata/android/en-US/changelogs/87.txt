@@ -1,0 +1,3 @@
+Added: the phone's wallpaper behind the clock, live ones too (Pictures; issue #65). The time said on the hour (Speech settings; issue #67).
+
+Fixed: Enter and Space as timer keys (#64); Numbers only says "14" at 14:00 (#66); a timer strip dragged to another edge now moves there (#68).

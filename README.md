@@ -1,4 +1,4 @@
-[한국어](README.ko.md) | **English** — **reteclock v0.53.0** — [APK(Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.53.0/reteclock-0.53.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)
+[한국어](README.ko.md) | **English** — **reteclock v0.54.0** — [APK(Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.54.0/reteclock-0.54.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)
 
 # reteclock
 
@@ -30,8 +30,8 @@ uses, starting after a restart, which stays unused until you turn that page's sw
 
 **[⬇ Get it on F-Droid](https://f-droid.org/packages/com.reteclock/)** — recommended.
 
-**[⬇ Download reteclock-0.53.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.53.0/reteclock-0.53.0.apk)**
-— 610 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
+**[⬇ Download reteclock-0.54.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.54.0/reteclock-0.54.0.apk)**
+— 614 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
 render GitHub's release page can still fetch it.
 
 The newest release is always at
@@ -135,7 +135,7 @@ it needs beyond keeping the screen awake. Copy the APK to the phone, open it, an
 
 ## Which phones it runs on
 
-Published on F-Droid; the latest release is 0.53.0.
+Published on F-Droid; the latest release is 0.54.0.
 
 | | |
 |---|---|
@@ -191,8 +191,9 @@ that can be switched off.
 **Speech settings** — main menu → *Speech settings* (since 0.51.0; before it the tap switch, the
 two fixed styles and the voice were on *General settings* → *Tapping the clock*). Everything the app says aloud is on this page. A tap on the clock stops whatever is ringing, and it can also say the time: turn on *Say the
 time when the clock is tapped* and the phone reads it through its speech engine. *How the time is
-read* offers three ways: as written ("1:05"), numbers only ("1 5" — some engines read a written
-time character by character, and two bare numbers are what those read as a time), or **your own
+read* offers three ways: as written ("1:05"), numbers only ("1 5", and a round hour the hour alone,
+"14" — some engines read a written time character by character, and bare numbers are what those
+read as a time), or **your own
 sentence** — text with fields in braces, `{hour} {min} {sec} {ampm} {year} {month} {date} {day}`,
 such as `It is {hour} {min} {ampm}` or `{day}, {month} {date}`, written in whatever language your
 voice speaks. Numbers go in bare, month and weekday names are said in full in the voice's language
@@ -204,7 +205,10 @@ from a list of every installed one — each language on each speech engine on th
 with *Say the time now*; the timer's spoken messages use it too. Off until you turn it on, silent
 on the tap that stopped a sound, and it follows this app's clock, including your 12- or 24-hour
 setting and any AM/PM words of your own. A phone with no speech engine or no voice for the language
-says nothing, and the page says what it found.
+says nothing, and the page says what it found. **Say the time on the hour** (since 0.54.0, off
+until you turn it on) says it the same way as each hour turns, while the clock or the screensaver
+is showing — not in sleep mode, not while a timer counts or a bell rings, and not with the screen
+off.
 
 **Sleep mode** — *General settings* → *Sleep mode*. For the night: the screen darker (1 % by
 default), the background and the timer put away, without changing your own settings. Press the
@@ -301,6 +305,10 @@ In the order they appear on the screen.
 
 **Pictures**
 
+- **The phone's wallpaper** — *Show the phone's wallpaper behind the clock* (since 0.54.0, off until
+  you turn it on): your home screen's wallpaper, live ones included, shows behind the clock wherever
+  it has no writing, with no permission needed. Your pictures and colour are kept for when it is
+  off. The clock only, not the screensaver.
 - **Images** — one pool holds every picture, brought in the same permission-free way as the fonts.
   Each picture has two ticks, and only one of them can be on: **BG** puts it behind the clock, and
   **Text** shows it inside the digits, so the numbers become a window onto the picture. With
