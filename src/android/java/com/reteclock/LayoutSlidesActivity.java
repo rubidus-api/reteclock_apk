@@ -34,7 +34,7 @@ import java.util.Set;
  *
  * <p>Every change is saved at once and starts the show from its first row.
  */
-public class LayoutSlidesActivity extends Activity {
+public class LayoutSlidesActivity extends WebActivity {
 
     private static final int BACKDROP = 0xFF101010;
     private static final int CARD = 0xFF1C1C1C;

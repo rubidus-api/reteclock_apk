@@ -41,7 +41,7 @@ import java.util.List;
  * The arithmetic is all in {@link Grab}; what is here is drawing, which is the part no test on this
  * machine can reach. That division is deliberate.
  */
-public final class LayoutEditorActivity extends Activity {
+public final class LayoutEditorActivity extends WebActivity {
 
     /** Which preset, and which way up, this is editing. */
     public static final String EXTRA_INDEX = "com.reteclock.LAYOUT_INDEX";

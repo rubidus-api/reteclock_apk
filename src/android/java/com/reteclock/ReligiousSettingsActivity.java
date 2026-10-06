@@ -35,7 +35,7 @@ import com.reteclock.core.SunTimes;
  * user's to make, and this is where they are made. Nothing here names a prayer, and the app
  * publishes no timetable: a quietly wrong answer would cost the person praying, not the app.
  */
-public class ReligiousSettingsActivity extends Activity {
+public class ReligiousSettingsActivity extends WebActivity {
 
     private static final int TEXT_WHITE = 0xFFF2F2F2;
     private static final int TEXT_DIM = 0xFF9E9E9E;

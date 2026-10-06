@@ -39,7 +39,7 @@ import java.util.List;
  * <p>The page adds to *Sounds and bells* and changes nothing there: a bell is made and edited on that
  * page, and only ticked here.
  */
-public class AlarmSettingsActivity extends Activity {
+public class AlarmSettingsActivity extends WebActivity {
 
     private static final int TEXT_WHITE = 0xFFF2F2F2;
     private static final int TEXT_DIM = 0xFF9E9E9E;

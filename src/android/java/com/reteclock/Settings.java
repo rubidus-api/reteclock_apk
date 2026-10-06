@@ -285,6 +285,7 @@ public final class Settings {
         out.put(KEY_QUOTE_ON, Boolean.valueOf(quoteOn(context)));
         out.put(KEY_TIME_ONLY, Boolean.valueOf(timeOnly(context)));
         out.put(KEY_BLINK_COLON, Boolean.valueOf(blinkColon(context)));
+        out.put(KEY_HOUR12, Boolean.valueOf(hour12(context)));
         out.put(KEY_MARKER_SHOWN, Boolean.valueOf(markerShown(context)));
         out.put(KEY_THEME_COLORS, Boolean.valueOf(themeColors(context)));
         out.put(KEY_BURN_IN_SHIFT, Boolean.valueOf(burnInShift(context)));

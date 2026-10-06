@@ -37,7 +37,7 @@ import com.reteclock.core.SpokenTemplate;
  * 0.50.0 the tap and the voice were a card on *General settings*; they moved here when the sentence
  * and the names gave them more than a card's worth to say.
  */
-public class SpeechSettingsActivity extends Activity {
+public class SpeechSettingsActivity extends WebActivity {
 
     private static final int TEXT_WHITE = 0xFFF2F2F2;
     private static final int TEXT_DIM = 0xFF9E9E9E;

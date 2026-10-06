@@ -28,7 +28,7 @@ import com.reteclock.core.Tones;
  * A long press opens the settings screen. Since nothing on screen says so, the clock says it once
  * on launch — but only when the user opened it themselves, and only until they have been there.
  */
-public class ClockActivity extends Activity {
+public class ClockActivity extends WebActivity {
 
     /** Set by {@link PowerConnectionReceiver} so the clock knows it may show over the lock screen. */
     public static final String EXTRA_DOCK = "com.reteclock.DOCK";
@@ -1166,6 +1166,18 @@ public class ClockActivity extends Activity {
         Settings.setRunUnfinished(this, true);
         handler.removeCallbacks(reportHealthy);
         handler.postDelayed(reportHealthy, com.reteclock.core.SafeStart.HEALTHY_MS);
+    }
+
+    @Override void webSettingsChanged() {
+        if (view == null) return;
+        applyScreenTurn();
+        view.reloadOptions();
+        if (bells != null) bells.reload();
+        if (slideWatch != null) slideWatch.reload();
+        if (sleepWatch != null) sleepWatch.reload();
+        applyStayUnlocked();
+        layOutScreen();
+        applyBrightness();
     }
 
     @Override

@@ -58,7 +58,7 @@ import java.util.List;
  * decoder as it arrives, exactly as {@code usableFont} lets the platform decide what a font is, and
  * one this phone refuses is refused at the moment somebody can do something about it.
  */
-public class SoundSettingsActivity extends Activity {
+public class SoundSettingsActivity extends WebActivity {
 
     private static final int TEXT_WHITE = 0xFFF2F2F2;
     private static final int TEXT_DIM = 0xFF9E9E9E;

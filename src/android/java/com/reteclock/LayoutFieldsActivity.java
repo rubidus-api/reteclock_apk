@@ -36,7 +36,7 @@ import java.util.List;
  * and they apply wherever that field is drawn, in any layout; a second place to set them would be
  * two answers to one question, which is how issue #44 happened.
  */
-public final class LayoutFieldsActivity extends Activity {
+public final class LayoutFieldsActivity extends WebActivity {
 
     public static final String EXTRA_INDEX = LayoutEditorActivity.EXTRA_INDEX;
     public static final String EXTRA_LANDSCAPE = LayoutEditorActivity.EXTRA_LANDSCAPE;

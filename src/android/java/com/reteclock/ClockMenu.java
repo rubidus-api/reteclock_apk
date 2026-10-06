@@ -204,6 +204,14 @@ final class ClockMenu {
                     }
                 }));
 
+        card.addView(choice(activity, activity.getString(R.string.web_title),
+                new View.OnClickListener() {
+                    @Override public void onClick(View v) {
+                        dialog.dismiss();
+                        activity.startActivity(new Intent(activity, WebSettingsActivity.class));
+                    }
+                }));
+
         // The way out. On a phone driven by gestures there may be no Back button on the screen and
         // no navigation bar to swipe from, and this clock fills the screen and keeps it awake —
         // so the menu that the settings live in also carries the door (issue #41).

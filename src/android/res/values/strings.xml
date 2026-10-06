@@ -432,6 +432,8 @@
     <string name="settings_export_done">Settings written.</string>
     <string name="settings_export_failed">Could not write the file.</string>
     <string name="settings_import_failed">Could not read the file.</string>
+    <string name="settings_import_refused_title">Not imported</string>
+    <string name="settings_import_refused">%1$s\n\nAn import is all or nothing: one line or file that cannot be taken refuses the whole of it, and nothing was changed. Correct it and import again.</string>
     <string name="settings_import_not_ours">That is not a ReteClock settings file.</string>
     <string name="settings_import_done">%1$d settings restored.</string>
     <string name="settings_import_done_partial">%1$d settings restored, %2$d names skipped (not on this phone).</string>
@@ -768,4 +770,15 @@
     <string name="sleep_from_title">Falls asleep at</string>
     <string name="sleep_until_title">Wakes at</string>
     <string name="sleep_schedule_note">A night that runs past midnight belongs to the day it starts: Sunday ticked, 22:00 until 07:00, is Sunday night into Monday morning. Pressing the moon lasts until the next time the schedule starts or ends; then the schedule takes over again. The same time for both means no window.</string>
+    <string name="web_title">Web administration (experimental)</string>
+    <string name="web_warning">Off by default. Runs only while the clock, screensaver or settings is open. Use a trusted local network and a dedicated password: Single-use proofs prevent replay. HTTP does not encrypt settings or protect the login page from tampering. Do not expose this port to the Internet.</string>
+    <string name="web_enabled">Enable web administration</string>
+    <string name="web_user">Administrator ID</string>
+    <string name="web_password">Password (8–128 UTF-8 bytes; leave blank to keep)</string>
+    <string name="web_port">Port (1024–65535)</string>
+    <string name="web_save">Save administrator and server settings</string>
+    <string name="web_addresses">Local network addresses</string>
+    <string name="web_stop">Stop web administration</string>
+    <string name="web_invalid">Invalid administrator settings</string>
+    <string name="web_journal_damaged">An import that was interrupted could not be undone automatically. Please check your settings.</string>
 </resources>

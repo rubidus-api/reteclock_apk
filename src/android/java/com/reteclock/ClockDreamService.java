@@ -247,6 +247,7 @@ public class ClockDreamService extends DreamService {
     @Override
     public void onDreamingStarted() {
         super.onDreamingStarted();
+        WebAdmin.enter(this, this);
         hourLooked = com.reteclock.core.HourChime.NEVER;
         if (bells != null) {
             bells.reload();
@@ -266,6 +267,7 @@ public class ClockDreamService extends DreamService {
 
     @Override
     public void onDreamingStopped() {
+        WebAdmin.leave(this);
         view.stop();
         if (hourVoice != null) {
             hourVoice.release();
@@ -284,5 +286,13 @@ public class ClockDreamService extends DreamService {
             }
         }
         super.onDreamingStopped();
+    }
+
+    void webSettingsChanged() {
+        if (view != null) view.reloadOptions();
+        if (bells != null) bells.reload();
+        if (slideWatch != null) slideWatch.reload();
+        if (sleepWatch != null) sleepWatch.reload();
+        applySleepBrightness();
     }
 }

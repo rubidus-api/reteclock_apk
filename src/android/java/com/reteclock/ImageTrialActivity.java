@@ -43,7 +43,7 @@ import com.reteclock.core.ImageTrial;
  * It runs here, in the settings, rather than on the clock, for the same reason: even a trial that
  * hangs leaves the clock alone.
  */
-public final class ImageTrialActivity extends Activity {
+public final class ImageTrialActivity extends WebActivity {
 
     /** Which step is being tried. */
     public static final String EXTRA_STEP = "com.reteclock.TRIAL_STEP";

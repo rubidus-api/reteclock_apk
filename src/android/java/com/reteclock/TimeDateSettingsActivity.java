@@ -37,7 +37,7 @@ import com.reteclock.core.SummerTime;
  * The way to get this feature wrong is to set an offset *and* leave the phone's zone wrong, and no
  * amount of explaining prevents that. Showing both numbers does.
  */
-public final class TimeDateSettingsActivity extends Activity {
+public final class TimeDateSettingsActivity extends WebActivity {
 
     private static final int BACKDROP = 0xFF101010;
     private static final int CARD = 0xFF1C1C1C;

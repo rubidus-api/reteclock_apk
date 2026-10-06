@@ -41,7 +41,7 @@ import com.reteclock.core.TimeReadout;
  * Built in code, in the same idiom as the general settings (R27): rounded cards on black, one
  * accent, hairlines, compact controls that fit a 320 dp row.
  */
-public class TimerSettingsActivity extends Activity {
+public class TimerSettingsActivity extends WebActivity {
 
     private static final int TEXT_WHITE = 0xFFF2F2F2;
     private static final int TEXT_DIM = 0xFF9E9E9E;

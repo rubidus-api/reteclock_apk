@@ -63,6 +63,8 @@ public final class SettingsIni {
         {"quote_on", "b", "clock"},
         {"clock_only", "b", "clock"},
         {"clock_blink_colon", "b", "clock"},
+        {"clock_hour12", "b", "clock"},
+        {"clock_padding", "i", "clock"},
         {"safe_area", "b", "clock"},
         {"editor_background", "b", "clock"},
         {"clock_only_marker", "b", "clock"},
@@ -127,6 +129,8 @@ public final class SettingsIni {
         {"sun_evening_tenths", "i", "sounds"},
         {"sun_night_to_dawn", "b", "sounds"},
         {"sun_show_names", "b", "sounds"},
+        {"sun_method", "i", "sounds"},
+        {"sun_method_chosen", "b", "sounds"},
 
         {"timer_on", "b", "timer"},
         {"timer_presets", "s", "timer"},
@@ -236,6 +240,15 @@ public final class SettingsIni {
 
     private SettingsIni() {
     }
+
+    /** Exact portable descriptors; callers cannot mutate the format's registry. */
+    public static String[][] definitions() {
+        String[][] copy = new String[KNOWN.length][];
+        for (int i=0;i<KNOWN.length;i++) copy[i]=KNOWN[i].clone();
+        return copy;
+    }
+
+    public static String decodeValue(String value) { return unescape(value); }
 
     /** Whether a setting is worth carrying to another phone. */
     public static boolean isPortable(String key) {
@@ -456,6 +469,11 @@ public final class SettingsIni {
         }
         if (kind == INT || kind == LONG) {
             String digits = value.trim();
+            // Normalize before parsing: API 19's numeric parsers reject '+'.
+            if (digits.startsWith("+")) {
+                if (digits.length() < 2 || digits.charAt(1) < '0' || digits.charAt(1) > '9') return null;
+                digits = digits.substring(1);
+            }
             if (digits.length() == 0) {
                 return null;
             }

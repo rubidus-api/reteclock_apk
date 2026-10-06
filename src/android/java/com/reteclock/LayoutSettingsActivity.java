@@ -38,7 +38,7 @@ import com.reteclock.core.layout.LayoutPreset;
  * the settings of whichever is chosen. Nothing about what the automatic layout draws has changed —
  * it has stopped being "the layout" and become "the layout that decides for you".
  */
-public final class LayoutSettingsActivity extends Activity {
+public final class LayoutSettingsActivity extends WebActivity {
 
     private static final int BACKDROP = 0xFF101010;
     private static final int CARD = 0xFF1C1C1C;

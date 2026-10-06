@@ -58,7 +58,7 @@ import com.reteclock.core.SlideOrder;
  * from the same era's parts — GradientDrawable corners, StateListDrawable presses — arranged as
  * cards on black with one quiet accent, because an API-9 floor limits the toolkit, not the taste.
  */
-public class SettingsActivity extends Activity {
+public class SettingsActivity extends WebActivity {
 
     private static final int TEXT_WHITE = 0xFFF2F2F2;
     private static final int TEXT_DIM = 0xFF9E9E9E;
@@ -190,6 +190,10 @@ public class SettingsActivity extends Activity {
     private final boolean[] importFiles = SettingsPackage.allKinds();
     /** The file that was chosen, read but not yet applied. */
     private SettingsPackage.Preview pendingImport;
+    @Override protected void onDestroy() {
+        if (pendingImport != null) WebImports.remove(pendingImport.work);
+        super.onDestroy();
+    }
     private LinearLayout importSection;
 
     /**
@@ -917,8 +921,14 @@ public class SettingsActivity extends Activity {
         if (pendingImport == null) {
             return;
         }
-        SettingsPackage.Result result = SettingsPackage.apply(this, pendingImport,
-                importSections, importFiles);
+        SettingsPackage.Result result;
+        try { result = SettingsPackage.apply(this, pendingImport, importSections, importFiles); }
+        catch (IllegalArgumentException failure) {
+            toast(failure.getMessage());
+            pendingImport = null;
+            rebuildImportSection();
+            return;
+        }
         SettingsPackage.clearStaging(this);
         pendingImport = null;
         rebuildImportSection();
@@ -2205,7 +2215,16 @@ public class SettingsActivity extends Activity {
             if (in == null) {
                 throw new IOException("cannot read " + uri);
             }
+            if (pendingImport != null) WebImports.remove(pendingImport.work);
             pendingImport = SettingsPackage.read(this, in);
+        } catch (com.reteclock.core.Refused refused) {
+            // All or nothing, and said why: which line, key or file it was (owner, 2026-10-06).
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.settings_import_refused_title)
+                    .setMessage(getString(R.string.settings_import_refused, refused.getMessage()))
+                    .setPositiveButton(android.R.string.ok, null)
+                    .show();
+            return;
         } catch (IOException e) {
             toast(getString(R.string.settings_import_failed));
             return;

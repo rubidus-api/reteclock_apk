@@ -41,7 +41,7 @@ import java.util.List;
  * <p>A bell that follows the sun is still a bell: it is made here or on *Sounds and bells*, edited on
  * *Sounds and bells*, and ticked on *Alarms (experimental)* to wake the phone like any other.
  */
-public class SunSettingsActivity extends Activity {
+public class SunSettingsActivity extends WebActivity {
 
     private static final int TEXT_WHITE = 0xFFF2F2F2;
     private static final int TEXT_DIM = 0xFF9E9E9E;

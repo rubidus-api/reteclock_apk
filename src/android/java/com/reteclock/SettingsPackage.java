@@ -93,6 +93,7 @@ final class SettingsPackage {
 
     /** What a package turned out to hold, before anything is applied. */
     static final class Preview {
+        File work;
         final SettingsIni.Reading settings;
         final List<Carried> fonts = new ArrayList<Carried>();
         final List<Carried> images = new ArrayList<Carried>();
@@ -353,6 +354,10 @@ final class SettingsPackage {
     }
 
     static Preview read(Context context, InputStream raw) throws IOException {
+        return WebImports.read(context, raw);
+    }
+
+    static Preview readUnchecked(Context context, InputStream raw) throws IOException {
         byte[] head = new byte[4];
         java.io.PushbackInputStream in = new java.io.PushbackInputStream(raw, head.length);
         int got = 0;
@@ -428,14 +433,10 @@ final class SettingsPackage {
                     File into = new File(skinsDir, inFolder[0]);
                     if (into.isDirectory() || into.mkdirs()) {
                         File staged = new File(into, inFolder[1]);
+                        // drain refuses a file over the limit outright: an import is all or nothing.
                         long written = drain(zip, staged, MAX_FILE_BYTES);
-                        if (written >= MAX_FILE_BYTES) {
-                            staged.delete();
-                            refused.add(path + " — too large");
-                        } else {
-                            layoutPictures.add(new Carried(inFolder[0] + "/" + inFolder[1],
-                                    staged, written));
-                        }
+                        layoutPictures.add(new Carried(inFolder[0] + "/" + inFolder[1],
+                                staged, written));
                     }
                 }
                 continue;
@@ -481,12 +482,6 @@ final class SettingsPackage {
             File staged = new File(font != null ? fontsDir : image != null ? imagesDir : soundsDir,
                     name);
             long written = drain(zip, staged, MAX_FILE_BYTES);
-            if (written >= MAX_FILE_BYTES) {
-                staged.delete();
-                refused.add(name + " — larger than "
-                        + FontLibrary.humanBytes(MAX_FILE_BYTES));
-                continue;
-            }
             (font != null ? fonts : image != null ? images : sounds)
                     .add(new Carried(name, staged, written));
         }
@@ -517,6 +512,10 @@ final class SettingsPackage {
      * there, and this is the order that makes the two agree.
      */
     static Result apply(Context context, Preview preview, Set<String> sections, boolean[] files) {
+        return WebImports.apply(context, preview, sections, files);
+    }
+
+    static Result applyUnchecked(Context context, Preview preview, Set<String> sections, boolean[] files) {
         Result result = new Result();
         // A file whose name is already taken by different content lands under a new name, and the
         // settings that came with it still say the old one. Left alone, that is a package that
@@ -676,7 +675,9 @@ final class SettingsPackage {
         // been replaced underneath it.
         editor.putLong(Settings.KEY_RUN_ORIGIN, com.reteclock.core.TimerMemory.NONE);
         editor.putString(Settings.KEY_RUN_PRESET, "");
-        editor.commit();
+        if (!editor.commit()) {
+            throw new IllegalStateException("Cannot commit imported settings");
+        }
         // Bells, the time base or the switch itself may have arrived; the held wake-up and the
         // components are made to agree with whatever is stored now (RFC-0012).
         WakeBells.reconcile(context);
@@ -701,7 +702,9 @@ final class SettingsPackage {
                 continue;
             }
             String file = carried.name.substring(prefix.length());
-            LayoutSkins.bring(context, landed, file, carried.file);
+            if (!LayoutSkins.bring(context, landed, file, carried.file)) {
+                throw new IllegalStateException("Cannot install layout picture");
+            }
         }
     }
 
@@ -732,6 +735,7 @@ final class SettingsPackage {
                 // them: a hundred pictures cost one picture's worth of memory. It also gives the
                 // file a free name if the one it wants is taken by something else, and says which.
                 String landed = library.absorb(files.get(i).file);
+                if (landed == null) throw new IllegalStateException("Cannot install imported media");
                 if (landed != null) {
                     added++;
                     if (!landed.equals(files.get(i).name)) {
@@ -739,9 +743,8 @@ final class SettingsPackage {
                     }
                 }
             } catch (IOException e) {
-                // One file that cannot be written is not a reason to abandon the rest; the count
-                // the user is shown is of what actually arrived.
-                continue;
+                // The journal restores the entire import when any write fails.
+                throw new IllegalStateException("Cannot install imported media");
             }
         }
         return added;
@@ -789,18 +792,14 @@ final class SettingsPackage {
         java.io.OutputStream out = new java.io.FileOutputStream(target);
         long total = 0;
         try {
-            byte[] buffer = new byte[16384];
-            while (total < limit) {
-                int read = in.read(buffer, 0, (int) Math.min(buffer.length, limit - total));
-                if (read < 0) {
-                    break;
-                }
-                out.write(buffer, 0, read);
+            byte[] buffer = new byte[16384]; int read;
+            while ((read = in.read(buffer)) != -1) {
+                if (read == 0) continue;
                 total += read;
+                if (total > limit) throw new IOException("Imported file exceeds size limit");
+                out.write(buffer, 0, read);
             }
-        } finally {
-            out.close();
-        }
+        } finally { out.close(); }
         return total;
     }
 
@@ -812,17 +811,6 @@ final class SettingsPackage {
      * line, or a font arriving with its tail cut off.
      */
     static byte[] readAll(InputStream in, int limit) throws IOException {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        byte[] buffer = new byte[8192];
-        int total = 0;
-        while (total < limit) {
-            int read = in.read(buffer, 0, Math.min(buffer.length, limit - total));
-            if (read < 0) {
-                break;
-            }
-            out.write(buffer, 0, read);
-            total += read;
-        }
-        return out.toByteArray();
+        return com.reteclock.core.WebHttp.bounded(in, limit);
     }
 }
