@@ -1,4 +1,4 @@
-[한국어](README.ko.md) | **English** — **reteclock v0.54.0** — [APK(Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.54.0/reteclock-0.54.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)
+[한국어](README.ko.md) | **English** — **reteclock v0.55.0** — [APK(Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.55.0/reteclock-0.55.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)
 
 # reteclock
 
@@ -13,10 +13,12 @@ so the numbers never burn into an OLED screen.
 
 There is nothing to sign up for and nothing to configure. It needs no account, no network and no
 Play Store, so it still works on phones that can no longer install anything else. It is small —
-about 500 KB — and asks for four normal permissions, all granted at install: one to keep the screen
+about 675 KB — and asks for five normal permissions, all granted at install: one to keep the screen
 awake, one to vibrate, which only the timer and the bells use, one for a foreground service — while
 a timer sounds with the screen off, or an alarm rings — and one that only *Alarms (experimental)*
-uses, starting after a restart, which stays unused until you turn that page's switch on.
+uses, starting after a restart, which stays unused until you turn that page's switch on. The fifth,
+`INTERNET`, serves the optional local web administrator, which is off until you turn it on; the
+app never opens a connection of its own.
 
 > **If the clock does not answer your touch, it is not the clock.** Android does not pass touches to
 > a screensaver (Daydream) or to anything showing over the lock screen — the first touch wakes the
@@ -30,8 +32,8 @@ uses, starting after a restart, which stays unused until you turn that page's sw
 
 **[⬇ Get it on F-Droid](https://f-droid.org/packages/com.reteclock/)** — recommended.
 
-**[⬇ Download reteclock-0.54.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.54.0/reteclock-0.54.0.apk)**
-— 614 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
+**[⬇ Download reteclock-0.55.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.55.0/reteclock-0.55.0.apk)**
+— 675 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
 render GitHub's release page can still fetch it.
 
 The newest release is always at
@@ -135,7 +137,7 @@ it needs beyond keeping the screen awake. Copy the APK to the phone, open it, an
 
 ## Which phones it runs on
 
-Published on F-Droid; the latest release is 0.54.0.
+Published on F-Droid; the latest release is 0.55.0.
 
 | | |
 |---|---|
@@ -222,7 +224,7 @@ its own *Show a background* switch — a monthly calendar on a plain ground, the
 instance. Upright and sideways have their own lists. The show keeps time with the clock, so opening
 the menu does not start it over.
 
-<img src="docs/screenshots/settings.png" alt="Settings: the screensaver row at the top, then show seconds, the twelve-hour option, the date format side by side, and the switch that lets the clock wander" width="240"> <img src="docs/screenshots/fields.png" alt="The Fonts page: the font library with each font's size and the total, then each field on two lines — its name with bold, italic, underline and outline, and its font — including AM / PM and the calendar's three parts" width="240">
+<img src="docs/screenshots/settings.png" alt="The settings page: Start the clock, the switch that keeps the clock up past the lock screen, the home-screen button choice, and the screensaver row" width="240"> <img src="docs/screenshots/fields.png" alt="The Fonts page: the font library with each font's size and the total, then each field on two lines — its name with bold, italic, underline and outline, and its font — including AM / PM and the calendar's three parts" width="240">
 
 In the order they appear on the screen.
 
@@ -376,6 +378,8 @@ nothing extra drawn.
 
 Its own screen, reached from the main menu.
 
+<img src="docs/screenshots/volume.png" alt="The Volume card: Mute all sounds, the Sound, Vibrate and Silent tabs with the phone's own mode marked, and a level, Mute, Vibrate and Test for timer sounds, timer messages, the spoken time and bells" width="240">
+
 - **Bring in sounds of your own** — the same way fonts and pictures arrive: the phone's own file
   picker hands the file over, and the app keeps a copy of it. **No storage permission is asked for**,
   on any version of Android, and a sound that is in stays in — nothing can take it away later.
@@ -419,7 +423,10 @@ Its own screen, reached from the main menu.
   pictures and the sounds beside it under `fonts/`, `img/` and `sounds/` — what you want when the
   other phone has none of them. Either way you tick which pages to carry first, and the package has
   its own three ticks for the fonts, the pictures and the sounds.
-- **Import** — the file is **read first and applied second**. You are shown what is in it — how
+- **Import** — all or nothing (since 0.55.0): a line that is not a setting, a setting given twice,
+  a value that is not allowed or an unsafe file refuses the whole import, changes nothing, and tells
+  you which line, setting or file it was. Begin a note of your own with `#`. Settings this version
+  does not know are passed over. Otherwise the file is **read first and applied second**. You are shown what is in it — how
   many settings for each page, which fonts and pictures came along, and anything that could not be
   understood — and you tick what to bring in. What it shows is not the file's own text but the
   file **as this app read it**: rebuilt from what was understood, with values in the form they will
@@ -654,10 +661,10 @@ Nothing below is needed to use the app.
 Java and the Android framework, nothing else. Built with the Android SDK command-line tools
 (`aapt2`, `javac`, `d8`, `zipalign`, `apksigner`) driven by POSIX shell scripts. No Gradle. No
 AndroidX, no support library, no Kotlin runtime and no third-party dependency — a single
-`classes.dex` and an APK of about 500 KB. It is signed with the v1 (JAR) scheme so old phones
-accept it, plus v2 and v3 for current ones, and it holds four normal permissions (`WAKE_LOCK`,
+`classes.dex` and an APK of about 675 KB. It is signed with the v1 (JAR) scheme so old phones
+accept it, plus v2 and v3 for current ones, and it holds five normal permissions (`WAKE_LOCK`,
 `VIBRATE` for the timer, `FOREGROUND_SERVICE` for the timer with the screen off and for the
-experimental alarms, and `RECEIVE_BOOT_COMPLETED` for those alarms, whose components ship disabled), all granted at install and never requested at runtime.
+experimental alarms, `INTERNET` for optional local web administration, and `RECEIVE_BOOT_COMPLETED` for those alarms, whose components ship disabled), all granted at install and never requested at runtime.
 
 ### Build
 
@@ -698,3 +705,48 @@ perfectly good reading. Say it however you like; the clock does not mind.
 ## License
 
 MIT. See `LICENSE`.
+
+## Web administration (experimental)
+
+Since 0.55.0, off until you turn it on. A browser on the same local network can change the clock's
+settings and move files in and out, which is easier than a small touch screen for a long list of
+bells or a layout.
+
+| On the clock | In the browser |
+|---|---|
+| <img src="docs/screenshots/web-device.png" alt="The Web administration page on the device: the warning, the switch, the administrator ID, password and port, and the address the clock is listening on" width="240"> | <img src="docs/screenshots/web-login.png" alt="The login page in a browser: administrator ID and password, with the note that HTTP does not encrypt" width="420"><br><img src="docs/screenshots/web-admin.png" alt="The administration page in a browser after login: the settings pages along the top and the General settings below" width="420"> |
+
+**Setting it up.** Long-press the clock and open **Web administration (experimental)**. Set an
+administrator ID, a dedicated password (8–128 UTF-8 bytes) and a port (8080 by default), switch it
+on and save. The page then shows the address to open from another device, and you log in there.
+
+**When it runs.** Only while the clock, the screensaver or one of the app's settings pages is on
+screen. Leaving the app stops it and coming back starts it again; there is no background service
+and nothing starts at boot. It listens only on Wi-Fi, Ethernet and the phone's own hotspot — never
+on mobile data or a VPN — and answers only devices on that same network.
+
+**What it does.** Every user setting, including bells, timer presets, layouts, slides, calendar
+names, typography and the experiments; the stored fonts, pictures and sounds; importing settings
+files and font, theme and settings ZIPs; exporting them and the timer log. Higher image quality
+still needs the trial on the device.
+
+**Imports are all or nothing**, here and on the device alike. A line that is not a setting, a
+setting given twice, a value its setting does not take or an unsafe file refuses the whole import,
+changes nothing, and says which line, setting or file it was, so you can correct it and try again.
+Settings this version does not know are passed over. An import stops a running timer and merges
+incoming layouts with the ones you have. The limits are 64 MiB for an upload, 32 MiB a media file,
+256 KiB a text file, 128 MiB unpacked and 500 entries in a ZIP, and there must be room on the
+device. The administrator's account never travels in a settings file or an Android backup.
+
+**How the login works.** The password is turned into a key in the browser and never sent. Each
+login answers a single-use challenge, and every request after it is signed and single-use, so
+nothing captured can be replayed and a session ID alone opens nothing. Sessions end after 10 idle
+minutes or 30 minutes in all, on logout, when the server stops and when the account changes;
+reloading the page asks for the login again. Five wrong passwords from one device make that
+device wait half a minute; they do not lock anybody else out.
+
+**What it does not protect.** Plain HTTP **does not encrypt your settings and cannot stop the
+login page being altered** by somebody who controls the network. Captured logins cannot be reused,
+but a weak password can be guessed from one, offline. Use it on a network you trust, with a strong
+password used for nothing else, and never forward the port to the Internet. With the switch off —
+as it is until you turn it on — the app opens no connection and listens on nothing.

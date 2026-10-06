@@ -1,0 +1,3 @@
+Added: Web administration (experimental), off until you turn it on. A browser on the same Wi-Fi can change every setting and move settings, fonts, themes and sounds in and out. Login sends no password; requests are signed and single-use. Runs only while the app is on screen. Plain HTTP: use a trusted network.
+
+Changed: an import is all or nothing and says which line, setting or file was refused.
