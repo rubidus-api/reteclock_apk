@@ -1,0 +1,1 @@
+Web administration (experimental): the addresses to open are listed one to a row with a Copy button. The page keeps the screen on, says who last connected and why a browser was refused, and explains http://, when the server runs and how to keep one address. New switch: run only while that page is open. A refused browser is told the reason (issue #69).

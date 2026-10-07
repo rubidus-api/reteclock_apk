@@ -1,4 +1,4 @@
-[한국어](README.ko.md) | **English** — **reteclock v0.55.0** — [APK(Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.55.0/reteclock-0.55.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)<br>
+[한국어](README.ko.md) | **English** — **reteclock v0.55.1** — [APK(Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.55.1/reteclock-0.55.1.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)<br>
 Is your phone's web browser too old to download files from GitHub? Try [ReteGet](https://github.com/rubidus-api/reteget_apk), a file and APK downloader for old Android phones.
 
 # reteclock
@@ -12,7 +12,7 @@ so the numbers never burn into an OLED screen.
 
 There is nothing to sign up for and nothing to configure. It needs no account, no network and no
 Play Store, so it still works on phones that can no longer install anything else. It is small —
-about 675 KB — and asks for five normal permissions, all granted at install: one to keep the screen
+about 683 KB — and asks for five normal permissions, all granted at install: one to keep the screen
 awake, one to vibrate, which only the timer and the bells use, one for a foreground service — while
 a timer sounds with the screen off, or an alarm rings — and one that only *Alarms (experimental)*
 uses, starting after a restart, which stays unused until you turn that page's switch on. The fifth,
@@ -31,8 +31,8 @@ app never opens a connection of its own.
 
 **[⬇ Get it on F-Droid](https://f-droid.org/packages/com.reteclock/)** — recommended.
 
-**[⬇ Download reteclock-0.55.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.55.0/reteclock-0.55.0.apk)**
-— 675 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
+**[⬇ Download reteclock-0.55.1.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.55.1/reteclock-0.55.1.apk)**
+— 683 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
 render GitHub's release page can still fetch it.
 
 The newest release is always at
@@ -136,7 +136,7 @@ it needs beyond keeping the screen awake. Copy the APK to the phone, open it, an
 
 ## Which phones it runs on
 
-Published on F-Droid; the latest release is 0.55.0.
+Published on F-Droid; the latest release is 0.55.1.
 
 | | |
 |---|---|
@@ -660,7 +660,7 @@ Nothing below is needed to use the app.
 Java and the Android framework, nothing else. Built with the Android SDK command-line tools
 (`aapt2`, `javac`, `d8`, `zipalign`, `apksigner`) driven by POSIX shell scripts. No Gradle. No
 AndroidX, no support library, no Kotlin runtime and no third-party dependency — a single
-`classes.dex` and an APK of about 675 KB. It is signed with the v1 (JAR) scheme so old phones
+`classes.dex` and an APK of about 683 KB. It is signed with the v1 (JAR) scheme so old phones
 accept it, plus v2 and v3 for current ones, and it holds five normal permissions (`WAKE_LOCK`,
 `VIBRATE` for the timer, `FOREGROUND_SERVICE` for the timer with the screen off and for the
 experimental alarms, `INTERNET` for optional local web administration, and `RECEIVE_BOOT_COMPLETED` for those alarms, whose components ship disabled), all granted at install and never requested at runtime.
@@ -713,16 +713,33 @@ bells or a layout.
 
 | On the clock | In the browser |
 |---|---|
-| <img src="docs/screenshots/web-device.png" alt="The Web administration page on the device: the warning, the switch, the administrator ID, password and port, and the address the clock is listening on" width="240"> | <img src="docs/screenshots/web-login.png" alt="The login page in a browser: administrator ID and password, with the note that HTTP does not encrypt" width="420"><br><img src="docs/screenshots/web-admin.png" alt="The administration page in a browser after login: the settings pages along the top and the General settings below" width="420"> |
+| <img src="docs/screenshots/web-device.png" alt="The Web administration page on the device: the warning, the addresses to open with a Copy button each, and the notes on http://, when the server runs and keeping one address" width="240"> | <img src="docs/screenshots/web-login.png" alt="The login page in a browser: administrator ID and password, with the note that HTTP does not encrypt" width="420"><br><img src="docs/screenshots/web-admin.png" alt="The administration page in a browser after login: the settings pages along the top and the General settings below" width="420"> |
 
 **Setting it up.** Long-press the clock and open **Web administration (experimental)**. Set an
 administrator ID, a dedicated password (8–128 UTF-8 bytes) and a port (8080 by default), switch it
-on and save. The page then shows the address to open from another device, and you log in there.
+on and save. The top of the page then lists the addresses to open from another device, each with
+a **Copy** button (since 0.55.1), and you log in there.
 
-**When it runs.** Only while the clock, the screensaver or one of the app's settings pages is on
-screen. Leaving the app stops it and coming back starts it again; there is no background service
-and nothing starts at boot. It listens only on Wi-Fi, Ethernet and the phone's own hotspot — never
+**Type `http://`, not `https://`.** The address is plain HTTP. Chrome and other current browsers try
+`https://` by themselves, so type the whole address into the address bar, `http://` included —
+`http://192.168.1.20:8080/`, not `192.168.1.20:8080`.
+
+**When it runs.** Only while ReteClock is on the screen, with the screen on: the clock, the
+screensaver or one of the app's settings pages. Switching to another app or letting the screen go
+off stops the server within a second, and a browser then cannot connect (*connection refused*);
+coming back starts it again. Since 0.55.1 a switch on the Web administration page, **Run only while
+this page is open**, narrows this further: the server is then up only while that page itself is
+showing, and not behind the clock. The clock and the Web administration page keep the screen on. A
+browser on the same device pushes the app off the screen, so it can reach the server only in split
+screen, at `http://127.0.0.1:8080/`. There is no background service and nothing starts at boot. It listens only on Wi-Fi, Ethernet and the phone's own hotspot — never
 on mobile data or a VPN — and answers only devices on that same network.
+
+**Keeping the same address.** On an ordinary home router the phone's local address changes from
+time to time, and the address to open changes with it. To reach the clock at the same address every
+time, give the phone a fixed one. There are two ways: set a static IP in the phone's own network
+settings, or have the router's DHCP always give the same address to the phone's MAC address (a
+"DHCP reservation"). Android 10 and newer show each Wi-Fi network a MAC address of its own, so
+reserve the one shown in that network's details on the phone.
 
 **What it does.** Every user setting, including bells, timer presets, layouts, slides, calendar
 names, typography and the experiments; the stored fonts, pictures and sounds; importing settings
@@ -736,6 +753,15 @@ Settings this version does not know are passed over. An import stops a running t
 incoming layouts with the ones you have. The limits are 64 MiB for an upload, 32 MiB a media file,
 256 KiB a text file, 128 MiB unpacked and 500 entries in a ZIP, and there must be room on the
 device. The administrator's account never travels in a settings file or an Android backup.
+
+**If the address does not open.** Look at the bottom of the Web administration page on the clock
+(since 0.55.1): it names the last device that connected and what became of it. If the browser says
+the connection was *refused*, the app was not on the screen at that moment — see *When it runs*. *No device has
+connected yet* means the browser's request never reached the clock, and the network is where to
+look — both devices on the same Wi-Fi or hotspot, a network that does not keep its devices apart
+("client isolation", usual on guest networks), no VPN at either end, and `http://`, not `https://`,
+in front of the address. *Refused* says why, and the browser is told the same. Android needs no
+further permission for this and has no firewall of its own in the way.
 
 **How the login works.** The password is turned into a key in the browser and never sent. Each
 login answers a single-use challenge, and every request after it is signed and single-use, so
