@@ -1,8 +1,7 @@
-[한국어](README.ko.md) | **English** — **reteclock v0.55.0** — [APK(Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.55.0/reteclock-0.55.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)
+[한국어](README.ko.md) | **English** — **reteclock v0.55.0** — [APK(Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.55.0/reteclock-0.55.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)<br>
+Is your phone's web browser too old to download files from GitHub? Try [ReteGet](https://github.com/rubidus-api/reteget_apk), a file and APK downloader for old Android phones.
 
 # reteclock
-
-Is your phone's web browser too old to download files from GitHub? Try [ReteGet](https://github.com/rubidus-api/reteget_apk), a file and APK downloader for old Android phones.
 
 **Turn an old Android phone into a bedside or desk clock.**
 

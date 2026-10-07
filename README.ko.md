@@ -1,8 +1,7 @@
-**한국어** | [English](README.md) — **reteclock v0.55.0** — [APK(Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.55.0/reteclock-0.55.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)
+**한국어** | [English](README.md) — **reteclock v0.55.0** — [APK(Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.55.0/reteclock-0.55.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)<br>
+웹 브라우저가 오래되어 GitHub 에서 파일을 받을 수 없나요? 옛 안드로이드 폰용 파일·APK 다운로더 [ReteGet](https://github.com/rubidus-api/reteget_apk/blob/main/README.ko.md) 을 이용해 보세요!
 
 # reteclock
-
-웹 브라우저가 오래되어 GitHub 에서 파일을 받을 수 없나요? 옛 안드로이드 폰용 파일·APK 다운로더 [ReteGet](https://github.com/rubidus-api/reteget_apk/blob/main/README.ko.md) 을 이용해 보세요!
 
 **쓰지 않는 안드로이드 폰을 머리맡 시계나 탁상 시계로 만들어 줍니다.**
 
