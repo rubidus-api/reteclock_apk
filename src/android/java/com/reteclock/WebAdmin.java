@@ -31,7 +31,14 @@ final class WebAdmin {
     private static final SharedPreferences.OnSharedPreferenceChangeListener CHANGED=new SharedPreferences.OnSharedPreferenceChangeListener(){
         public void onSharedPreferenceChanged(SharedPreferences p,String key){if(WebSettings.field(key)!=null)REVISION.incrementAndGet();}
     };
-    private static final Runnable STOP=new Runnable(){public void run(){if(HOSTS.isEmpty())stop();}};
+    private static final Runnable STOP=new Runnable(){public void run(){if(!wanted())stop();}};
+    /** Whether the server should be up just now: switched on, and the screens its lifetime asks for showing (R140). */
+    private static boolean wanted() {
+        if(app==null)return false;
+        boolean page=false;for(Object host:HOSTS)if(host instanceof WebSettingsActivity)page=true;
+        return WebLifetime.listens(lifetime(app),enabled(app),!HOSTS.isEmpty(),page);
+    }
+    static String lifetime(Context c){return WebLifetime.known(account(c).getString("lifetime",null));}
     static void enter(Context context,Object host) {
         if(app==null){app=context.getApplicationContext();Settings.prefs(app).registerOnSharedPreferenceChangeListener(CHANGED);
             // Never fatal: this is every screen's way in. A journal that cannot be undone is set
@@ -42,19 +49,53 @@ final class WebAdmin {
         }
         HOSTS.add(host); MAIN.removeCallbacks(STOP); reconcile();
     }
-    static void leave(Object host){HOSTS.remove(host);if(HOSTS.isEmpty())MAIN.postDelayed(STOP,500);}
+    static void leave(Object host){HOSTS.remove(host);if(!wanted()){MAIN.removeCallbacks(STOP);MAIN.postDelayed(STOP,500);}}
     static SharedPreferences account(Context c){return c.getSharedPreferences("web_admin",Context.MODE_PRIVATE);}
     static String stateText(){return status;}
+    /**
+     * The addresses to open, for the device page's rows: kind and URL, IPv4 first, then IPv6.
+     *
+     * Link-local IPv6 (fe80::) is listened on but not listed: it is only an address together with
+     * the name of *this* device's interface, which another device cannot use and most browsers will
+     * not take in a URL at all — listed, it was the first line and the one that could not work.
+     */
+    static List<String[]> urls() {
+        List<String[]> four=new ArrayList<String[]>(),six=new ArrayList<String[]>();
+        synchronized(SERVERS){for(WebServer s:SERVERS){
+            String authority=s.authority();
+            if(authority.startsWith("127.")||authority.startsWith("[fe80:")||authority.startsWith("[::1]"))continue;
+            (authority.startsWith("[")?six:four).add(new String[]{authority.startsWith("[")?"IPv6":"IPv4","http://"+authority+"/"});
+        }}
+        four.addAll(six);return four;
+    }
+    /**
+     * What the listeners last saw, in words for the clock's own page (issue #69).
+     *
+     * When a browser "does not open the address", this is how to tell where it stopped: nothing
+     * here means nothing reached the clock at all, and the network is where to look.
+     */
+    static String contactText(Context c) {
+        WebServer.Contact last=null;int count=0;
+        synchronized(SERVERS){for(WebServer s:SERVERS){count+=s.contacts();WebServer.Contact one=s.lastContact();if(one!=null&&(last==null||one.at>last.at))last=one;}}
+        if(SERVERS.isEmpty())return "";
+        if(last==null)return c.getString(R.string.web_contact_none);
+        String when=new java.text.SimpleDateFormat("HH:mm:ss",Locale.US).format(new java.util.Date(last.at));
+        int what=WebServer.Contact.ANSWERED.equals(last.outcome)?R.string.web_contact_answered
+                :WebServer.Contact.OTHER_NETWORK.equals(last.outcome)?R.string.web_contact_other_network
+                :WebServer.Contact.OTHER_ADDRESS.equals(last.outcome)?R.string.web_contact_other_address
+                :WebServer.Contact.HTTPS.equals(last.outcome)?R.string.web_contact_https:R.string.web_contact_unreadable;
+        return c.getString(R.string.web_contact_last,last.peer,when,c.getString(what),count);
+    }
     static boolean enabled(Context c){return account(c).getBoolean("enabled",false);}
     static int port(Context c){return account(c).getInt("port",8080);}
-    static void configure(final Context c,final boolean enabled,final int port,final String user,final String password,final Runnable done) {
+    static void configure(final Context c,final boolean enabled,final String lifetime,final int port,final String user,final String password,final Runnable done) {
         if(port<1024||port>65535)throw new IllegalArgumentException("Port must be 1024-65535");
         if(!password.isEmpty())WebAuth.checkAccount(user,password);
         else if(!user.equals(account(c).getString("user",""))||WebAuth.restore(user,account(c).getString("verifier",""))==null)
             throw new IllegalArgumentException("Set administrator and password first");
         CONTROL.execute(new Runnable(){public void run(){
             try {
-                SharedPreferences.Editor e=account(c).edit().putBoolean("enabled",enabled).putInt("port",port).putString("user",user);
+                SharedPreferences.Editor e=account(c).edit().putBoolean("enabled",enabled).putString("lifetime",WebLifetime.known(lifetime)).putInt("port",port).putString("user",user);
                 if(!password.isEmpty())e.putString("verifier",WebAuth.create(user,password).encoded());
                 if(!e.commit())throw new IllegalStateException("Cannot save administrator settings");
                 MAIN.post(new Runnable(){public void run(){configuration="";reconcile();if(done!=null)done.run();}});
@@ -91,7 +132,7 @@ final class WebAdmin {
         }catch(Exception ignored){}return false;
     }
     static void reconcile() {
-        if(app==null||HOSTS.isEmpty()||!enabled(app)){stop();return;}
+        if(!wanted()){stop();return;}
         if(!voicesStarted){voicesStarted=true;VoiceChoices.catalogue(app,new VoiceChoices.Catalogue(){public void found(List<VoiceOptions.Option> rows,String def){VOICES.clear();VOICES.addAll(rows);defaultEngine=def;voicesReady=true;}});}
         final List<InetAddress> addresses=addresses();final int port=port(app);
         final SharedPreferences p=account(app);final WebAuth auth=WebAuth.restore(p.getString("user",""),p.getString("verifier",""));
@@ -119,7 +160,7 @@ final class WebAdmin {
                 }
                 if(last!=null){refused[0]=true;message.append("Cannot listen on a local interface; check port and credentials\n");}
             }
-            MAIN.post(new Runnable(){public void run(){if(epoch!=generation||HOSTS.isEmpty()||!enabled(app)){for(WebServer s:made)s.close();return;}
+            MAIN.post(new Runnable(){public void run(){if(epoch!=generation||!wanted()){for(WebServer s:made)s.close();return;}
                 synchronized(SERVERS){SERVERS.addAll(made);}status=made.isEmpty()?"Not listening":message.length()==0?"Listening on loopback only":message.toString();
                 // A port that would not bind is asked for again at the next look (five seconds):
                 // two restarts close together — an account change and the network watch — could
@@ -131,7 +172,7 @@ final class WebAdmin {
         }});
         MAIN.removeCallbacks(NETWORK);MAIN.postDelayed(NETWORK,5000);
     }
-    private static final Runnable NETWORK=new Runnable(){public void run(){if(!HOSTS.isEmpty()&&enabled(app))reconcile();}};
+    private static final Runnable NETWORK=new Runnable(){public void run(){if(wanted())reconcile();}};
     private interface Task<T>{T run()throws Exception;}
     private static <T>T ui(final Task<T> task)throws Exception {
         if(Looper.myLooper()==Looper.getMainLooper())return task.run();

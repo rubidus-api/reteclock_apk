@@ -18,6 +18,23 @@ public final class WebServer {
         public static Response data(String type,byte[] bytes){return new Response(200,type,bytes,null);}
         public static Response file(String type,File file,String download){Response r=new Response(200,type,null,file);r.download=download;return r;}
     }
+    /**
+     * The last device that connected, and what became of it — for the clock's own page.
+     *
+     * "It does not open" (issue #69) could not be told apart on either side: a browser that never
+     * reached the clock, one refused for being on another network, one that used another address
+     * for the clock, one that tried https — each was only an error page. The clock now says which,
+     * and nothing recorded at all means nothing arrived: the network's doing, not the clock's.
+     */
+    public static final class Contact {
+        public static final String ANSWERED="answered",OTHER_NETWORK="other-network",OTHER_ADDRESS="other-address",HTTPS="https",UNREADABLE="unreadable";
+        public final String peer,outcome,detail;public final long at;
+        Contact(String peer,String outcome,String detail){this.peer=peer;this.outcome=outcome;this.detail=detail;at=System.currentTimeMillis();}
+    }
+    private volatile Contact last;private volatile int contacts;
+    public Contact lastContact(){return last;}
+    public int contacts(){return contacts;}
+    private void note(Socket socket,String outcome,String detail){last=new Contact(socket.getInetAddress().getHostAddress(),outcome,detail);contacts++;}
     private final ServerSocket listener;
     private final Handler handler; private final Peers peers;
     private final WebSessions sessions;private final File staging;
@@ -119,19 +136,37 @@ public final class WebServer {
         catch(RejectedExecutionException stopped){drop(socket);return;}
         Response response=null;
         try {
-            // Asked before a byte is read: a peer that is not of this network is answered and
-            // closed, not parsed (review of 2026-10-06).
+            BufferedInputStream in=new BufferedInputStream(socket.getInputStream());
+            String peer=socket.getInetAddress().getHostAddress();
+            // A browser that typed https:// opens with a TLS handshake, which nothing here can
+            // answer; it is told apart from noise so the clock can say what happened.
+            in.mark(1);int first=in.read();in.reset();
+            if(first==0x16){note(socket,Contact.HTTPS,"");throw new IOException("TLS is not spoken here");}
             if(!peers.allows(socket.getInetAddress())) {
-                response=Response.text(403,"Local origin required");
+                // The request is taken off the wire before the answer goes: closed with it unread,
+                // the connection is reset and the browser shows an error instead of the reason.
+                // Bounded like any other head; whatever it holds is discarded.
+                try{WebHttp.readHead(in);}catch(IOException discarded){}
+                note(socket,Contact.OTHER_NETWORK,"");
+                response=Response.text(403,"This device ("+peer+") is not on the same network as the clock. Connect it to the same Wi-Fi, Ethernet or hotspot as the clock, and open the address shown on the clock's Web administration page.");
             } else {
-                InputStream in=new BufferedInputStream(socket.getInputStream());WebHttp.Request r=WebHttp.readHead(in);
+                WebHttp.Request r;
+                try{r=WebHttp.readHead(in);}catch(IOException unreadable){note(socket,Contact.UNREADABLE,"");throw unreadable;}
                 final WebHttp.Request owned=r;
                 r.live=new WebHttp.Live(){public boolean get(){return !closed&&!socket.isClosed()&&(owned.session==null||sessions.alive(owned.session));}};
-                String host=r.header("host"),origin=r.header("origin"),peer=socket.getInetAddress().getHostAddress();
-                if(!authorityAllowed(host)||(!origin.isEmpty()&&(!origin.startsWith("http://")||!authorityAllowed(origin.substring(7))))) response=Response.text(403,"Local origin required");
-                else if(r.method.equals("GET")&&(r.target.equals("/")||r.target.equals("/app.js")||r.target.equals("/app.css")||r.target.equals("/crypto.js")))response=handler.handle(r,in);
-                else if(r.method.equals("POST")&&(r.target.equals("/auth/challenge")||r.target.equals("/auth/login")))response=login(r,in,peer);
-                else response=protectedRequest(r,in);
+                String host=r.header("host"),origin=r.header("origin");
+                if(!authorityAllowed(host)){
+                    note(socket,Contact.OTHER_ADDRESS,host);
+                    response=Response.text(403,"Open the clock by the address it shows on its Web administration page (http://"+authority()+"/), not as "+(host.matches("[A-Za-z0-9.:\\[\\]%_-]{1,80}")?host:"another name")+".");
+                } else if(!origin.isEmpty()&&(!origin.startsWith("http://")||!authorityAllowed(origin.substring(7)))) {
+                    note(socket,Contact.OTHER_ADDRESS,"");
+                    response=Response.text(403,"Local origin required");
+                } else {
+                    note(socket,Contact.ANSWERED,"");
+                    if(r.method.equals("GET")&&(r.target.equals("/")||r.target.equals("/app.js")||r.target.equals("/app.css")||r.target.equals("/crypto.js")))response=handler.handle(r,in);
+                    else if(r.method.equals("POST")&&(r.target.equals("/auth/challenge")||r.target.equals("/auth/login")))response=login(r,in,peer);
+                    else response=protectedRequest(r,in);
+                }
             }
         } catch(Refused refused) {
             // Words written for the person, by the code that refused: which line, key or entry.
