@@ -35,8 +35,18 @@ final class WebAdmin {
     /** Whether the server should be up just now: switched on, and the screens its lifetime asks for showing (R140). */
     private static boolean wanted() {
         if(app==null)return false;
-        boolean page=false;for(Object host:HOSTS)if(host instanceof WebSettingsActivity)page=true;
-        return WebLifetime.listens(lifetime(app),enabled(app),!HOSTS.isEmpty(),page);
+        boolean page=false,screen=false,service=false;
+        for(Object host:HOSTS){if(host instanceof WebAdminService)service=true;else screen=true;if(host instanceof WebSettingsActivity)page=true;}
+        return WebLifetime.listens(lifetime(app),enabled(app),screen,page,service);
+    }
+    /** Keeps the background service to the stored choice (R141). Started only while a screen of the app shows: Android lets nothing else start it. */
+    private static void service() {
+        if(app==null)return;
+        boolean up=false,screen=false;
+        for(Object host:HOSTS){if(host instanceof WebAdminService)up=true;else screen=true;}
+        boolean keep=WebLifetime.background(lifetime(app),enabled(app));
+        if(keep&&!up&&screen)WebAdminService.start(app);
+        else if(!keep&&up)WebAdminService.stop(app);
     }
     static String lifetime(Context c){return WebLifetime.known(account(c).getString("lifetime",null));}
     static void enter(Context context,Object host) {
@@ -132,7 +142,7 @@ final class WebAdmin {
         }catch(Exception ignored){}return false;
     }
     static void reconcile() {
-        if(!wanted()){stop();return;}
+        service();if(!wanted()){stop();return;}
         if(!voicesStarted){voicesStarted=true;VoiceChoices.catalogue(app,new VoiceChoices.Catalogue(){public void found(List<VoiceOptions.Option> rows,String def){VOICES.clear();VOICES.addAll(rows);defaultEngine=def;voicesReady=true;}});}
         final List<InetAddress> addresses=addresses();final int port=port(app);
         final SharedPreferences p=account(app);final WebAuth auth=WebAuth.restore(p.getString("user",""),p.getString("verifier",""));
@@ -228,6 +238,14 @@ final class WebAdmin {
         }
         if(!r.header("content-type").startsWith("application/x-www-form-urlencoded"))throw new IOException("Form required");
         final Map<String,String> form=WebHttp.form(WebHttp.readBody(in,r.length,WebHttp.TEXT_LIMIT));
+        // What the clock thinks of a layout drawn in the browser (R143); nothing is stored.
+        if(path.equals("/layout-check"))return ui(new Task<WebServer.Response>(){public WebServer.Response run()throws Exception{
+            boolean landscape="landscape".equals(form.get("way"));int[] screen=FullScreen.size(app);int low=Math.min(screen[0],screen[1]),high=Math.max(screen[0],screen[1]);
+            final android.graphics.Paint paint=new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+            // The device editor's measurer: plain writing at the asked size, not the clock's own glyphs.
+            return WebServer.Response.text(200,WebLayoutCheck.complaints(form.get("boxes"),landscape?high:low,landscape?low:high,Settings.options(app),
+                    new ClockLayout.Metrics(){public float width(String role,String text,float textSize){paint.setTextSize(textSize);return paint.measureText(text);}}));
+        }});
         if(path.equals("/settings"))return ui(new Task<WebServer.Response>(){public WebServer.Response run()throws Exception{if(!r.active())throw new IOException("Request expired or server stopped");
             String revision=form.remove("revision");if(!String.valueOf(REVISION.get()).equals(revision))return WebServer.Response.text(409,"Settings changed; reload before saving");
             String sources=form.remove("layout_sources");
@@ -323,13 +341,35 @@ final class WebAdmin {
         JSONArray voices=new JSONArray();for(VoiceOptions.Option v:VOICES){JSONObject j=new JSONObject();j.put("value",v.tag);j.put("label",VoiceChoices.languageLabel(v.tag)+" · "+v.engineLabel);j.put("engine",v.engine);voices.put(j);}out.put("voices",voices);out.put("voicesReady",voicesReady);out.put("defaultEngine",defaultEngine);
         out.put("qualityMax",ImageQuality.highestOn(Build.VERSION.SDK_INT));out.put("user",account(app).getString("user",""));out.put("port",port(app));out.put("enabled",enabled(app));out.put("status",status);
         int[] screen=FullScreen.size(app);out.put("width",screen[0]);out.put("height",screen[1]);out.put("boxFields",new JSONArray(Arrays.asList(WebSettings.BOX_FIELDS)));
+        // What the app would draw by itself, each way up: where the browser's layout editor starts a new layout, as the one on the device does (R142).
+        int low=Math.min(screen[0],screen[1]),high=Math.max(screen[0],screen[1]);JSONObject builtin=new JSONObject();
+        builtin.put("portrait",boxLines(Builtin.of(low,high,Settings.options(app))));builtin.put("landscape",boxLines(Builtin.of(high,low,Settings.options(app))));out.put("builtin",builtin);
         JSONArray table=new JSONArray();SunClock sun=Settings.sunClock(app);long day=Bells.stampOf(System.currentTimeMillis(),Settings.offsetMinutes(app,System.currentTimeMillis()))/1440L;
         for(int i=0;i<7;i++){JSONObject row=new JSONObject();row.put("day",day+i-2440588L);JSONArray times=new JSONArray();for(int event=1;event<=8;event++)times.put(sun.localMinute((int)(day+i),event));row.put("times",times);table.put(row);}out.put("sunTable",table);
         return out;
     }
+    private static JSONArray boxLines(List<LayoutBox> boxes){JSONArray lines=new JSONArray();if(boxes!=null)for(LayoutBox box:boxes)lines.put(box.text());return lines;}
     private static JSONArray names(FontLibrary lib){JSONArray a=new JSONArray();for(FontLibrary.Entry e:lib.list())a.put(e.name);return a;}
     private static FontLibrary library(String kind)throws IOException{if("fonts".equals(kind))return Settings.fonts(app);if("pictures".equals(kind))return Settings.images(app);if("sounds".equals(kind))return Settings.sounds(app);throw new IOException("Unknown library");}
+    /**
+     * What stands behind the boxes in the browser's layout editor (R142), small: this layout's own
+     * background if it carries one that is there, or else the first of the shared pool — the
+     * question the editor on the device asks (issue #51). A thumbnail, as there: a preview.
+     */
+    private static WebServer.Response backdrop(final String layout,final boolean landscape)throws Exception {
+        android.graphics.Bitmap small=ui(new Task<android.graphics.Bitmap>(){public android.graphics.Bitmap run(){
+            LayoutBook book=Settings.layouts(app);
+            for(int i=1;i<book.size(landscape);i++){LayoutPreset preset=book.get(landscape,i);if(!preset.name.equals(layout))continue;
+                for(String carried:preset.pictures(LayoutPreset.PICTURE_BACKGROUND)){File own=LayoutSkins.file(app,preset,carried);if(own!=null)return Thumbnails.of(app,own);}}
+            String shared=Settings.firstBackgroundName(app);return shared==null?null:Thumbnails.of(app,shared);
+        }});
+        if(small==null||small.isRecycled())return WebServer.Response.text(404,"No background");
+        ByteArrayOutputStream out=new ByteArrayOutputStream();
+        if(!small.compress(android.graphics.Bitmap.CompressFormat.JPEG,85,out))return WebServer.Response.text(404,"No background");
+        return WebServer.Response.data("image/jpeg",out.toByteArray());
+    }
     private static WebServer.Response media(Map<String,String> q)throws Exception{
+        if("backdrop".equals(q.get("kind")))return backdrop(q.get("layout"),"landscape".equals(q.get("way")));
         String kind=q.get("kind"),name=q.get("name");if(name==null||SafeName.complaint(name)!=null)throw new IOException("Invalid name");File f=library(kind).file(name);if(f==null)throw new IOException("Missing file");
         if("pictures".equals(kind))return WebServer.Response.file("image/"+(name.toLowerCase(Locale.US).endsWith(".svg")?"unsupported":name.toLowerCase(Locale.US).endsWith(".png")?"png":"jpeg"),f,null);
         return WebServer.Response.file("application/octet-stream",f,"reteclock-media.bin");

@@ -14,6 +14,8 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -43,12 +45,18 @@ public final class WebSettingsActivity extends WebActivity {
     private static final int AMBER = 0xffffb300;
     private static final int TEAL = 0xff4db6ac;
     private static final int GREY = 0xffbdbdbd;
+    /** When the server runs: the stored names, in the order the page offers them (R140, R141). */
+    private static final String[] RULES = {WebLifetime.SCREEN, WebLifetime.PAGE, WebLifetime.ALWAYS};
+    private static final int[] RULE_NAMES = {R.string.web_run_screen, R.string.web_run_page,
+        R.string.web_run_always};
 
     private final Handler handler = new Handler();
     private LinearLayout addresses;
     private TextView status, lifetime;
     private EditText user, password, port;
-    private CheckBox enabled, pageOnly;
+    private CheckBox enabled;
+    private RadioGroup run;
+    private TextView sameDevice;
     private Button save;
     /** What the address rows and the status were last built from, so they are rebuilt only on a change. */
     private String shownAddresses = null, shownStatus = null, shownLifetime = null;
@@ -98,7 +106,8 @@ public final class WebSettingsActivity extends WebActivity {
         lifetime = note(R.string.web_lifetime_screen, GREY);
         lifetime.setPadding(0, 12, 0, 0);
         body.addView(lifetime);
-        body.addView(note(R.string.web_same_device, GREY));
+        sameDevice = note(R.string.web_same_device, GREY);
+        body.addView(sameDevice);
         TextView fixed = note(R.string.web_fixed_ip, GREY);
         fixed.setPadding(0, 12, 0, 0);
         body.addView(fixed);
@@ -115,10 +124,23 @@ public final class WebSettingsActivity extends WebActivity {
         enabled.setText(R.string.web_enabled);
         enabled.setChecked(WebAdmin.enabled(this));
         body.addView(enabled);
-        pageOnly = new CheckBox(this);
-        pageOnly.setText(R.string.web_page_only);
-        pageOnly.setChecked(WebLifetime.PAGE.equals(WebAdmin.lifetime(this)));
-        body.addView(pageOnly);
+        TextView when = new TextView(this);
+        when.setText(R.string.web_run);
+        when.setTextColor(Color.WHITE);
+        when.setPadding(0, 12, 0, 0);
+        body.addView(when);
+        run = new RadioGroup(this);
+        String stored = WebAdmin.lifetime(this);
+        for (int i = 0; i < RULES.length; i++) {
+            RadioButton choice = new RadioButton(this);
+            choice.setId(i + 1);
+            choice.setText(RULE_NAMES[i]);
+            run.addView(choice);
+            if (RULES[i].equals(stored)) {
+                run.check(i + 1);
+            }
+        }
+        body.addView(run);
         user = field(body, R.string.web_user, InputType.TYPE_CLASS_TEXT);
         user.setText(WebAdmin.account(this).getString("user", ""));
         password = field(body, R.string.web_password,
@@ -135,7 +157,7 @@ public final class WebSettingsActivity extends WebActivity {
                 try {
                     save.setEnabled(false);
                     WebAdmin.configure(WebSettingsActivity.this, enabled.isChecked(),
-                            pageOnly.isChecked() ? WebLifetime.PAGE : WebLifetime.SCREEN,
+                            RULES[Math.max(1, run.getCheckedRadioButtonId()) - 1],
                             Integer.parseInt(port.getText().toString()),
                             user.getText().toString(), password.getText().toString(),
                             new Runnable() {
@@ -196,7 +218,10 @@ public final class WebSettingsActivity extends WebActivity {
         if (!rule.equals(shownLifetime)) {
             shownLifetime = rule;
             lifetime.setText(WebLifetime.PAGE.equals(rule) ? R.string.web_lifetime_page
+                    : WebLifetime.ALWAYS.equals(rule) ? R.string.web_lifetime_always
                     : R.string.web_lifetime_screen);
+            // In the background a browser on this device needs no split screen.
+            sameDevice.setVisibility(WebLifetime.ALWAYS.equals(rule) ? View.GONE : View.VISIBLE);
         }
         // The server's own state — but not the addresses over again when it is simply listening.
         String state = WebAdmin.stateText();
