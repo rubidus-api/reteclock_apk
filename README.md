@@ -1,4 +1,4 @@
-[한국어](README.ko.md) | **English** — **reteclock v0.55.1** — [APK(Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.55.1/reteclock-0.55.1.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)<br>
+[한국어](README.ko.md) | **English** — **reteclock v0.56.0** — [APK(Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.56.0/reteclock-0.56.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)<br>
 Is your phone's web browser too old to download files from GitHub? Try [ReteGet](https://github.com/rubidus-api/reteget_apk), a file and APK downloader for old Android phones.
 
 # reteclock
@@ -12,9 +12,10 @@ so the numbers never burn into an OLED screen.
 
 There is nothing to sign up for and nothing to configure. It needs no account, no network and no
 Play Store, so it still works on phones that can no longer install anything else. It is small —
-about 683 KB — and asks for five normal permissions, all granted at install: one to keep the screen
+about 691 KB — and asks for five normal permissions, all granted at install: one to keep the screen
 awake, one to vibrate, which only the timer and the bells use, one for a foreground service — while
-a timer sounds with the screen off, or an alarm rings — and one that only *Alarms (experimental)*
+a timer sounds with the screen off, an alarm rings, or the web administrator runs in the background
+because you chose that — and one that only *Alarms (experimental)*
 uses, starting after a restart, which stays unused until you turn that page's switch on. The fifth,
 `INTERNET`, serves the optional local web administrator, which is off until you turn it on; the
 app never opens a connection of its own.
@@ -31,8 +32,8 @@ app never opens a connection of its own.
 
 **[⬇ Get it on F-Droid](https://f-droid.org/packages/com.reteclock/)** — recommended.
 
-**[⬇ Download reteclock-0.55.1.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.55.1/reteclock-0.55.1.apk)**
-— 683 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
+**[⬇ Download reteclock-0.56.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.56.0/reteclock-0.56.0.apk)**
+— 691 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
 render GitHub's release page can still fetch it.
 
 The newest release is always at
@@ -136,7 +137,7 @@ it needs beyond keeping the screen awake. Copy the APK to the phone, open it, an
 
 ## Which phones it runs on
 
-Published on F-Droid; the latest release is 0.55.1.
+Published on F-Droid; the latest release is 0.56.0.
 
 | | |
 |---|---|
@@ -660,7 +661,7 @@ Nothing below is needed to use the app.
 Java and the Android framework, nothing else. Built with the Android SDK command-line tools
 (`aapt2`, `javac`, `d8`, `zipalign`, `apksigner`) driven by POSIX shell scripts. No Gradle. No
 AndroidX, no support library, no Kotlin runtime and no third-party dependency — a single
-`classes.dex` and an APK of about 683 KB. It is signed with the v1 (JAR) scheme so old phones
+`classes.dex` and an APK of about 691 KB. It is signed with the v1 (JAR) scheme so old phones
 accept it, plus v2 and v3 for current ones, and it holds five normal permissions (`WAKE_LOCK`,
 `VIBRATE` for the timer, `FOREGROUND_SERVICE` for the timer with the screen off and for the
 experimental alarms, `INTERNET` for optional local web administration, and `RECEIVE_BOOT_COMPLETED` for those alarms, whose components ship disabled), all granted at install and never requested at runtime.
@@ -727,12 +728,24 @@ a **Copy** button (since 0.55.1), and you log in there.
 **When it runs.** Only while ReteClock is on the screen, with the screen on: the clock, the
 screensaver or one of the app's settings pages. Switching to another app or letting the screen go
 off stops the server within a second, and a browser then cannot connect (*connection refused*);
-coming back starts it again. Since 0.55.1 a switch on the Web administration page, **Run only while
-this page is open**, narrows this further: the server is then up only while that page itself is
-showing, and not behind the clock. The clock and the Web administration page keep the screen on. A
-browser on the same device pushes the app off the screen, so it can reach the server only in split
-screen, at `http://127.0.0.1:8080/`. There is no background service and nothing starts at boot. It listens only on Wi-Fi, Ethernet and the phone's own hotspot — never
-on mobile data or a VPN — and answers only devices on that same network.
+coming back starts it again. That is the default, and the Web administration page has a choice,
+**When the server runs**, of two others. *Only while this page is on the screen* (since 0.55.1)
+narrows it: the server is then up only while that page itself is showing, and not behind the clock.
+*In the background too* (since 0.56.0) widens it — see the next paragraph. The clock and the Web
+administration page keep the screen on. Unless it runs in the background, a browser on the same
+device pushes the app off the screen and can reach the server only in split screen, at
+`http://127.0.0.1:8080/`. It listens only on Wi-Fi, Ethernet and the phone's own hotspot — never on
+mobile data or a VPN — and answers only devices on that same network.
+
+**In the background (since 0.56.0).** Chosen, the server keeps answering while you use other apps,
+and a notification says so for as long as it does: it shows the address, opens the Web
+administration page when tapped, and has a **Stop web administration** button that switches the
+server off. It needs no new permission. With the screen off the phone is kept awake for it only
+while it is on its charger; on battery it may stop answering until the screen is on again, and
+some phones' battery savers stop background apps whatever an app asks. Ending the app — swiping it
+out of the recent apps — ends the server, and it does not start by itself after the phone
+restarts: open ReteClock once. Nothing starts at boot. Remember that this leaves a plain-HTTP
+server reachable on your network all day; choose it on a network you trust.
 
 **Keeping the same address.** On an ordinary home router the phone's local address changes from
 time to time, and the address to open changes with it. To reach the clock at the same address every
@@ -745,6 +758,19 @@ reserve the one shown in that network's details on the phone.
 names, typography and the experiments; the stored fonts, pictures and sounds; importing settings
 files and font, theme and settings ZIPs; exporting them and the timer log. Higher image quality
 still needs the trial on the device.
+
+**The layout editor in the browser (since 0.56.0).** The *Layouts* page draws each layout on the
+clock's own screen, to scale, as the editor on the device does. Drag a box to move it and a corner
+to resize it; a timer strip or a saying strip takes the edge you drop it nearest. The numbers of the
+box you last touched are beside the canvas — what it shows, what it is measured from, its place
+and size in per cent, where its writing sits, whether it is shown or locked — and **Undo** takes
+back the last change, also after saving. A new layout starts from what the clock would draw by
+itself. Behind the boxes stands the background the clock would show — the layout's own picture if
+it carries one, or else the first of your pictures — small and a little darkened so the outlines
+can be read; **Show the background** takes it away. Beside the canvas the clock says what it
+thinks of the arrangement as you draw it, as the editor on the device does: a box that overlaps
+another, one too small for its writing and how far the writing shrinks, or that nothing would be
+drawn at all. Nothing reaches the clock until you press **Save changed settings**.
 
 **Imports are all or nothing**, here and on the device alike. A line that is not a setting, a
 setting given twice, a value its setting does not take or an unsafe file refuses the whole import,

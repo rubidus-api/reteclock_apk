@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.reteclock"
-    android:versionCode="89"
-    android:versionName="0.55.1"
+    android:versionCode="90"
+    android:versionName="0.56.0"
     android:installLocation="auto">
 
     <!-- minSdk 9 keeps very old devices supported; targetSdk 28 keeps current Android versions
@@ -220,6 +220,12 @@
              screensaver going dark with a run going. -->
         <service
             android:name=".TimerSoundService"
+            android:exported="false" />
+
+        <!-- The web administrator in the background (R141): only for whoever chose it, started
+             only from a screen of the app, never at boot. -->
+        <service
+            android:name=".WebAdminService"
             android:exported="false" />
 
         <receiver
