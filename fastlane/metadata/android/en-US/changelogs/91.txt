@@ -1,0 +1,1 @@
+Swipe turns (issue #70): on Layout slides each way up now takes one of three turns, No turns, Swipe turns or Timed turns. With swipe turns, swipe the clock from right to left for the next layout of a list of its own and from left to right for the one before, round and round in your order; the layout swiped to stays chosen. Also on the web administrator's Layouts page.
