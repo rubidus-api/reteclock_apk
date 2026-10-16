@@ -15,11 +15,14 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
 import com.reteclock.core.layout.LayoutBook;
 import com.reteclock.core.layout.LayoutSlides;
+import com.reteclock.core.layout.LayoutSwipe;
 
 import java.util.List;
 import java.util.Set;
@@ -33,6 +36,10 @@ import java.util.Set;
  * reporter's case is a calendar that cannot be read over a photograph.
  *
  * <p>Every change is saved at once and starts the show from its first row.
+ *
+ * <p>Each way up takes one of three turns: none, by swiping, or timed (issue #70, R144; owner,
+ * 2026-10-16). Swiping has its list of its own — layouts only, in the order a swipe goes through
+ * them — and each list is kept while the other turns are chosen.
  */
 public class LayoutSlidesActivity extends WebActivity {
 
@@ -89,17 +96,42 @@ public class LayoutSlidesActivity extends WebActivity {
         card.addView(subheading(getString(sideways
                 ? R.string.layout_sideways_list : R.string.layout_upright_list)));
 
-        CheckBox on = new CheckBox(this);
-        on.setText(R.string.slides_switch);
-        on.setTextColor(TEXT_WHITE);
-        on.setChecked(slides.isOn(sideways));
-        on.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+        final LayoutSwipe swipe = Settings.swipe(this);
+        final int turns = LayoutSwipe.turns(slides, swipe, sideways);
+        RadioGroup choice = new RadioGroup(this);
+        choice.setOrientation(RadioGroup.VERTICAL);
+        final int[] labels = {R.string.turns_none, R.string.turns_swipe, R.string.turns_timed};
+        final int[] values = {LayoutSwipe.TURNS_NONE, LayoutSwipe.TURNS_SWIPE, LayoutSwipe.TURNS_TIMED};
+        for (int i = 0; i < labels.length; i++) {
+            RadioButton option = new RadioButton(this);
+            option.setId(0x7101 + i);
+            option.setText(labels[i]);
+            option.setTextColor(TEXT_WHITE);
+            choice.addView(option);
+            if (values[i] == turns) {
+                option.setChecked(true);
+            }
+        }
+        choice.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
-            public void onCheckedChanged(CompoundButton button, boolean checked) {
-                save(Settings.slides(LayoutSlidesActivity.this).withOn(sideways, checked));
+            public void onCheckedChanged(RadioGroup group, int id) {
+                int chosen = values[id - 0x7101];
+                Settings.setSwipe(LayoutSlidesActivity.this, LayoutSwipe.swipeFor(
+                        Settings.swipe(LayoutSlidesActivity.this), sideways, chosen));
+                save(LayoutSwipe.slidesFor(Settings.slides(LayoutSlidesActivity.this), sideways,
+                        chosen));
             }
         });
-        card.addView(on);
+        card.addView(choice);
+
+        if (turns == LayoutSwipe.TURNS_NONE) {
+            card.addView(note(getString(R.string.turns_none_note)));
+            return card;
+        }
+        if (turns == LayoutSwipe.TURNS_SWIPE) {
+            swipeRows(card, sideways, book, swipe);
+            return card;
+        }
 
         final Set<String> shelf = Settings.shelfNames(book, sideways);
         List<LayoutSlides.Slide> rows = slides.rows(sideways);
@@ -121,6 +153,96 @@ public class LayoutSlidesActivity extends WebActivity {
             }
         }));
         return card;
+    }
+
+    /** The swipe list: layouts in the order a swipe goes through them, and a way to add one. */
+    private void swipeRows(LinearLayout card, final boolean sideways, final LayoutBook book,
+            LayoutSwipe swipe) {
+        card.addView(note(getString(R.string.turns_swipe_note)));
+        Set<String> shelf = Settings.shelfNames(book, sideways);
+        final List<String> rows = swipe.rows(sideways);
+        if (rows.isEmpty()) {
+            card.addView(note(getString(R.string.slides_empty)));
+        }
+        String chosen = book.chosen(sideways).name;
+        for (int i = 0; i < rows.size(); i++) {
+            final int index = i;
+            boolean exists = shelf.contains(rows.get(i));
+            boolean inForce = rows.get(i).equals(chosen);
+            LinearLayout entry = new LinearLayout(this);
+            entry.setOrientation(LinearLayout.VERTICAL);
+            GradientDrawable face = new GradientDrawable();
+            face.setColor(ROW);
+            face.setCornerRadius(dp(6));
+            if (inForce) {
+                face.setStroke(dp(1), ACCENT);
+            }
+            entry.setBackgroundDrawable(face);
+            entry.setPadding(dp(8), dp(6), dp(8), dp(8));
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            params.topMargin = dp(6);
+            entry.setLayoutParams(params);
+            TextView name = new TextView(this);
+            name.setText((i + 1) + ".  " + rows.get(i)
+                    + (exists ? "" : "  —  " + getString(R.string.slides_missing))
+                    + (inForce ? "  ·  " + getString(R.string.slides_now) : ""));
+            name.setTextColor(exists ? (inForce ? ACCENT : TEXT_WHITE) : TEXT_DIM);
+            name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f);
+            entry.addView(name);
+            LinearLayout buttons = new LinearLayout(this);
+            buttons.setOrientation(LinearLayout.HORIZONTAL);
+            buttons.addView(small("▲", i > 0, new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    saveSwipe(Settings.swipe(LayoutSlidesActivity.this).moved(sideways, index, -1));
+                }
+            }));
+            buttons.addView(small("▼", i < rows.size() - 1, new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    saveSwipe(Settings.swipe(LayoutSlidesActivity.this).moved(sideways, index, 1));
+                }
+            }));
+            buttons.addView(small(getString(R.string.slides_remove), true, new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    saveSwipe(Settings.swipe(LayoutSlidesActivity.this).removed(sideways, index));
+                }
+            }));
+            entry.addView(buttons);
+            card.addView(entry);
+        }
+        if (rows.size() == 1) {
+            card.addView(note(getString(R.string.turns_swipe_one)));
+        }
+        final java.util.ArrayList<String> left = new java.util.ArrayList<String>();
+        for (int i = 0; i < book.size(sideways); i++) {
+            if (!rows.contains(book.get(sideways, i).name)) {
+                left.add(book.get(sideways, i).name);
+            }
+        }
+        card.addView(button(getString(R.string.slides_add), !left.isEmpty(), new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                final String[] names = left.toArray(new String[0]);
+                new AlertDialog.Builder(LayoutSlidesActivity.this)
+                        .setTitle(R.string.slides_add)
+                        .setItems(names, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                saveSwipe(Settings.swipe(LayoutSlidesActivity.this).add(sideways,
+                                        names[which]));
+                            }
+                        })
+                        .show();
+            }
+        }));
+    }
+
+    private void saveSwipe(LayoutSwipe swipe) {
+        Settings.setSwipe(this, swipe);
+        rebuild();
     }
 
     private View row(final boolean sideways, final int index, int count,

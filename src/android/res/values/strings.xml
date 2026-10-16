@@ -607,8 +607,13 @@
     <!-- Layouts in turn (issue #53, RFC-0013). -->
     <string name="menu_slides">Layout slides</string>
     <string name="slides_title">Layout slides</string>
-    <string name="slides_intro">Show several layouts in turn: each row stays for its own time, then the next, and after the last the first again. Upright and sideways have their own lists, as they have their own layouts. While a list plays, the layout chosen on the Layout page shows only when it is switched off.</string>
-    <string name="slides_switch">Show these layouts in turn</string>
+    <string name="slides_intro">Show several layouts in turn, upright and sideways each on its own: by swiping the clock sideways, or each layout for its own time and then the next. After the last comes the first again. Each way up keeps both lists; only the one chosen plays.</string>
+    <string name="turns_none">No turns: the layout chosen on the Layout page</string>
+    <string name="turns_swipe">Swipe turns: a sideways swipe on the clock</string>
+    <string name="turns_timed">Timed turns: each layout for its own time</string>
+    <string name="turns_none_note">The clock shows the layout chosen on the Layout page.</string>
+    <string name="turns_swipe_note">Swipe the clock from right to left for the next layout below, from left to right for the one before; after the last comes the first again. The layout you swipe to becomes the one chosen on the Layout page, so the clock keeps it.</string>
+    <string name="turns_swipe_one">Add another layout: with only one there is nothing to swipe to.</string>
     <string name="slides_empty">No rows yet. Add a layout below.</string>
     <string name="slides_nothing_plays">Nothing here can play — no row names a layout on this shelf — so the chosen layout is shown.</string>
     <string name="slides_add">Add a layout…</string>

@@ -98,6 +98,7 @@ public final class Settings {
     public static final String KEY_LAYOUTS = "layouts";
     /** Layouts in turn (issue #53, RFC-0013). */
     public static final String KEY_LAYOUT_SLIDES = "layout_slides";
+    public static final String KEY_LAYOUT_SWIPE = "layout_swipe";
     /** Sleep mode (issue #54, RFC-0014): what asleep means, and the window it opens in by itself. */
     /** The place sunrise and sunset are reckoned from (issue #55, RFC-0015); empty when unset. */
     public static final String KEY_SUN_LATITUDE = "sun_latitude";
@@ -305,6 +306,7 @@ public final class Settings {
         out.put(KEY_DATE_ORDER, dateOrder(context).text());
         out.put(KEY_LAYOUTS, layouts(context).text());
         out.put(KEY_LAYOUT_SLIDES, slides(context).text());
+        out.put(KEY_LAYOUT_SWIPE, swipe(context).text());
         out.put(KEY_SUN_LATITUDE, prefs(context).getString(KEY_SUN_LATITUDE, ""));
         out.put(KEY_SUN_LONGITUDE, prefs(context).getString(KEY_SUN_LONGITUDE, ""));
         out.put(KEY_SUN_PLACE, sunPlace(context));
@@ -2469,6 +2471,49 @@ public final class Settings {
                 slides.anchoredAt(System.currentTimeMillis()).text()).commit();
     }
 
+    /** The layouts a sideways swipe goes through, per way up (issue #70, R144). */
+    public static com.reteclock.core.layout.LayoutSwipe swipe(Context context) {
+        return com.reteclock.core.layout.LayoutSwipe.parse(
+                prefs(context).getString(KEY_LAYOUT_SWIPE, ""));
+    }
+
+    public static void setSwipe(Context context, com.reteclock.core.layout.LayoutSwipe swipe) {
+        prefs(context).edit().putString(KEY_LAYOUT_SWIPE, swipe.text()).commit();
+    }
+
+    /**
+     * The timed list as it plays: off for a way up that turns by swiping, since a way up takes one
+     * of the three turns (R144). What the clock, its pictures and the strip ask; the Layout slides
+     * page edits {@link #slides} itself.
+     */
+    public static com.reteclock.core.layout.LayoutSlides playingSlides(Context context) {
+        return com.reteclock.core.layout.LayoutSwipe.playing(slides(context), swipe(context));
+    }
+
+    /**
+     * A swipe on the clock: the next layout of the swipe list ({@code step} 1) or the one before
+     * (-1) becomes the layout chosen for this way up, kept as if chosen on the Layout page (owner,
+     * 2026-10-16). False when swiping is off or nothing listed is on the shelf.
+     */
+    public static boolean swipeLayout(Context context, boolean landscape, int step) {
+        com.reteclock.core.layout.LayoutBook book = layouts(context);
+        String to = swipe(context).step(landscape, book.chosen(landscape).name, step,
+                shelfNames(book, landscape));
+        if (to == null) {
+            return false;
+        }
+        for (int i = 0; i < book.size(landscape); i++) {
+            if (book.get(landscape, i).name.equals(to)) {
+                if (i == book.chosenIndex(landscape)) {
+                    return false;
+                }
+                setLayouts(context, book.choose(landscape, i));
+                return true;
+            }
+        }
+        return false;
+    }
+
     /** The names on one shelf, for asking which rows are playable. */
     public static java.util.Set<String> shelfNames(
             com.reteclock.core.layout.LayoutBook book, boolean landscape) {
@@ -2482,7 +2527,7 @@ public final class Settings {
     /** The slide in force now for this way up, or null when slides are off or nothing plays. */
     public static com.reteclock.core.layout.LayoutSlides.Slide slideInForce(Context context,
             boolean landscape, long nowMillis) {
-        com.reteclock.core.layout.LayoutSlides slides = slides(context);
+        com.reteclock.core.layout.LayoutSlides slides = playingSlides(context);
         if (!slides.isOn(landscape)) {
             return null;
         }
@@ -2497,7 +2542,7 @@ public final class Settings {
     public static com.reteclock.core.layout.LayoutPreset layoutInForce(Context context,
             boolean landscape) {
         com.reteclock.core.layout.LayoutBook book = layouts(context);
-        com.reteclock.core.layout.LayoutSlides slides = slides(context);
+        com.reteclock.core.layout.LayoutSlides slides = playingSlides(context);
         if (slides.isOn(landscape)) {
             com.reteclock.core.layout.LayoutSlides.Slide slide = slides.current(landscape,
                     System.currentTimeMillis(), shelfNames(book, landscape));

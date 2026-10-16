@@ -214,7 +214,43 @@ public class ClockActivity extends WebActivity {
                     ownGesture = silenceWhatIsSounding()
                             || view.pageCalendar(event.getX(), event.getY())
                             || view.nextSaying(event.getX(), event.getY());
+                    swiping = false;
+                    swipeOn = !ownGesture && Settings.swipe(ClockActivity.this).isOn(
+                            getResources().getConfiguration().orientation
+                                    == Configuration.ORIENTATION_LANDSCAPE);
+                    downX = event.getX();
+                    downY = event.getY();
                     return ownGesture;
+                }
+                if (!ownGesture && swipeOn) {
+                    // A sideways swipe goes to the next layout of the swipe list or the one before
+                    // (issue #70, R144). Once the touch has gone clearly across it is the swipe's:
+                    // the view is told the touch is over, so no tap and no long press follow it.
+                    float dx = event.getX() - downX, dy = event.getY() - downY;
+                    float density = getResources().getDisplayMetrics().density;
+                    // Claimed on the way, or on release for a flick so quick that no move came
+                    // between the press and the release.
+                    if (!swiping && ((action == android.view.MotionEvent.ACTION_MOVE
+                            && com.reteclock.core.SwipeGesture.claims(dx, dy, density))
+                            || (action == android.view.MotionEvent.ACTION_UP
+                            && com.reteclock.core.SwipeGesture.step(dx, dy, view.getWidth(),
+                                    density) != 0))) {
+                        swiping = true;
+                        android.view.MotionEvent cancel = android.view.MotionEvent.obtain(event);
+                        cancel.setAction(android.view.MotionEvent.ACTION_CANCEL);
+                        view.onTouchEvent(cancel);
+                        cancel.recycle();
+                    }
+                    if (swiping) {
+                        if (action == android.view.MotionEvent.ACTION_UP) {
+                            swiping = false;
+                            swipeLayout(com.reteclock.core.SwipeGesture.step(dx, dy,
+                                    view.getWidth(), density));
+                        } else if (action == android.view.MotionEvent.ACTION_CANCEL) {
+                            swiping = false;
+                        }
+                        return true;
+                    }
                 }
                 if (!ownGesture) {
                     return false;
@@ -277,6 +313,18 @@ public class ClockActivity extends WebActivity {
      * Called again when the screen turns, because this activity handles its own configuration
      * changes and the strip has to change sides.
      */
+    /** The layout a swipe went to is drawn as a slide ending is: options, layout, pictures, strip. */
+    private void swipeLayout(int step) {
+        boolean landscape = getResources().getConfiguration().orientation
+                == Configuration.ORIENTATION_LANDSCAPE;
+        if (step == 0 || !Settings.swipeLayout(this, landscape, step)) {
+            return;
+        }
+        view.reloadOptions();
+        slideWatch.reload();
+        layOutScreen();
+    }
+
     private void layOutScreen() {
         applyWallpaper();
         // The strip is built afresh each time; the one being dropped must stop ticking, or it goes
@@ -511,6 +559,9 @@ public class ClockActivity extends WebActivity {
 
     /** What the strip asks the world for: sounds, speech, a flash, and the preset list. */
     /** Whether the touch in progress belongs to the calendar's arrows or to the saying. */
+    /** A touch on the face that may be a sideways swipe, and where it began (R144). */
+    private boolean swipeOn, swiping;
+    private float downX, downY;
     private boolean ownGesture;
 
     /** The card a ringing bell raised, while it is up. One bell is asked about at a time. */

@@ -102,7 +102,7 @@ public final class LayoutSettingsActivity extends WebActivity {
         presetList.addView(subheading(getString(landscape
                 ? R.string.layout_sideways_list : R.string.layout_upright_list)));
         // While slides play for this way up, the choice below is what comes back when they stop.
-        if (Settings.slides(this).isOn(landscape)) {
+        if (Settings.playingSlides(this).isOn(landscape)) {
             TextView playing = note(getString(R.string.layout_slides_playing));
             playing.setTextColor(ACCENT);
             presetList.addView(playing);
@@ -420,6 +420,11 @@ public final class LayoutSettingsActivity extends WebActivity {
                         // A slide naming the layout follows the new name (RFC-0013 D5).
                         Settings.setSlides(LayoutSettingsActivity.this,
                                 Settings.slides(LayoutSettingsActivity.this).renamed(landscape,
+                                        book.get(landscape, index).name,
+                                        renamed.get(landscape, index).name));
+                        // And so does the swipe list's row (R144).
+                        Settings.setSwipe(LayoutSettingsActivity.this,
+                                Settings.swipe(LayoutSettingsActivity.this).renamed(landscape,
                                         book.get(landscape, index).name,
                                         renamed.get(landscape, index).name));
                         refresh();

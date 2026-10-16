@@ -99,6 +99,14 @@ public final class WebSettings {
                 if(!exists) throw new IllegalArgumentException("Slide names an unavailable layout");
             }
         }
+        if(v.containsKey("layouts")&&v.containsKey("layout_swipe")) {
+            LayoutBook book=LayoutBook.parse(v.get("layouts"));
+            for(String line:v.get("layout_swipe").split("\n")) if(line.startsWith("P|")||line.startsWith("L|")) {
+                boolean sideways=line.startsWith("L");String name=line.substring(2);
+                boolean exists=false; for(int i=0;i<book.size(sideways);i++) if(book.get(sideways,i).name.equals(name)) exists=true;
+                if(!exists) throw new IllegalArgumentException("The swipe list names an unavailable layout");
+            }
+        }
     }
     private static void check(Field f,String v) throws Exception {
         if(v==null || v.getBytes("UTF-8").length>WebHttp.TEXT_LIMIT || v.indexOf('\0')>=0) throw new Exception();
@@ -114,6 +122,7 @@ public final class WebSettings {
         else if(k.equals("timer_presets")) timers(v);
         else if(k.equals("layouts")) layouts(v,true);
         else if(k.equals("layout_slides")) slides(v);
+        else if(k.equals("layout_swipe")) swipe(v);
         else if(k.equals("sound_clips")) clips(v);
         else if(k.equals("sun_latitude")||k.equals("sun_longitude")) {
             if(!v.isEmpty()) { double d=Double.parseDouble(v);double max=k.equals("sun_latitude")?90:180;
@@ -187,6 +196,13 @@ public final class WebSettings {
                 String[] n=first.substring(7).split(",");for(int i=0;i<n.length;i++)if(number(n[i],0,100)>=b.size(i==1))throw new IllegalArgumentException();
             }
         } else if(LayoutPreset.parse(v)==null)throw new IllegalArgumentException();
+    }
+    private static void swipe(String v) {
+        if(v.isEmpty())return;int count=0;
+        for(String l:v.split("\n")) {
+            if(l.startsWith("on=")){String[]a=l.substring(3).split(",",-1);if(a.length!=2)throw new IllegalArgumentException();bit(a[0]);bit(a[1]);}
+            else {String[]a=l.split("\\|",-1);if(a.length!=2||!(a[0].equals("P")||a[0].equals("L"))||a[1].isEmpty()||a[1].length()>100||++count>100)throw new IllegalArgumentException();}
+        }
     }
     private static void slides(String v) {
         if(v.isEmpty())return;int count=0;

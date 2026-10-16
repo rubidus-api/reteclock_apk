@@ -224,6 +224,12 @@ its own *Show a background* switch — a monthly calendar on a plain ground, the
 instance. Upright and sideways have their own lists. The show keeps time with the clock, so opening
 the menu does not start it over.
 
+Each way up takes one of three turns: **No turns** (the layout chosen on *Layout*), **Swipe turns**
+or **Timed turns** (the list above). With *Swipe turns*, swipe the clock from right to left for the
+next layout of a list of its own and from left to right for the one before, round and round in the
+order you set. The layout you swipe to becomes the chosen one, so the clock keeps it after a
+restart. The screensaver does not take swipes.
+
 <img src="docs/screenshots/settings.png" alt="The settings page: Start the clock, the switch that keeps the clock up past the lock screen, the home-screen button choice, and the screensaver row" width="240"> <img src="docs/screenshots/fields.png" alt="The Fonts page: the font library with each font's size and the total, then each field on two lines — its name with bold, italic, underline and outline, and its font — including AM / PM and the calendar's three parts" width="240">
 
 In the order they appear on the screen.

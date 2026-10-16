@@ -89,6 +89,7 @@ public final class SettingsIni {
         {"date_order", "s", "clock"},
         {"layouts", "s", "clock"},
         {"layout_slides", "s", "clock"},
+        {"layout_swipe", "s", "clock"},
         {"sleep_button", "b", "clock"},
         {"sleep_brightness", "i", "clock"},
         {"sleep_no_background", "b", "clock"},

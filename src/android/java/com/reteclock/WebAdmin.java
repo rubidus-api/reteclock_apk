@@ -258,6 +258,7 @@ final class WebAdmin {
                 edit.putBoolean(Settings.KEY_SUN_METHOD_CHOSEN,method!=0);
             }
             if(valid.containsKey("layout_slides"))edit.putString(Settings.KEY_LAYOUT_SLIDES,LayoutSlides.parse(valid.get("layout_slides")).anchoredAt(System.currentTimeMillis()).text());
+            if(valid.containsKey("layout_swipe"))edit.putString(Settings.KEY_LAYOUT_SWIPE,LayoutSwipe.parse(valid.get("layout_swipe")).text());
             if(valid.containsKey("layouts")) {
                 try {WebImports.begin(app);prepareLayouts(LayoutBook.parse(valid.get("layouts")),sources);
                     if(!edit.commit())throw new IOException("Cannot save settings");WebImports.finish(app);

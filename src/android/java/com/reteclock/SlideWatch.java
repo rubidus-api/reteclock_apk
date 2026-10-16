@@ -34,7 +34,7 @@ final class SlideWatch {
 
     /** Reads the list and the shelves again, and takes the row in force now as the starting point. */
     void reload() {
-        slides = Settings.slides(context);
+        slides = Settings.playingSlides(context);
         LayoutBook book = Settings.layouts(context);
         portraitShelf = Settings.shelfNames(book, false);
         landscapeShelf = Settings.shelfNames(book, true);
