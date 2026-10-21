@@ -43,7 +43,7 @@ scripts/env.local.sh
 *.keystore
 *.idsig
 
-# agy-only customization layer (local; see rootsator RFC-0001)
+# agy-only customization layer (local)
 /.agents/
 /scripts/sot-check.sh
 /scripts/claim.sh
