@@ -45,3 +45,8 @@ scripts/env.local.sh
 
 # agy-only customization layer (local; see rootsator RFC-0001)
 /.agents/
+/scripts/sot-check.sh
+/scripts/claim.sh
+/scripts/install-hook.sh
+/scripts/readme-topline.sh
+/scripts/commit-both.sh
