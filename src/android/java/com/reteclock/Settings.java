@@ -64,6 +64,9 @@ public final class Settings {
     /** When the remembered run began, by the wall clock, and which ending is already written. */
     public static final String KEY_RUN_STARTED = "run_started";
     public static final String KEY_RUN_LOGGED = "run_logged";
+    /** Up to where the running timer's cues were played (R145): run state, never exported. */
+    public static final String KEY_RUN_CUE_KEY = "run_cue_key";
+    public static final String KEY_RUN_CUE_MARK = "run_cue_mark";
     /** How much of the phone the log may have, and how far a trim goes, in whole megabytes. */
     public static final String KEY_TIMER_LOG_CEILING = "timer_log_ceiling_mb";
     public static final String KEY_TIMER_LOG_FLOOR = "timer_log_floor_mb";
@@ -509,6 +512,22 @@ public final class Settings {
 
     public static void setTimerWhileLocked(Context context, boolean on) {
         prefs(context).edit().putBoolean(KEY_TIMER_WHILE_LOCKED, on).commit();
+    }
+
+    /** Up to where the running timer's cues were played, as the service last wrote it down. */
+    public static com.reteclock.core.TimerCueLedger timerCueLedger(Context context) {
+        SharedPreferences p = prefs(context);
+        return new com.reteclock.core.TimerCueLedger(p.getString(KEY_RUN_CUE_KEY, ""),
+                p.getLong(KEY_RUN_CUE_MARK, 0L));
+    }
+
+    /**
+     * Written with every cue the service plays, and at once: a process killed a moment later is
+     * started again by its alarm and must not play that cue a second time.
+     */
+    public static void setTimerCueLedger(Context context, com.reteclock.core.TimerCueLedger ledger) {
+        prefs(context).edit().putString(KEY_RUN_CUE_KEY, ledger.key())
+                .putLong(KEY_RUN_CUE_MARK, ledger.mark()).commit();
     }
 
     public static void setSoundLevel(Context context, int mode, int kind, int level) {

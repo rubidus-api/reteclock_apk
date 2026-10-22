@@ -14,7 +14,7 @@ There is nothing to sign up for and nothing to configure. It needs no account, n
 Play Store, so it still works on phones that can no longer install anything else. It is small —
 about 695 KB — and asks for five normal permissions, all granted at install: one to keep the screen
 awake, one to vibrate, which only the timer and the bells use, one for a foreground service — while
-a timer sounds with the screen off, an alarm rings, or the web administrator runs in the background
+a timer runs, an alarm rings, or the web administrator runs in the background
 because you chose that — and one that only *Alarms (experimental)*
 uses, starting after a restart, which stays unused until you turn that page's switch on. The fifth,
 `INTERNET`, serves the optional local web administrator, which is off until you turn it on; the
@@ -357,6 +357,13 @@ nothing extra drawn.
   locks: every cue, its spoken messages and vibration, under a notification that names the interval
   and when it ends, with *Pause* and *Stop*. At the finish it plays the finish and leaves the screen
   off. On unless you turn off *Timer settings* → *Keep sounding with the screen off*. (Since 0.53.0.)
+  From the next version one background service plays every cue for the whole run — on the clock, in
+  the settings, in another app, with the screen off — and an alarm wakes the phone for each, so Doze,
+  a battery saver or a closed app no longer lose them and the count-in is never heard twice. The
+  timer then sounds on the alarm volume, from the phone's speaker even with a headset connected; on
+  vibrate it buzzes, on silent it only shows, and at the finish a notification says it finished.
+  The status bar shows the alarm icon while a timer runs. *Timer settings* → *Battery saving* (Android
+  6 and newer) says whether battery optimisation may hold the app back and opens its settings.
 - **The finish** — the tune at the end of a
   preset is the theme from the fourth movement of Schubert's *Trout* Quintet, which the phone plays
   from the notes rather than from a recording.

@@ -120,6 +120,19 @@ final class BellRinger {
         serveWake();
     }
 
+    /** Whether a wake bell is ringing on any screen of this process: the timer service asks (F4). */
+    static boolean anyWakeActive() {
+        for (int i = LIVE.size() - 1; i >= 0; i--) {
+            BellRinger ringer = LIVE.get(i).get();
+            if (ringer == null) {
+                LIVE.remove(i);
+            } else if (ringer.wakeBell != null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /** Whether a wake bell is ringing on this screen — what the timer's cues are silent for (F4). */
     boolean wakeActive() {
         return wakeBell != null;

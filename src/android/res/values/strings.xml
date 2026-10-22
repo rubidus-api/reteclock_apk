@@ -316,9 +316,15 @@
     <string name="timer_alert_moved">Every interval end flashes the screen. Whether it also sounds, how loudly, and whether it vibrates — separately for a phone that is ringing, on vibrate and on silent — is set with the other sounds, on Sounds and bells → Volume.</string>
     <string name="timer_alert_open">Open Volume…</string>
     <string name="timer_while_locked">Keep sounding with the screen off</string>
-    <string name="timer_while_locked_note">A running timer goes on playing its cues — beeps, your sounds, its spoken messages and vibration, as Volume sets them for the phone\'s mode — when the screen goes off or the phone locks. While it does, a notification names the interval and when it ends, with Pause and Stop. At the finish it plays the finish; the screen stays off. Off, the timer keeps its time with the screen off but stays quiet until the clock is back. On Android 6 and newer a phone left still for a long while may hold back cues late in a long timer.</string>
+    <string name="timer_while_locked_note">A running timer plays its cues — beeps, your sounds, its spoken messages and vibration, as Volume sets them for the phone\'s mode — wherever you are: on the clock, in its settings, in another app, and with the screen off or locked. They go out on the alarm volume, from the phone\'s speaker even with a headset connected. While a timer runs, a notification names the interval and when it ends, with Pause and Stop, and the alarm icon shows. At the finish it plays the finish and leaves a note that it finished; the screen stays off. Off, the timer keeps its time with the screen off but stays quiet until the screen is on again.</string>
     <string name="timer_locked_channel">Timer</string>
-    <string name="timer_locked_channel_note">Shown while a timer sounds with the screen off.</string>
+    <string name="timer_locked_channel_note">Shown while a timer runs, and when it has finished.</string>
+    <string name="timer_finished">%1$s finished</string>
+    <string name="timer_battery">Battery saving</string>
+    <string name="timer_battery_free">This app is not held back by battery optimisation.</string>
+    <string name="timer_battery_held">Battery optimisation may hold this app back with the screen off. The timer wakes the phone with an alarm for each cue all the same; to be sure, let ReteClock run unrestricted.</string>
+    <string name="timer_battery_samsung">On a Samsung phone also add ReteClock to Settings → Battery → Background usage limits → Never sleeping apps.</string>
+    <string name="timer_battery_open">Battery settings</string>
     <string name="timer_locked_running">Timer running</string>
     <string name="timer_locked_paused">Paused</string>
     <string name="timer_locked_ends">%1$s · ends at %2$s</string>

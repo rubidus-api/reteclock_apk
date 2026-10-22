@@ -407,21 +407,25 @@ public class SoundSettingsActivity extends WebActivity {
             toast(getString(R.string.sound_level_muted));
             return;
         }
-        if (kind == SoundLevels.WAKE_BELLS) {
-            // The alarm stream, as the bell itself.
-            new TimerSounds(this).playAlarm(Tones.CHIME, gain, buzz);
+        if (kind == SoundLevels.WAKE_BELLS || kind == SoundLevels.TIMER_CUES) {
+            // The alarm stream, as the bell and the timer themselves (R145).
+            new TimerSounds(this).playAlarm(
+                    kind == SoundLevels.WAKE_BELLS ? Tones.CHIME : Tones.END, gain, buzz);
             return;
         }
         if (kind == SoundLevels.TIMER_MESSAGES || kind == SoundLevels.SPOKEN_TIME) {
-            if (testVoice == null) {
-                testVoice = new TimerVoice(this);
+            if (testVoice != null) {
+                testVoice.release();
+            }
+            testVoice = new TimerVoice(this);
+            if (kind == SoundLevels.TIMER_MESSAGES) {
+                testVoice.setStream(android.media.AudioManager.STREAM_ALARM);
             }
             testVoice.say(Settings.spokenTimeNow(this), android.os.SystemClock.elapsedRealtime(),
                     gain);
             return;
         }
-        new TimerSounds(this).play(kind == SoundLevels.BELLS ? Tones.CHIME : Tones.END,
-                gain, buzz);
+        new TimerSounds(this).play(Tones.CHIME, gain, buzz);
     }
 
     // ---- the pool -------------------------------------------------------------------------

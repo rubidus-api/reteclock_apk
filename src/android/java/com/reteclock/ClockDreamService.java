@@ -89,14 +89,9 @@ public class ClockDreamService extends DreamService {
         timer = new TimerView(this);
         timer.setListener(dreamListener);
         timer.setPreset(running.preset());
-        // Back from a dark screen, the run is the one the service left written down and the cues
-        // carry on after the last one it played (R130).
-        long handed = TimerSoundService.takeBack(this);
-        if (handed != TimerSoundService.NOTHING) {
-            timer.handOver(running, Settings.runStarted(this), handed);
-        } else {
-            timer.adopt(running, Settings.runStarted(this));
-        }
+        // The run as written down; the service plays its cues and this strip draws it (R145).
+        TimerSoundService.takeChanged();
+        timer.adopt(running, Settings.runStarted(this));
         // Under OLED care the controls take the mode's dim colour too, as they do on the clock.
         if (Settings.oledCare(this)) {
             timer.setChrome(com.reteclock.core.OledCare.TEXT_COLOR);
@@ -151,6 +146,7 @@ public class ClockDreamService extends DreamService {
                         TimerMemory.originOf(run, android.os.SystemClock.elapsedRealtime()),
                         TimerMemory.pausedAtOf(run), startEpochMs);
             }
+            TimerSoundService.sync(ClockDreamService.this);
         }
 
         @Override
@@ -168,6 +164,9 @@ public class ClockDreamService extends DreamService {
 
         @Override
         public void cue(Tones.Note[] pattern) {
+            if (TimerSoundService.plays()) {
+                return;
+            }
             if (sounds == null) {
                 sounds = new TimerSounds(ClockDreamService.this);
             }
@@ -176,6 +175,9 @@ public class ClockDreamService extends DreamService {
 
         @Override
         public void sound(String name, Tones.Note[] fallback) {
+            if (TimerSoundService.plays()) {
+                return;
+            }
             if (sounds == null) {
                 sounds = new TimerSounds(ClockDreamService.this);
             }
@@ -260,8 +262,10 @@ public class ClockDreamService extends DreamService {
             applySleepBrightness();
         }
         view.start();
+        TimerSoundService.setDreaming(true);
         if (timer != null) {
             timer.resumeDrawing();
+            TimerSoundService.sync(this);
         }
     }
 
@@ -277,13 +281,10 @@ public class ClockDreamService extends DreamService {
         if (bells != null) {
             bells.stop();
         }
+        TimerSoundService.setDreaming(false);
         if (timer != null) {
+            // The service goes on playing the run's cues; nothing is handed over (R145).
             timer.pauseDrawing();
-            // The screensaver ends when the screen goes off; a run going carries on sounding.
-            if (timer.isRunning() && Settings.timerWhileLocked(this)
-                    && !ClockActivity.screenOn(this)) {
-                TimerSoundService.startFor(this, timer.lastCueMs());
-            }
         }
         super.onDreamingStopped();
     }

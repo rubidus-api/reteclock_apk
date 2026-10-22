@@ -22,6 +22,9 @@ import java.io.File;
  *   <li>Anything else falls back to the built-in pattern. A cue that went silent because a file had
  *       been deleted would be a timer that quietly stopped working, which is the one failure a timer
  *       must not have. A muted row is not that: it plays nothing, not the beep instead.</li>
+ *   <li>Everything goes out on the alarm stream (R145): it follows the alarm volume and is heard from
+ *       the phone's own speaker even with a headset connected, which the music stream is not. The
+ *       ringer switch is still this app's to obey, through the Volume card, as above.</li>
  * </ul>
  */
 final class CueSound {
@@ -33,7 +36,7 @@ final class CueSound {
     static void cue(Context context, TimerSounds tones, Tones.Note[] pattern) {
         SoundLevels levels = Settings.soundLevels(context);
         int mode = Settings.soundMode(context);
-        tones.play(pattern, levels.gain(mode, SoundLevels.TIMER_CUES),
+        tones.playAlarm(pattern, levels.gain(mode, SoundLevels.TIMER_CUES),
                 levels.buzzes(mode, SoundLevels.TIMER_CUES));
     }
 
@@ -46,11 +49,12 @@ final class CueSound {
         File file = gain <= 0f || name == null || name.isEmpty()
                 ? null : Settings.sounds(context).file(name);
         if (file == null) {
-            tones.play(fallback, gain, buzz);
+            tones.playAlarm(fallback, gain, buzz);
             return;
         }
         // A file cannot be felt; the buzz is the cue's own pattern, beside the sound.
-        tones.play(fallback, 0f, buzz);
+        tones.playAlarm(fallback, 0f, buzz);
+        player.setStream(android.media.AudioManager.STREAM_ALARM);
         player.setGain(gain);
         player.play(file, Settings.soundClips(context).of(name));
     }

@@ -78,8 +78,9 @@ public class TimerView extends View {
 
     /** What the strip needs the world to do for it. */
     /**
-     * What a cue becomes: a sound, a spoken message, a flash. The screen's listener is one; with the
-     * screen off, {@link TimerSoundService} is the other, so both play exactly the same thing.
+     * What a cue becomes: a sound, a spoken message, a flash. {@link TimerSoundService} plays the
+     * sounds and the messages for the whole run (R145); a screen's listener flashes, and plays them
+     * only when the service could not be started.
      */
     interface CueSink {
         /** Play this pattern, however the settings say it should be heard. */
@@ -879,21 +880,16 @@ public class TimerView extends View {
         return run;
     }
 
-    /** The moment up to which this strip has played its cues. */
-    long lastCueMs() {
-        return lastCueMs;
-    }
-
     /**
-     * Takes the run back from {@link TimerSoundService}, which played its cues with the screen off
-     * and may have paused or stopped it from its notification: the run is the one written down, and
-     * the cues carry on just after the last one the service played — none twice, none missed.
+     * Takes up the run as it is written down, after {@link TimerSoundService}'s notification paused,
+     * resumed or stopped it. The service plays the cues (R145); the window for this strip's flash
+     * opens at now.
      */
-    void handOver(TimerRun existing, long startedEpochMs, long playedUpToMs) {
+    void handOver(TimerRun existing, long startedEpochMs) {
         run = existing;
         startEpochMs = startedEpochMs;
         long now = SystemClock.elapsedRealtime();
-        lastCueMs = playedUpToMs == TimerSoundService.NOTHING ? now : Math.min(playedUpToMs, now);
+        lastCueMs = now;
         if (run != null && !run.isPaused() && !run.finishedAt(now)) {
             begin();
         } else {

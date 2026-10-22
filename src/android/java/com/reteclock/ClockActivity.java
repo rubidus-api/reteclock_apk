@@ -94,7 +94,6 @@ public class ClockActivity extends WebActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        registerReceiver(screenOff, new android.content.IntentFilter(Intent.ACTION_SCREEN_OFF));
 
         if (routeToSettings()) {
             return;
@@ -680,22 +679,6 @@ public class ClockActivity extends WebActivity {
         voice.say(Settings.spokenTimeNow(this), android.os.SystemClock.elapsedRealtime(), gain);
     }
 
-    /** Whether the clock is behind something — paused — which is when a dark screen hands over. */
-    private boolean paused;
-
-    /**
-     * The screen went off or locked with a run going: the timer's cues carry on in
-     * {@link TimerSoundService} (R130), if the switch on Timer settings says so. Leaving for the
-     * settings or another app with the screen on is not this, and goes on as it always did.
-     */
-    private void handOverIfDark() {
-        if (!paused || timer == null || !timer.isRunning() || !Settings.timerWhileLocked(this)
-                || screenOn(this)) {
-            return;
-        }
-        TimerSoundService.startFor(this, timer.lastCueMs());
-    }
-
     @SuppressWarnings("deprecation")
     static boolean screenOn(android.content.Context context) {
         try {
@@ -707,17 +690,20 @@ public class ClockActivity extends WebActivity {
         }
     }
 
-    /**
-     * The screen may go off a moment after the clock was paused rather than before: then this is
-     * what notices. Registered for the life of the clock.
-     */
-    private final android.content.BroadcastReceiver screenOff =
-            new android.content.BroadcastReceiver() {
+    /** Pause, Resume or Stop on the timer's notification while the clock shows: take it up. */
+    private final Runnable takeUpChangedRun = new Runnable() {
+        @Override
+        public void run() {
+            handler.post(new Runnable() {
                 @Override
-                public void onReceive(android.content.Context context, Intent intent) {
-                    handOverIfDark();
+                public void run() {
+                    if (timer != null && TimerSoundService.takeChanged()) {
+                        timer.handOver(storedRun(), Settings.runStarted(ClockActivity.this));
+                    }
                 }
-            };
+            });
+        }
+    };
 
     /** The run written down, as the service may have left it. */
     private com.reteclock.core.TimerRun storedRun() {
@@ -789,6 +775,7 @@ public class ClockActivity extends WebActivity {
                                 android.os.SystemClock.elapsedRealtime()),
                         com.reteclock.core.TimerMemory.pausedAtOf(run), startEpochMs);
             }
+            TimerSoundService.sync(ClockActivity.this);
         }
 
         @Override
@@ -804,8 +791,9 @@ public class ClockActivity extends WebActivity {
 
         @Override
         public void cue(Tones.Note[] pattern) {
-            // A wake bell ringing on this screen has the right of way over the timer (F4).
-            if (bells.wakeActive()) {
+            // A wake bell ringing on this screen has the right of way over the timer (F4); and the
+            // service plays the cues, unless the platform would not start it (R145).
+            if (bells.wakeActive() || TimerSoundService.plays()) {
                 return;
             }
             if (sounds == null) {
@@ -816,7 +804,7 @@ public class ClockActivity extends WebActivity {
 
         @Override
         public void sound(String name, Tones.Note[] fallback) {
-            if (bells.wakeActive()) {
+            if (bells.wakeActive() || TimerSoundService.plays()) {
                 return;
             }
             if (sounds == null) {
@@ -828,7 +816,7 @@ public class ClockActivity extends WebActivity {
         @Override
         public void speak(String message) {
             if (message == null || message.isEmpty() || !CueSound.canSpeak(ClockActivity.this)
-                    || bells.wakeActive()) {
+                    || bells.wakeActive() || TimerSoundService.plays()) {
                 return;
             }
             if (voice == null) {
@@ -1200,19 +1188,19 @@ public class ClockActivity extends WebActivity {
         layOutScreen();
         applyBrightness();
         view.start();
-        paused = false;
         hourLooked = com.reteclock.core.HourChime.NEVER;
-        // Back from a dark screen: the service that played the cues meanwhile hands them back, and
-        // the run is the one written down — it may have been paused or stopped from the
-        // notification.
-        long handed = TimerSoundService.takeBack(this);
+        // The service plays the cues (R145); the strip draws. The run is the one written down when
+        // the notification has paused, resumed or stopped it meanwhile, and the strip is told at
+        // once if that happens while it shows.
         if (timer != null) {
-            if (handed != TimerSoundService.NOTHING) {
-                timer.handOver(storedRun(), Settings.runStarted(this), handed);
+            if (TimerSoundService.takeChanged()) {
+                timer.handOver(storedRun(), Settings.runStarted(this));
             } else {
                 timer.resumeDrawing();
             }
         }
+        TimerSoundService.setOnChanged(takeUpChangedRun);
+        TimerSoundService.sync(this);
         // The mark this run leaves if it never comes back.
         Settings.setRunUnfinished(this, true);
         handler.removeCallbacks(reportHealthy);
@@ -1233,11 +1221,6 @@ public class ClockActivity extends WebActivity {
 
     @Override
     protected void onDestroy() {
-        try {
-            unregisterReceiver(screenOff);
-        } catch (IllegalArgumentException e) {
-            // Never registered: an onCreate that did not get that far.
-        }
         super.onDestroy();
     }
 
@@ -1255,8 +1238,7 @@ public class ClockActivity extends WebActivity {
         if (timer != null) {
             timer.pauseDrawing();
         }
-        paused = true;
-        handOverIfDark();
+        TimerSoundService.setOnChanged(null);
         if (voice != null) {
             voice.release();
             voice = null;

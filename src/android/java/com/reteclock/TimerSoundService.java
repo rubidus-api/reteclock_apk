@@ -1,16 +1,19 @@
 package com.reteclock;
 
+import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.media.AudioManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.os.SystemClock;
 
+import com.reteclock.core.TimerCueLedger;
 import com.reteclock.core.TimerCues;
 import com.reteclock.core.TimerMemory;
 import com.reteclock.core.TimerPreset;
@@ -20,46 +23,55 @@ import com.reteclock.core.Tones;
 import java.util.List;
 
 /**
- * The timer's cues with the screen off or locked (R130).
+ * The one player of the timer's cues, for the whole of a run (R130, R145).
  *
- * <p>With the screen on, the strip looks every frame and plays whatever fell between two looks. With
- * it off nothing looks, so the timer went quiet while its time ran on. This stands in: the screen
- * that went dark hands over the moment up to which it had played, and this plays each cue at its own
- * time — the same cues, through the same {@link TimerView#dispatch}, as loud as the Volume card says
- * for the phone's mode. Between cues the phone sleeps: a partial wake lock is held only until the
- * next cue is due ({@link TimerCues#nextAt}).
+ * <p>It used to stand in only while the screen was off, with a hand-over each way, and the
+ * hand-overs were where cues were lost and played twice: the clock's pause and the screen-off
+ * broadcast both handed the run over, the second with an older moment, and the count-in was heard
+ * again. Now the screens only draw and flash; they write the run down as they always did and call
+ * {@link #sync}, and this reads it back. Up to where it has played is a {@link TimerCueLedger},
+ * stored beside the run, so reading it again plays nothing again.
+ *
+ * <p>Between cues the phone may sleep. The next cue is waited for twice: by a handler under a partial
+ * wake lock, and — when it is {@link #ALARM_LEAD_MS} or more away — by an exact alarm clock, which
+ * Doze and the battery savers let through and which starts this again if its process was killed.
+ * Whichever comes first plays the cue; the other finds nothing left to play.
  *
  * <p>A foreground service, because Android 8 and up stop a background one within a minute, and so
- * with a notification: the interval, when it ends, *Pause* (*Resume* while paused) and *Stop* (owner's
- * choice, 2026-10-03). Those two change the run that is written down ({@link Settings#rememberRun}),
- * which is the run the clock picks up when it comes back — see {@link #takeBack}.
- *
- * <p>At the finish it plays the finish and goes; the screen is not turned on (owner's choice).
+ * with a notification: the interval, when it ends, *Pause* (*Resume* while paused) and *Stop*
+ * (owner's choice, 2026-10-03). At the finish it plays the finish, leaves a notification saying so
+ * — what a phone on silent shows instead of a sound — and goes; the screen is not turned on.
  */
 public class TimerSoundService extends Service implements TimerView.CueSink {
 
-    /** {@link #takeBack}'s answer when nothing was handed over. */
-    static final long NOTHING = Long.MIN_VALUE;
-
     static final String CHANNEL = "timer";
     private static final int ID = 81;
+    private static final int FINISHED_ID = 82;
 
+    private static final String ACTION_SYNC = "com.reteclock.timer.SYNC";
+    private static final String ACTION_ALARM = "com.reteclock.timer.ALARM";
     private static final String ACTION_PAUSE = "com.reteclock.timer.PAUSE";
     private static final String ACTION_RESUME = "com.reteclock.timer.RESUME";
     private static final String ACTION_STOP = "com.reteclock.timer.STOP";
+    private static final int REQUEST_ALARM = 24;
+    private static final int REQUEST_SHOW = 25;
 
     /** How long the finish is given to play before the service lets go of it. */
     private static final long FINISH_GRACE_MS = 60_000L;
     /** A little past each cue, so the wake lock outlasts the sound it was taken for. */
     private static final long WAKE_SLACK_MS = 10_000L;
+    /** A cue this far away or more is also waited for by an alarm; a tick every second is not. */
+    static final long ALARM_LEAD_MS = 5_000L;
 
-    // Shared with the screens in the same process: the hand-over is a few numbers, not a message.
-    /** Whether a screen still wants the cues played; false once one has taken them back. */
-    private static boolean wanted;
-    /** Whether the service has been asked since the last {@link #takeBack}. */
-    private static boolean used;
-    /** Up to when cues have been played, by the screen that handed over or by the service since. */
-    private static long playedUpTo = NOTHING;
+    // Shared with the screens in the same process.
+    /** False once the platform refused to start this; the screens then play the cues themselves. */
+    private static boolean usable = true;
+    /** Whether the run written down was changed here (Pause, Resume, Stop) since a screen looked. */
+    private static boolean changed;
+    /** The screen to tell at once when that happens; null when none is in front. */
+    private static Runnable onChanged;
+    /** Whether the screensaver is showing: it does not speak messages (R130). */
+    private static boolean dreaming;
 
     private final Handler handler = new Handler();
     private final SoundPlayer player = new SoundPlayer();
@@ -67,55 +79,61 @@ public class TimerSoundService extends Service implements TimerView.CueSink {
     private TimerVoice voice;
     private PowerManager.WakeLock wakeLock;
     private TimerRun run;
+    private String runKey = "";
+    private TimerCueLedger ledger = TimerCueLedger.NONE;
     private long startEpochMs;
     private boolean finishing;
 
     /**
-     * Called by a screen going dark with a run going: carry on from {@code lastCueMs}.
-     *
-     * Asked only when the screen is really off — leaving the clock for its settings, or for another
-     * app, goes on as it always did.
+     * The run written down has changed, or a screen has come back to one: have it played. Nothing
+     * written down and nothing playing is nothing to do.
      */
-    static void startFor(Context context, long lastCueMs) {
-        wanted = true;
-        used = true;
-        playedUpTo = lastCueMs;
-        Intent intent = new Intent(context, TimerSoundService.class);
+    static void sync(Context context) {
+        if (Settings.runOrigin(context) == TimerMemory.NONE && !running) {
+            return;
+        }
+        Intent intent = new Intent(context, TimerSoundService.class).setAction(ACTION_SYNC);
         try {
             if (Build.VERSION.SDK_INT >= 26) {
                 WakeApi26.startForegroundService(context, intent);
             } else {
                 context.startService(intent);
             }
+            usable = true;
         } catch (RuntimeException e) {
-            // The platform refused; the timer is quiet with the screen off, as it used to be.
-            wanted = false;
+            // The platform refused: the screens play the cues while they show, as they used to.
+            usable = false;
         }
     }
 
-    /**
-     * The screen is back. Stops the service and answers up to when cues were played, or
-     * {@link #NOTHING} if it was never asked — in which case the screen goes on as before.
-     *
-     * When it was asked, the run may have been paused or stopped from the notification, so the
-     * screen takes the run that is written down rather than the one it was holding.
-     */
-    static long takeBack(Context context) {
-        wanted = false;
-        if (!used) {
-            return NOTHING;
-        }
-        used = false;
-        long played = playedUpTo;
-        playedUpTo = NOTHING;
-        context.stopService(new Intent(context, TimerSoundService.class));
-        // Never NOTHING once used: "asked, nothing played" still means the run must be re-read.
-        return played == NOTHING ? SystemClock.elapsedRealtime() : played;
+    /** Whether this plays the cues; when not, a screen showing the timer plays them itself. */
+    static boolean plays() {
+        return usable;
     }
+
+    /** Whether Pause, Resume or Stop on the notification changed the run since this was asked. */
+    static boolean takeChanged() {
+        boolean was = changed;
+        changed = false;
+        return was;
+    }
+
+    /** The screen in front, told when the notification changes the run; null to stop telling. */
+    static void setOnChanged(Runnable listener) {
+        onChanged = listener;
+    }
+
+    static void setDreaming(boolean showing) {
+        dreaming = showing;
+    }
+
+    /** Whether an instance is alive in this process; a stop must still reach it. */
+    private static boolean running;
 
     @Override
     public void onCreate() {
         super.onCreate();
+        running = true;
         tones = new TimerSounds(this);
         PowerManager power = (PowerManager) getSystemService(Context.POWER_SERVICE);
         if (power != null) {
@@ -131,13 +149,13 @@ public class TimerSoundService extends Service implements TimerView.CueSink {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         String action = intent == null ? null : intent.getAction();
-        boolean answer = ACTION_PAUSE.equals(action) || ACTION_RESUME.equals(action)
-                || ACTION_STOP.equals(action);
-        if (answer && run == null && !ACTION_STOP.equals(action)) {
-            // A button on a notification the service no longer stands behind: nothing to answer.
-            finish();
-            return START_NOT_STICKY;
+        long now = SystemClock.elapsedRealtime();
+        if (run == null) {
+            read();
         }
+        // Foreground first, whatever follows: Android 8 and up stop a service that was started to
+        // be foreground and did not become so within seconds.
+        startForeground(ID, notification(now));
         if (ACTION_PAUSE.equals(action)) {
             pause();
         } else if (ACTION_RESUME.equals(action)) {
@@ -145,24 +163,45 @@ public class TimerSoundService extends Service implements TimerView.CueSink {
         } else if (ACTION_STOP.equals(action)) {
             stopRun();
         } else {
+            // A screen's sync, the alarm, or the platform starting this again after a kill.
             begin();
         }
-        return START_NOT_STICKY;
+        return START_STICKY;
+    }
+
+    /** The run as written down, and up to where it was played. */
+    private void read() {
+        run = storedRun();
+        runKey = TimerCueLedger.keyOf(Settings.runPreset(this), Settings.runStarted(this));
+        startEpochMs = Settings.runStarted(this);
+        ledger = Settings.timerCueLedger(this);
     }
 
     private void begin() {
-        run = storedRun();
-        startEpochMs = Settings.runStarted(this);
+        read();
+        finishing = false;
+        handler.removeCallbacks(stepper);
+        handler.removeCallbacks(finishWhenQuiet);
         long now = SystemClock.elapsedRealtime();
-        // Foreground first, whatever follows: Android 8 and up stop a service that was started to
-        // be foreground and did not become so within seconds.
-        startForeground(ID, notification(now));
-        if (!wanted || run == null || run.isPaused() || run.finishedAt(now)) {
+        if (run == null) {
             finish();
             return;
         }
-        if (playedUpTo == NOTHING || playedUpTo > now) {
-            playedUpTo = now;
+        if (!ledger.isOf(runKey)) {
+            // A run not played before: whatever said the last one had finished is out of date.
+            cancelFinished();
+        }
+        if (run.isPaused()) {
+            cancelAlarm();
+            release();
+            player.fadeOutAndStop();
+            refreshNotification(now);
+            return;
+        }
+        if (run.finishedAt(now) && ledger.isOf(runKey) && ledger.mark() >= run.totalMs()) {
+            // Its finish has been played already; this is a screen still showing the full bar.
+            finish();
+            return;
         }
         step();
     }
@@ -188,20 +227,30 @@ public class TimerSoundService extends Service implements TimerView.CueSink {
 
     private void step() {
         handler.removeCallbacks(stepper);
-        if (run == null || run.isPaused() || !wanted) {
+        if (run == null || run.isPaused() || finishing) {
             return;
         }
         long now = SystemClock.elapsedRealtime();
-        List<TimerCues.Cue> cues = TimerCues.between(run, playedUpTo, now);
-        playedUpTo = now;
-        TimerView.dispatch(run.preset(), cues, this);
+        List<TimerCues.Cue> cues = TimerCues.between(run, ledger.windowFrom(runKey, run, now), now);
+        ledger = ledger.playedTo(runKey, run, now);
+        Settings.setTimerCueLedger(this, ledger);
+        boolean audible = audible();
+        if (audible) {
+            TimerView.dispatch(run.preset(), cues, this);
+        }
         for (TimerCues.Cue cue : cues) {
-            // What was played with the screen off, for the device lane (verify-timer-locked.sh):
-            // on some images the emulator's sound file cannot say when a sound came.
-            android.util.Log.d("reteclock", "locked cue: " + cue.kind + " " + cue.interval);
+            // What was played, for the device lanes (verify-timer-owner.sh): one line per cue, so
+            // a cue played twice or not at all shows; on some images the emulator's sound file
+            // cannot say when a sound came.
+            android.util.Log.d("reteclock", "timer cue: " + cue.kind + " " + cue.interval + " "
+                    + cue.atMs + (audible ? "" : " quiet"));
         }
         if (run.finishedAt(now)) {
             finishing = true;
+            cancelAlarm();
+            if (hasFinish(cues)) {
+                showFinished();
+            }
             hold(FINISH_GRACE_MS);
             handler.postDelayed(finishWhenQuiet, 1000L);
             return;
@@ -213,18 +262,40 @@ public class TimerSoundService extends Service implements TimerView.CueSink {
         }
         long delay = Math.max(0L, next - now);
         hold(delay + WAKE_SLACK_MS);
+        if (delay >= ALARM_LEAD_MS) {
+            setAlarm(delay);
+        } else {
+            cancelAlarm();
+        }
         refreshNotification(now);
         handler.postDelayed(stepper, delay);
     }
 
+    private static boolean hasFinish(List<TimerCues.Cue> cues) {
+        for (TimerCues.Cue cue : cues) {
+            if (cue.kind == TimerCues.FINISH) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Whether the cues are heard just now. A ringing wake bell has the right of way (F4); with the
+     * screen off they are heard only if Timer settings says so — the run keeps its time either way.
+     */
+    private boolean audible() {
+        if (WakeRingService.isRinging() || BellRinger.anyWakeActive()) {
+            return false;
+        }
+        return ClockActivity.screenOn(this) || Settings.timerWhileLocked(this);
+    }
+
     /** After the finish: wait for its sound to end, then go. */
     private final Runnable finishWhenQuiet = new Runnable() {
-        private long waited;
-
         @Override
         public void run() {
-            waited += 1000L;
-            if (player.isPlaying() && waited < FINISH_GRACE_MS) {
+            if (player.isPlaying() && finishing) {
                 handler.postDelayed(this, 1000L);
                 return;
             }
@@ -240,9 +311,11 @@ public class TimerSoundService extends Service implements TimerView.CueSink {
         run = run.pausedAt(now);
         remember();
         handler.removeCallbacks(stepper);
+        cancelAlarm();
         release();
         player.fadeOutAndStop();
         refreshNotification(now);
+        told();
     }
 
     private void resume() {
@@ -251,8 +324,8 @@ public class TimerSoundService extends Service implements TimerView.CueSink {
         }
         long now = SystemClock.elapsedRealtime();
         run = run.resumedAt(now);
-        playedUpTo = now;
         remember();
+        told();
         step();
     }
 
@@ -273,7 +346,17 @@ public class TimerSoundService extends Service implements TimerView.CueSink {
         run = null;
         Settings.forgetRun(this);
         player.fadeOutAndStop();
+        told();
         finish();
+    }
+
+    /** The screen in front, if any, takes up the run as it now stands. */
+    private void told() {
+        changed = true;
+        Runnable listener = onChanged;
+        if (listener != null) {
+            listener.run();
+        }
     }
 
     private void remember() {
@@ -296,6 +379,7 @@ public class TimerSoundService extends Service implements TimerView.CueSink {
 
     private void finish() {
         handler.removeCallbacksAndMessages(null);
+        cancelAlarm();
         release();
         stopForeground(true);
         stopSelf();
@@ -303,6 +387,7 @@ public class TimerSoundService extends Service implements TimerView.CueSink {
 
     @Override
     public void onDestroy() {
+        running = false;
         handler.removeCallbacksAndMessages(null);
         player.stopNow();
         if (voice != null) {
@@ -316,6 +401,57 @@ public class TimerSoundService extends Service implements TimerView.CueSink {
     @Override
     public IBinder onBind(Intent intent) {
         return null;
+    }
+
+    // ---- the alarm that wakes the phone for the next cue ---------------------------------------
+
+    private PendingIntent alarmIntent(int flags) {
+        Intent intent = new Intent(this, TimerSoundService.class).setAction(ACTION_ALARM);
+        if (Build.VERSION.SDK_INT >= 26) {
+            return WakeApi26.foregroundService(this, REQUEST_ALARM, intent, flags);
+        }
+        return PendingIntent.getService(this, REQUEST_ALARM, intent, flags);
+    }
+
+    /** An exact alarm {@code delayMs} from now; the one before it is replaced. */
+    private void setAlarm(long delayMs) {
+        try {
+            AlarmManager alarms = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+            if (alarms == null) {
+                return;
+            }
+            long at = System.currentTimeMillis() + delayMs;
+            PendingIntent operation = alarmIntent(PendingIntent.FLAG_UPDATE_CURRENT);
+            if (Build.VERSION.SDK_INT >= 21) {
+                // An alarm clock: exempt from Doze and let through by the battery savers. The
+                // status bar shows it while a timer runs (owner, 2026-10-22).
+                PendingIntent show = PendingIntent.getActivity(this, REQUEST_SHOW,
+                        new Intent(this, ClockActivity.class).addFlags(
+                                Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                        PendingIntent.FLAG_UPDATE_CURRENT);
+                WakeApi21.setAlarmClock(alarms, at, operation, show);
+            } else if (Build.VERSION.SDK_INT >= 19) {
+                alarms.setExact(AlarmManager.RTC_WAKEUP, at, operation);
+            } else {
+                alarms.set(AlarmManager.RTC_WAKEUP, at, operation);
+            }
+        } catch (RuntimeException e) {
+            // No alarm: the handler and the wake lock still wait for the cue, as they always did.
+        }
+    }
+
+    private void cancelAlarm() {
+        try {
+            AlarmManager alarms = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+            // NO_CREATE: asking to cancel must not itself leave a pending intent with the system.
+            PendingIntent held = alarmIntent(PendingIntent.FLAG_NO_CREATE);
+            if (alarms != null && held != null) {
+                alarms.cancel(held);
+                held.cancel();
+            }
+        } catch (RuntimeException e) {
+            // Nothing held, or nothing to ask.
+        }
     }
 
     // ---- what a cue becomes: the clock's own rules ----------------------------------------------
@@ -332,11 +468,15 @@ public class TimerSoundService extends Service implements TimerView.CueSink {
 
     @Override
     public void speak(String message) {
-        if (message == null || message.isEmpty() || !CueSound.canSpeak(this)) {
+        // Left to the clock on the screensaver: a screensaver that starts talking is harder to
+        // explain than one that beeps.
+        if (message == null || message.isEmpty() || !CueSound.canSpeak(this)
+                || (dreaming && ClockActivity.screenOn(this))) {
             return;
         }
         if (voice == null) {
             voice = new TimerVoice(this);
+            voice.setStream(AudioManager.STREAM_ALARM);
         }
         voice.say(message, SystemClock.elapsedRealtime(),
                 Settings.soundGain(this, com.reteclock.core.SoundLevels.TIMER_MESSAGES));
@@ -344,10 +484,10 @@ public class TimerSoundService extends Service implements TimerView.CueSink {
 
     @Override
     public void flash() {
-        // Nothing to flash with the screen off.
+        // The screens flash for themselves.
     }
 
-    // ---- the notification -----------------------------------------------------------------------
+    // ---- the notifications ----------------------------------------------------------------------
 
     private void refreshNotification(long now) {
         if (finishing) {
@@ -362,6 +502,63 @@ public class TimerSoundService extends Service implements TimerView.CueSink {
         } catch (RuntimeException e) {
             // A notification that could not be updated still names the run; nothing else is lost.
         }
+    }
+
+    /** "<preset> finished", left behind when the service goes: seen on a phone that made no sound. */
+    @SuppressWarnings("deprecation")
+    private void showFinished() {
+        if (run == null) {
+            return;
+        }
+        try {
+            android.app.NotificationManager manager = (android.app.NotificationManager)
+                    getSystemService(Context.NOTIFICATION_SERVICE);
+            if (manager == null) {
+                return;
+            }
+            String title = getString(R.string.timer_finished, run.preset().name);
+            String text = android.text.format.DateFormat.getTimeFormat(this)
+                    .format(new java.util.Date());
+            Notification done;
+            if (Build.VERSION.SDK_INT < 11) {
+                done = new Notification(R.drawable.ic_launcher_monochrome, title,
+                        System.currentTimeMillis());
+                done.setLatestEventInfo(this, title, text, openClock());
+                done.flags |= Notification.FLAG_AUTO_CANCEL;
+            } else {
+                Notification.Builder builder = Build.VERSION.SDK_INT >= 26
+                        ? WakeApi26.builder(this, CHANNEL)
+                        : new Notification.Builder(this);
+                builder.setSmallIcon(R.drawable.ic_launcher_monochrome)
+                        .setContentTitle(title)
+                        .setContentText(text)
+                        .setAutoCancel(true)
+                        .setContentIntent(openClock());
+                done = Build.VERSION.SDK_INT >= 16 ? builder.build() : builder.getNotification();
+            }
+            manager.notify(FINISHED_ID, done);
+        } catch (RuntimeException e) {
+            // The finish was played as the Volume card says; only the note of it is missing.
+        }
+    }
+
+    private void cancelFinished() {
+        try {
+            android.app.NotificationManager manager = (android.app.NotificationManager)
+                    getSystemService(Context.NOTIFICATION_SERVICE);
+            if (manager != null) {
+                manager.cancel(FINISHED_ID);
+            }
+        } catch (RuntimeException e) {
+            // Nothing shown.
+        }
+    }
+
+    private PendingIntent openClock() {
+        return PendingIntent.getActivity(this, 20,
+                new Intent(this, ClockActivity.class).addFlags(
+                        Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                PendingIntent.FLAG_UPDATE_CURRENT);
     }
 
     @SuppressWarnings("deprecation")
@@ -379,10 +576,7 @@ public class TimerSoundService extends Service implements TimerView.CueSink {
                     android.text.format.DateFormat.getTimeFormat(this)
                             .format(new java.util.Date(endsAt)));
         }
-        PendingIntent open = PendingIntent.getActivity(this, 20,
-                new Intent(this, ClockActivity.class).addFlags(
-                        Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP),
-                PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent open = openClock();
         if (Build.VERSION.SDK_INT < 11) {
             Notification old = new Notification(R.drawable.ic_launcher_monochrome, title,
                     System.currentTimeMillis());

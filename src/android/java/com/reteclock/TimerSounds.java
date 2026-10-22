@@ -76,7 +76,8 @@ final class TimerSounds {
 
     /**
      * Plays a pattern on the alarm stream, whatever the ringer switch says — for a bell that wakes
-     * the phone and nothing else (RFC-0012, F1). An alarm on a silenced phone is the point of one.
+     * the phone (RFC-0012, F1), where an alarm on a silenced phone is the point of one, and for the
+     * timer's cues (R145), whose callers have already asked the Volume card for the phone's mode.
      */
     void playAlarm(Tones.Note[] pattern, final float gain, boolean buzz) {
         if (pattern == null || pattern.length == 0) {

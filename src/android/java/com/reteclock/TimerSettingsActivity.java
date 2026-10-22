@@ -115,6 +115,7 @@ public class TimerSettingsActivity extends WebActivity {
         });
         using.addView(locked);
         using.addView(footer(getString(R.string.timer_while_locked_note)));
+        addBatteryHelp(using);
         using.addView(actionButton(getString(R.string.timer_alert_open),
                 new View.OnClickListener() {
                     @Override
@@ -1281,5 +1282,53 @@ public class TimerSettingsActivity extends WebActivity {
     private int dp(int value) {
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value,
                 getResources().getDisplayMetrics());
+    }
+
+    /**
+     * Whether battery optimisation may hold the app back, and the way to its settings (R145). The
+     * timer wakes the phone with an alarm clock for each cue all the same; a Samsung phone's own
+     * sleeping-apps list is the one thing no app can set for itself, so it is named. Nothing is
+     * asked for: the button only opens the system's page. Not shown below Android 6, which has no
+     * such optimisation.
+     */
+    private void addBatteryHelp(LinearLayout using) {
+        if (android.os.Build.VERSION.SDK_INT < 23) {
+            return;
+        }
+        using.addView(subheading(getString(R.string.timer_battery)));
+        boolean free;
+        try {
+            free = WakeApi23.ignoringBatteryOptimizations(this);
+        } catch (RuntimeException e) {
+            free = false;
+        }
+        using.addView(footer(getString(free ? R.string.timer_battery_free : R.string.timer_battery_held)));
+        if ("samsung".equalsIgnoreCase(android.os.Build.MANUFACTURER)) {
+            using.addView(footer(getString(R.string.timer_battery_samsung)));
+        }
+        using.addView(actionButton(getString(R.string.timer_battery_open),
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        openBatterySettings();
+                    }
+                }));
+    }
+
+    private void openBatterySettings() {
+        String[] pages = {"android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS",
+                "android.settings.APPLICATION_DETAILS_SETTINGS"};
+        for (String page : pages) {
+            Intent intent = new Intent(page);
+            if (page.endsWith("DETAILS_SETTINGS")) {
+                intent.setData(android.net.Uri.parse("package:" + getPackageName()));
+            }
+            try {
+                startActivity(intent);
+                return;
+            } catch (RuntimeException e) {
+                // That page is not on this phone; try the next.
+            }
+        }
     }
 }

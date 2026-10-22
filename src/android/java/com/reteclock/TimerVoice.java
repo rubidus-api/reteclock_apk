@@ -33,9 +33,16 @@ final class TimerVoice {
     private String pending;
     private long pendingAtMs;
     private float pendingGain = 1f;
+    /** The stream spoken on; the engine's own (music) unless somebody says otherwise. */
+    private int stream = -1;
 
     TimerVoice(Context context) {
         this.context = context.getApplicationContext();
+    }
+
+    /** Speaks on this stream from now on: the alarm stream for the timer's messages (R145). */
+    void setStream(int stream) {
+        this.stream = stream;
     }
 
     /**
@@ -139,9 +146,15 @@ final class TimerVoice {
             // so a voice at its usual level is spoken exactly as it always was. An engine may ignore
             // it; nothing else is lost when one does.
             java.util.HashMap<String, String> params = null;
-            if (gain < 1f) {
+            if (gain < 1f || stream >= 0) {
                 params = new java.util.HashMap<String, String>();
+            }
+            if (gain < 1f) {
                 params.put(TextToSpeech.Engine.KEY_PARAM_VOLUME, Float.toString(gain));
+            }
+            if (stream >= 0) {
+                // Still honoured on API 21 and up, where it becomes the matching audio attributes.
+                params.put(TextToSpeech.Engine.KEY_PARAM_STREAM, Integer.toString(stream));
             }
             engine.speak(text, TextToSpeech.QUEUE_FLUSH, params);
             // What was handed over, for the device lanes: a sound's length says that something

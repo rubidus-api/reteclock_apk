@@ -60,4 +60,10 @@ final class WakeApi26 {
     static void startForegroundService(Context context, Intent intent) {
         context.startForegroundService(intent);
     }
+
+    /** For an alarm that starts a service which makes itself foreground at once (R145). */
+    static android.app.PendingIntent foregroundService(Context context, int request, Intent intent,
+            int flags) {
+        return android.app.PendingIntent.getForegroundService(context, request, intent, flags);
+    }
 }

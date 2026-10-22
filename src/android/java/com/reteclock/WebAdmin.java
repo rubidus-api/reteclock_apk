@@ -382,8 +382,9 @@ final class WebAdmin {
         if("trial-images".equals(op)){int step=(int)WebSettings.number(f.containsKey("step")?f.get("step"):String.valueOf(Settings.imageQuality(app)),0,ImageQuality.highestOn(Build.VERSION.SDK_INT));Intent i=new Intent(app,ImageTrialActivity.class).putExtra(ImageTrialActivity.EXTRA_STEP,step).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);app.startActivity(i);return;}
         if("test-level".equals(op)){int mode=(int)WebSettings.number(f.get("mode"),0,2),kind=(int)WebSettings.number(f.get("soundKind"),0,4);SoundLevels levels=Settings.soundLevels(app);float gain=levels.gain(mode,kind);boolean buzz=levels.buzzes(mode,kind)&&!Settings.onTelevision(app);
             if(kind==SoundLevels.WAKE_BELLS)new TimerSounds(app).playAlarm(Tones.CHIME,gain,buzz);
-            else if(kind==SoundLevels.SPOKEN_TIME||kind==SoundLevels.TIMER_MESSAGES){if(testVoice==null)testVoice=new TimerVoice(app);testVoice.say(Settings.spokenTimeNow(app),SystemClock.elapsedRealtime(),gain);}
-            else new TimerSounds(app).play(kind==SoundLevels.BELLS?Tones.CHIME:Tones.END,gain,buzz);return;}
+            else if(kind==SoundLevels.TIMER_CUES)new TimerSounds(app).playAlarm(Tones.END,gain,buzz);
+            else if(kind==SoundLevels.SPOKEN_TIME||kind==SoundLevels.TIMER_MESSAGES){if(testVoice!=null)testVoice.release();testVoice=new TimerVoice(app);if(kind==SoundLevels.TIMER_MESSAGES)testVoice.setStream(android.media.AudioManager.STREAM_ALARM);testVoice.say(Settings.spokenTimeNow(app),SystemClock.elapsedRealtime(),gain);}
+            else new TimerSounds(app).play(Tones.CHIME,gain,buzz);return;}
         if("test-sound".equals(op)){String name=f.get("name");if(name==null||SafeName.complaint(name)!=null||Settings.sounds(app).file(name)==null)throw new IOException("Missing sound");if(testSound==null)testSound=new SoundPlayer();testSound.play(Settings.sounds(app).file(name),Settings.soundClips(app).of(name));return;}
         FontLibrary lib=library(f.get("kind"));String name=f.get("name");if(name==null||SafeName.complaint(name)!=null||lib.file(name)==null)throw new IOException("Missing media");
         if("delete".equals(op)){if(!lib.delete(name))throw new IOException("Cannot delete media");
