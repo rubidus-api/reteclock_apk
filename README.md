@@ -1,4 +1,4 @@
-[한국어](README.ko.md) | **English** — **reteclock v0.57.0** — [APK(Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.57.0/reteclock-0.57.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)<br>
+[한국어](README.ko.md) | **English** — **reteclock v0.58.0** — [APK(Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.58.0/reteclock-0.58.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)<br>
 Is your phone's web browser too old to download files from GitHub? Try [ReteGet](https://github.com/rubidus-api/reteget_apk), a file and APK downloader for old Android phones.
 
 # reteclock
@@ -12,7 +12,7 @@ so the numbers never burn into an OLED screen.
 
 There is nothing to sign up for and nothing to configure. It needs no account, no network and no
 Play Store, so it still works on phones that can no longer install anything else. It is small —
-about 695 KB — and asks for five normal permissions, all granted at install: one to keep the screen
+about 699 KB — and asks for five normal permissions, all granted at install: one to keep the screen
 awake, one to vibrate, which only the timer and the bells use, one for a foreground service — while
 a timer runs, an alarm rings, or the web administrator runs in the background
 because you chose that — and one that only *Alarms (experimental)*
@@ -32,8 +32,8 @@ app never opens a connection of its own.
 
 **[⬇ Get it on F-Droid](https://f-droid.org/packages/com.reteclock/)** — recommended.
 
-**[⬇ Download reteclock-0.57.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.57.0/reteclock-0.57.0.apk)**
-— 695 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
+**[⬇ Download reteclock-0.58.0.apk](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.58.0/reteclock-0.58.0.apk)**
+— 699 KB, installs on Android 2.3 and newer. This is the file itself, so an old browser that cannot
 render GitHub's release page can still fetch it.
 
 The newest release is always at
@@ -137,7 +137,7 @@ it needs beyond keeping the screen awake. Copy the APK to the phone, open it, an
 
 ## Which phones it runs on
 
-Published on F-Droid; the latest release is 0.57.0.
+Published on F-Droid; the latest release is 0.58.0.
 
 | | |
 |---|---|
@@ -674,7 +674,7 @@ Nothing below is needed to use the app.
 Java and the Android framework, nothing else. Built with the Android SDK command-line tools
 (`aapt2`, `javac`, `d8`, `zipalign`, `apksigner`) driven by POSIX shell scripts. No Gradle. No
 AndroidX, no support library, no Kotlin runtime and no third-party dependency — a single
-`classes.dex` and an APK of about 695 KB. It is signed with the v1 (JAR) scheme so old phones
+`classes.dex` and an APK of about 699 KB. It is signed with the v1 (JAR) scheme so old phones
 accept it, plus v2 and v3 for current ones, and it holds five normal permissions (`WAKE_LOCK`,
 `VIBRATE` for the timer, `FOREGROUND_SERVICE` for the timer with the screen off and for the
 experimental alarms, `INTERNET` for optional local web administration, and `RECEIVE_BOOT_COMPLETED` for those alarms, whose components ship disabled), all granted at install and never requested at runtime.

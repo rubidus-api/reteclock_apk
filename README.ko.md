@@ -1,4 +1,4 @@
-**한국어** | [English](README.md) — **reteclock v0.57.0** — [APK(Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.57.0/reteclock-0.57.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)<br>
+**한국어** | [English](README.md) — **reteclock v0.58.0** — [APK(Android 2.3+)](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.58.0/reteclock-0.58.0.apk) · [F-Droid](https://f-droid.org/packages/com.reteclock/)<br>
 웹 브라우저가 오래되어 GitHub 에서 파일을 받을 수 없나요? 옛 안드로이드 폰용 파일·APK 다운로더 [ReteGet](https://github.com/rubidus-api/reteget_apk/blob/main/README.ko.md) 을 이용해 보세요!
 
 # reteclock
@@ -10,7 +10,7 @@
 그리는 위치를 이따금 한 픽셀씩 조용히 옮겨서 OLED 화면에 숫자 자국이 남지 않도록 합니다.
 
 가입할 것도, 설정할 것도 없습니다. 계정도 네트워크도 플레이 스토어도 필요하지 않아서, 이제는
-아무 앱도 새로 설치할 수 없는 폰에서도 잘 돌아갑니다. 크기는 695 KB 남짓으로 작고, 요구하는 권한은
+아무 앱도 새로 설치할 수 없는 폰에서도 잘 돌아갑니다. 크기는 699 KB 남짓으로 작고, 요구하는 권한은
 일반 권한 다섯입니다 — 화면을 켜 두기 위한 것, 타이머와 종만 쓰는 진동, 타이머가
 도는 동안이나 알람이 울리는 동안, 또는 웹 관리를 백그라운드로 돌리기로 했을 때의 포그라운드 서비스, *Alarms (experimental)* 만 쓰는 재시작 후 시작,
 그리고 선택 기능인 로컬 웹 관리가 쓰는 `INTERNET`. 모두 설치할 때 부여됩니다. 재시작 후 시작은 그
@@ -30,8 +30,8 @@
 
 **[⬇ F-Droid에서 받기](https://f-droid.org/packages/com.reteclock/)** — 권장합니다.
 
-**[⬇ reteclock-0.57.0.apk 내려받기](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.57.0/reteclock-0.57.0.apk)**
-— 695 KB이고 안드로이드 2.3 이상에 설치됩니다. 파일로 곧장 이어지는 링크라, 깃허브의 릴리즈
+**[⬇ reteclock-0.58.0.apk 내려받기](https://github.com/rubidus-api/reteclock_apk/releases/download/v0.58.0/reteclock-0.58.0.apk)**
+— 699 KB이고 안드로이드 2.3 이상에 설치됩니다. 파일로 곧장 이어지는 링크라, 깃허브의 릴리즈
 페이지를 제대로 그리지 못하는 오래된 브라우저에서도 내려받으실 수 있습니다.
 
 가장 최근 릴리즈는 언제나
@@ -135,7 +135,7 @@ F-Droid 앱은 업데이트할 때마다 서명도 검사합니다.
 
 ## 어떤 폰에서 돌아가나
 
-F-Droid에 게시되어 있고, 최신 릴리즈는 0.57.0입니다.
+F-Droid에 게시되어 있고, 최신 릴리즈는 0.58.0입니다.
 
 | | |
 |---|---|
@@ -617,7 +617,7 @@ settings* 에서 규약을 고르시면(공표된 열 가지 묶음 중 하나 �
 자바와 안드로이드 프레임워크만 씁니다. 안드로이드 SDK 명령줄 도구(`aapt2`, `javac`, `d8`,
 `zipalign`, `apksigner`)를 POSIX 셸 스크립트로 몰아 빌드하며, Gradle은 쓰지 않습니다. AndroidX도,
 서포트 라이브러리도, 코틀린 런타임도, 서드파티 의존성도 없습니다. `classes.dex` 하나에 APK는
-695 KB 남짓입니다. 옛 기기가 받아들이도록 v1(JAR) 방식으로 서명하고 최신 안드로이드를 위해
+699 KB 남짓입니다. 옛 기기가 받아들이도록 v1(JAR) 방식으로 서명하고 최신 안드로이드를 위해
 v2와 v3도 함께 붙이며, 일반 권한 다섯(`WAKE_LOCK`, 타이머용 `VIBRATE`, 화면이 꺼진 타이머와 실험 알람용
 `FOREGROUND_SERVICE`, 선택 기능인 로컬 웹 관리용 `INTERNET`, 실험 알람용 `RECEIVE_BOOT_COMPLETED` —
 알람 부품은 꺼진 채 들어 있음)만 지니고 설치할 때
